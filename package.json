@@ -1,7 +1,7 @@
 {
     "name": "@flowscripter/cli-framework",
     "version": "0.0.0",
-    "description": "CLI framework based on the esm-dynamic-plugins framework.",
+    "description": "CLI framework using ES Modules.",
     "repository": {
         "type": "git",
         "url": "https://github.com/flowscripter/cli-framework"
