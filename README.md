@@ -24,15 +24,17 @@ This project provides a Javascript framework for developing Command Line Interfa
 
 The key concepts are:
 
-* A host application extends the *CLI* interface (a default CLI implementation is provided)
-* The *CLI* is responsible for loading one or more *Commands* from one or more *CommandFactories* and providing
-them to the *Runner*
-* The CLI provides invocation arguments to the *Runner* which parses them and determines which *Command* to run
-* When a *Command* is run, it is provided with a *Context* which provides access to a number of *CommandServices*
-* The *CLI* is able to pre-populate the *Context* with host application *CommandService* implementations
+* A host application extends the *CLI* interface (a default CLI implementation is provided).
+* The *CLI* is responsible for: 
+    * Loading one or more *Commands* from one or more *CommandFactories* and storing them in the *Runner*
+    * Loading one or more *Services* from one or more *ServiceFactories* and storing them in the *Context*
+* The CLI provides invocation arguments to the *Runner* which parses them and determines which *Command* to run.
+* When a *Command* is run, it is provided with a *Context* which provides access to a number of *Services*.
 * The *PluginCommandFactory* is an instance of a *CommandFactory* providing the ability to dynamically
-load *CommandPlugins* which consist of one or more *Command* implementations
- 
+load *CommandPlugins* which consist of one or more *Command* implementations.
+* The *PluginServiceFactory* is an instance of a *ServiceFactory* providing the ability to dynamically
+load *ServicesPlugins* which consist of one or more *Service* implementations.
+  
 The following high level class diagram illustrates these relationships:
 
 ![High Level Class Diagram](images/high_level_class_diagram.png "High Level Class Diagram")
