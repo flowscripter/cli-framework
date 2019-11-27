@@ -12,15 +12,6 @@ import Service from './Service';
 export default interface Context<S_ID> {
 
     /**
-     * Add the specified [[Service]] instance to this [[Context]].
-     *
-     * @param service the [[Service]] to add.
-     *
-     * @throws *Error* if a [[Service]] with the same [[Service.serviceId]] has already been added.
-     */
-    addService(service: Service<S_ID>): void;
-
-    /**
      * Return the specified [[Service]]
      *
      * @param serviceId the ID of the [[Service]] to retrieve.

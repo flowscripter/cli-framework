@@ -14,7 +14,7 @@ export default interface CommandFactory<S_ID> {
     /**
      * Return all [[Command]] instances supplied by this factory.
      *
-     * @return iterable of [[Command]]
+     * @return iterable of [[Command]] instances
      */
     getCommands(): Iterable<Command<S_ID>>;
 }

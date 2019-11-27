@@ -13,26 +13,21 @@ import CommandFactory from './CommandFactory';
 export default interface CLI<S_ID> {
 
     /**
-     * Return all [[CommandFactory]] instances in use by this [[CLI]].
+     * Get all [[CommandFactory]] instances in use by this [[CLI]].
      *
-     * @return array of [[CommandFactory]]
+     * @return iterable of [[CommandFactory]] instances
      */
-    readonly commandFactories: CommandFactory<S_ID>[];
+    getCommandFactories(): Iterable<CommandFactory<S_ID>>;
 
     /**
-     * Return all [[ServiceFactory]] instances in use by this [[CLI]].
+     * Get all [[ServiceFactory]] instances in use by this [[CLI]].
      *
-     * @return array of [[ServiceFactory]]
+     * @return iterable of [[ServiceFactory]] instances
      */
-    readonly serviceFactories: ServiceFactory<S_ID>[];
+    getServiceFactories(): Iterable<ServiceFactory<S_ID>>;
 
     /**
      * Execute the CLI.
-     *
-     * This will:
-     * 1. populate a [[Context]] with all [[Service]] instances
-     * 2. populate a [[Runner]] with all [[Command]] instances
-     * 3. invoke the [[Runner]] passing in the [[Context]]
      */
     execute(): Promise<void>;
 }

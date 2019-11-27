@@ -3,37 +3,41 @@
  */
 
 /**
- * Interface to be implemented by all [[Command]] arguments.
- *
- * @typeparam TYPE is the type of the value to be parsed for this [[Argument]].
+ * Enum of possible [[Argument]] value types
  */
-export default interface Argument<TYPE extends ArgumentValueType> {
+export enum ArgumentValueTypeName {
+    String = 'STRING',
+    Number = 'NUMBER',
+    Boolean = 'BOOLEAN'
+}
+
+/**
+ * Interface to be implemented by all [[Command]] arguments.
+ */
+export default interface Argument {
 
     /**
      * Name of the argument.
      *
-     * Will always be lowercase with only alphanumeric non-whitespace ASCII or `_` and `-` characters.
+     * Must consist of alphanumeric non-whitespace ASCII characters or `_` and `-` characters.
+     * Cannot start with `-`.
      */
     readonly name: string;
 
     /**
-     * Default value for the argument if not specified.
+     * Type of the argument value.
+     *
+     * If not specified the default is [[ArgumentValueTypeName.String]].
      */
-    readonly default: TYPE | undefined;
+    readonly type?: ArgumentValueTypeName;
 
     /**
-     * If this is `true` the argument must be populated with a value either by being specified,
-     * having a default or being preset in configuration.
+     * Optional description of the argument.
      */
-    readonly required: boolean;
-
-    /**
-     * Description of the argument.
-     */
-    readonly description: string | undefined;
+    readonly description?: string;
 
     /**
      * Optional list of values that the argument value must match.
      */
-    readonly choices: TYPE[] | undefined;
+    readonly validValues?: ReadonlyArray<ArgumentSingleValueType>;
 }

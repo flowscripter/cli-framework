@@ -14,7 +14,7 @@ export default interface ServiceFactory<S_ID> {
     /**
      * Return all [[Service]] instances supplied by this factory.
      *
-     * @return iterable of [[Service]]
+     * @return iterable of [[Service]] instances
      */
     getServices(): Iterable<Service<S_ID>>;
 }

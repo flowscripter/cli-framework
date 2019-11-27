@@ -4,7 +4,14 @@
 
 import Context from './Context';
 import Option from './Option';
-import Parameter from './Parameter';
+import Positional from './Positional';
+
+/**
+ * Type of arguments supplied to a command
+ */
+export interface CommandArgs {
+    [argName: string]: ArgumentValueType;
+}
 
 /**
  * Interface to be implemented by a [[Command]] implementation.
@@ -16,64 +23,96 @@ export default interface Command<S_ID> {
     /**
      * Name of the command.
      *
-     * Will always be lowercase with only alphanumeric non-whitespace ASCII or `_` and `-` characters.
+     * Must consist of alphanumeric non-whitespace ASCII characters or `_` and `-` characters.
+     * Cannot start with `-` or `--`.
      */
     readonly name: string;
 
     /**
-     * Aliases for the command.
+     * Optional aliases for the command.
      *
-     * Will always be lowercase with only alphanumeric non-whitespace ASCII or `_` and `-` characters.
+     * Must consist of alphanumeric non-whitespace ASCII characters or `_` and `-` characters.
+     * Cannot start with `-`.
      */
-    readonly aliases: string[];
+    readonly aliases?: ReadonlyArray<string>;
 
     /**
      * The command should be treated as a global option.
      *
      * In this is `true`:
      *
-     * * invocation will take the form of `executable --<command.name>`
+     * * invocation will take the form of `executable --<command_name> [command_arguments]`
      * * help output will appear in the global options section
+     *
+     * If not specified, the default is `false`.
      */
-    readonly isGlobal: boolean;
+    readonly isGlobal?: boolean;
+
+    /**
+     * Should the command be treated as a qualifier if [[isGlobal]] is `true`.
+     *
+     * When treated as a qualifier:
+     *
+     * * more than one global qualifier command can be used e.g.
+     *
+     * `executable --<global_qualifier_command> [command_arguments] --<global_qualifier_command> [command_arguments]`
+     * * another global or non-global command must be specified e.g.
+     *
+     * `executable --<global_qualifier_command> [command_arguments] <command> [command_arguments]`
+     *
+     * A concrete example for this is:
+     *
+     * `myApp --config config.json --loglevel verbose update --all`
+     *
+     * where:
+     *
+     * * `config` and `loglevel` are global qualifier commands
+     * * `update` is a standard command
+     *
+     * If not specified, the default is `false`.
+     *
+     * **NOTE**: This value is ignored if [[isGlobal]] is `false`.
+     */
+    readonly isGlobalQualifier?: boolean;
 
     /**
      * The command should be treated as a default command.
      *
      * In this is `true` and no other command is matched after parsing the CLI arguments,
-     * this command will be run.
+     * this command will be run. If not specified, the default is `false`.
      */
-    readonly isDefault: boolean;
+    readonly isDefault?: boolean;
 
     /**
-     * Description of the command.
+     * Optional description of the command.
      */
-    readonly description: string | undefined;
+    readonly description?: string;
 
     /**
-     * Usage example for the command.
+     * Optional usage example for the command.
      */
-    readonly usage: string | undefined;
+    readonly usage?: string;
 
     /**
-     * Group name for the command (used to group commands in help).
+     * Optional group name for the command (used to group commands in help).
      */
-    readonly group: string | undefined;
+    readonly group?: string;
 
     /**
-     * Parameters (positional arguments) for the command.
+     * Optional option arguments for the command.
      */
-    readonly parameters: Parameter<ArgumentValueType>[];
+    readonly options?: ReadonlyArray<Option>;
 
     /**
-     * Options (non-positional arguments) for the command.
+     * Optional positional arguments for the command.
      */
-    readonly options: Option<ArgumentValueType>[];
+    readonly positionals?: ReadonlyArray<Positional>;
 
     /**
      * Run the command.
      *
+     * @param commandArgs the arguments for the command.
      * @param context the [[Context]] in which to run.
      */
-    run(context: Context<S_ID>): Promise<void>;
+    run(commandArgs: CommandArgs, context: Context<S_ID>): Promise<void>;
 }

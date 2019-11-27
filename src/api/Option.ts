@@ -5,26 +5,43 @@
 import Argument from './Argument';
 
 /**
- * Interface for non-positional arguments for a [[Command]].
+ * Interface for optional arguments for a [[Command]].
  *
- * This will be used for invocation in the form of `executable command --<name>`
+ * This will be used for invocation in the form of `executable <command_name> --<option_name>=<option_value>`
  *
- * @typeparam TYPE is the type of the value to be parsed for this [[Option]].
+ * **NOTE**: For an [[Option]] of type `boolean`:
+ *
+ * * specifying `--<name>` is equivalent to `--<name>=true`
+ * * not specifying the argument is equivalent to `--<name>=false`
  */
-export default interface Option<TYPE extends ArgumentValueType> extends Argument<TYPE> {
+export default interface Option extends Argument {
 
     /**
-     * Short alias for the option.
+     * Optional short alias for the option.
      *
      * This will be used for invocation in the form of `executable command -<shortAlias>`
      *
-     * Will always be lowercase with only alphanumeric non-whitespace ASCII or `_` and `-` characters.
+     * Must consist of a single alphanumeric non-whitespace ASCII character.
      */
-    readonly shortAlias: string | undefined;
+    readonly shortAlias?: string;
+
+    /**
+     * Default value for the argument if not specified.
+     */
+    readonly defaultValue?: ArgumentValueType;
+
+    /**
+     * If this is `true` the option does not need to be specified nor have a default value.
+     */
+    readonly isOptional?: boolean;
 
     /**
      * If this is `true` the option can be specified multiple times and all values will be returned in an array
      * matching the order provided.
+     *
+     * As an example `executable command --<name>=foo --<name>=bar`
+     *
+     * Note that if [[isOptional]] is `false`, at least one entry for the array must be specified.
      */
-    readonly array: boolean;
+    readonly isArray?: boolean;
 }

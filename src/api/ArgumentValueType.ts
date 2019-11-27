@@ -2,7 +2,9 @@
  * @module @flowscripter/cli-framework
  */
 
+type ArgumentSingleValueType = number | string | boolean;
+
 /**
- * The type of the value to be parsed for an [[Argument]] can be: `boolean`, `number` or `string`.
+ * The type of the value to be parsed for an [[Argument]] can be: `boolean`, `number` or `string` or an array of these.
  */
-type ArgumentValueType = number | string | boolean;
+type ArgumentValueType = ArgumentSingleValueType | ArgumentSingleValueType[];
