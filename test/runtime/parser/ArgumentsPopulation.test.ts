@@ -23,15 +23,15 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments<string>(command, ['--foo', 'bar'], invalidArgs);
+        let result = populateArguments(command, ['--foo', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['--foo=bar'], invalidArgs);
+        result = populateArguments(command, ['--foo=bar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['-f', 'bar'], invalidArgs);
+        result = populateArguments(command, ['-f', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, []);
         expect(invalidArgs).toEqual([]);
     });
@@ -50,17 +50,17 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments<string>(command, ['--foo', '1'], invalidArgs);
+        let result = populateArguments(command, ['--foo', '1'], invalidArgs);
         expectExtractResult(result, { foo: '1' }, []);
         expect(invalidArgs).toEqual([]);
 
         command.options[0].type = ArgumentValueTypeName.String;
-        result = populateArguments<string>(command, ['-f', 'bar'], invalidArgs);
+        result = populateArguments(command, ['-f', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, []);
         expect(invalidArgs).toEqual([]);
 
         command.options[0].type = ArgumentValueTypeName.Boolean;
-        result = populateArguments<string>(command, ['-f'], invalidArgs);
+        result = populateArguments(command, ['-f'], invalidArgs);
         expectExtractResult(result, { foo: 'true' }, []);
         expect(invalidArgs).toEqual([]);
     });
@@ -78,19 +78,19 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments<string>(command, ['--foo', 'bar'], invalidArgs);
+        let result = populateArguments(command, ['--foo', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['--foo', 'bar', '--foo', 'bar'], invalidArgs);
+        result = populateArguments(command, ['--foo', 'bar', '--foo', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: ['bar', 'bar'] }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['--foo=bar', '--foo', 'bar'], invalidArgs);
+        result = populateArguments(command, ['--foo=bar', '--foo', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: ['bar', 'bar'] }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['--foo=bar', '-f', 'bar'], invalidArgs);
+        result = populateArguments(command, ['--foo=bar', '-f', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: ['bar', 'bar'] }, []);
         expect(invalidArgs).toEqual([]);
     });
@@ -110,17 +110,17 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments<string>(command, ['--foo', 'bar', '--goo=gar'], invalidArgs);
+        let result = populateArguments(command, ['--foo', 'bar', '--goo=gar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar', goo: 'gar' }, []);
         expect(invalidArgs).toEqual([]);
 
         command.options[0].type = ArgumentValueTypeName.Boolean;
-        result = populateArguments<string>(command, ['--foo', '--goo=gar'], invalidArgs);
+        result = populateArguments(command, ['--foo', '--goo=gar'], invalidArgs);
         expectExtractResult(result, { foo: 'true', goo: 'gar' }, []);
         expect(invalidArgs).toEqual([]);
 
         command.options[0].isArray = true;
-        result = populateArguments<string>(command, ['--foo', '--foo', 'false', '--goo=gar'], invalidArgs);
+        result = populateArguments(command, ['--foo', '--foo', 'false', '--goo=gar'], invalidArgs);
         expectExtractResult(result, { foo: ['true', 'false'], goo: 'gar' }, []);
         expect(invalidArgs).toEqual([]);
     });
@@ -142,17 +142,17 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments<string>(command, ['--foo', 'bar1', '--goo=true', '--foo', 'bar2',
+        let result = populateArguments(command, ['--foo', 'bar1', '--goo=true', '--foo', 'bar2',
             '--goo=false'], invalidArgs);
         expectExtractResult(result, { foo: ['bar1', 'bar2'], goo: ['true', 'false'] }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['--foo', 'bar1', '--goo=true', '--goo=false',
+        result = populateArguments(command, ['--foo', 'bar1', '--goo=true', '--goo=false',
             '--foo', 'bar2'], invalidArgs);
         expectExtractResult(result, { foo: ['bar1', 'bar2'], goo: ['true', 'false'] }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['--foo', 'bar1', '-g', '--foo', 'bar2', '-g=false'],
+        result = populateArguments(command, ['--foo', 'bar1', '-g', '--foo', 'bar2', '-g=false'],
             invalidArgs);
         expectExtractResult(result, { foo: ['bar1', 'bar2'], goo: ['true', 'false'] }, []);
         expect(invalidArgs).toEqual([]);
@@ -169,11 +169,11 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments<string>(command, ['--goo=moo'], invalidArgs);
+        let result = populateArguments(command, ['--goo=moo'], invalidArgs);
         expectExtractResult(result, {}, ['--goo=moo']);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['--goo', 'moo'], invalidArgs);
+        result = populateArguments(command, ['--goo', 'moo'], invalidArgs);
         expectExtractResult(result, { }, ['--goo', 'moo']);
         expect(invalidArgs).toEqual([]);
     });
@@ -190,15 +190,15 @@ describe('ArgumentsPopulation test', () => {
         };
 
         let invalidArgs: InvalidArg[] = [];
-        let result = populateArguments<string>(command, ['-foo=moo'], invalidArgs);
+        let result = populateArguments(command, ['-foo=moo'], invalidArgs);
         expectExtractResult(result, {}, ['-foo=moo']);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['--f', 'moo'], invalidArgs);
+        result = populateArguments(command, ['--f', 'moo'], invalidArgs);
         expectExtractResult(result, { }, ['--f', 'moo']);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['--foo=', 'moo'], invalidArgs);
+        result = populateArguments(command, ['--foo=', 'moo'], invalidArgs);
         expectExtractResult(result, { }, ['moo']);
         expect(invalidArgs).toEqual([
             {
@@ -208,7 +208,7 @@ describe('ArgumentsPopulation test', () => {
         ]);
 
         invalidArgs = [];
-        result = populateArguments<string>(command, ['-f=', 'moo'], invalidArgs);
+        result = populateArguments(command, ['-f=', 'moo'], invalidArgs);
         expectExtractResult(result, { }, ['moo']);
         expect(invalidArgs).toEqual([
             {
@@ -229,7 +229,7 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments<string>(command, ['bar'], invalidArgs);
+        let result = populateArguments(command, ['bar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, []);
         expect(invalidArgs).toEqual([]);
 
@@ -237,7 +237,7 @@ describe('ArgumentsPopulation test', () => {
             name: 'bar'
         });
 
-        result = populateArguments<string>(command, ['foo', 'bar'], invalidArgs);
+        result = populateArguments(command, ['foo', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: 'foo', bar: 'bar' }, []);
         expect(invalidArgs).toEqual([]);
     });
@@ -255,17 +255,17 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments<string>(command, ['1'], invalidArgs);
+        let result = populateArguments(command, ['1'], invalidArgs);
         expectExtractResult(result, { foo: '1' }, []);
         expect(invalidArgs).toEqual([]);
 
         command.positionals[0].type = ArgumentValueTypeName.String;
-        result = populateArguments<string>(command, ['bar'], invalidArgs);
+        result = populateArguments(command, ['bar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, []);
         expect(invalidArgs).toEqual([]);
 
         command.positionals[0].type = ArgumentValueTypeName.Boolean;
-        result = populateArguments<string>(command, ['true'], invalidArgs);
+        result = populateArguments(command, ['true'], invalidArgs);
         expectExtractResult(result, { foo: 'true' }, []);
         expect(invalidArgs).toEqual([]);
     });
@@ -284,7 +284,7 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        const result = populateArguments<string>(command, ['f1', 'f2'], invalidArgs);
+        const result = populateArguments(command, ['f1', 'f2'], invalidArgs);
         expectExtractResult(result, { foo1: 'f1', foo2: 'f2' }, []);
         expect(invalidArgs).toEqual([]);
     });
@@ -301,11 +301,11 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments<string>(command, ['bar', 'bar'], invalidArgs);
+        let result = populateArguments(command, ['bar', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: ['bar', 'bar'] }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['bar'], invalidArgs);
+        result = populateArguments(command, ['bar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, []);
         expect(invalidArgs).toEqual([]);
     });
@@ -324,20 +324,20 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments<string>(command, ['foo'], invalidArgs);
+        let result = populateArguments(command, ['foo'], invalidArgs);
         expectExtractResult(result, { foo: 'foo' }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['foo', 'bar'], invalidArgs);
+        result = populateArguments(command, ['foo', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: 'foo', bar: 'bar' }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['foo', 'bar', 'bar'], invalidArgs);
+        result = populateArguments(command, ['foo', 'bar', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: 'foo', bar: ['bar', 'bar'] }, []);
         expect(invalidArgs).toEqual([]);
 
         command.positionals[0].isVarArg = true;
-        result = populateArguments<string>(command, ['foo', 'bar'], invalidArgs);
+        result = populateArguments(command, ['foo', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: ['foo', 'bar'] }, []);
         expect(invalidArgs).toEqual([]);
     });
@@ -362,19 +362,19 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments<string>(command, ['--goo1=g1', 'f1', 'f2', '--goo2=g2'], invalidArgs);
+        let result = populateArguments(command, ['--goo1=g1', 'f1', 'f2', '--goo2=g2'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'g1', goo2: 'g2', foo1: 'f1', foo2: 'f2'
         }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['--goo1', 'g1', 'f1', 'f2', '--goo2', 'g2'], invalidArgs);
+        result = populateArguments(command, ['--goo1', 'g1', 'f1', 'f2', '--goo2', 'g2'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'g1', goo2: 'g2', foo1: 'f1', foo2: 'f2'
         }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['-g1', 'g1', 'f1', 'f2', '-g2', 'g2'], invalidArgs);
+        result = populateArguments(command, ['-g1', 'g1', 'f1', 'f2', '-g2', 'g2'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'g1', goo2: 'g2', foo1: 'f1', foo2: 'f2'
         }, []);
@@ -403,19 +403,19 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments<string>(command, ['--goo1', 'f1', 'f2', '--goo2'], invalidArgs);
+        let result = populateArguments(command, ['--goo1', 'f1', 'f2', '--goo2'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'true', goo2: 'true', foo1: 'f1', foo2: 'f2'
         }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['--goo1', 'true', 'f1', 'f2', '--goo2', 'false'], invalidArgs);
+        result = populateArguments(command, ['--goo1', 'true', 'f1', 'f2', '--goo2', 'false'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'true', goo2: 'false', foo1: 'f1', foo2: 'f2'
         }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['-g1', 'true', 'f1', 'f2', '-g2', 'false'], invalidArgs);
+        result = populateArguments(command, ['-g1', 'true', 'f1', 'f2', '-g2', 'false'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'true', goo2: 'false', foo1: 'f1', foo2: 'f2'
         }, []);
@@ -438,20 +438,20 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments<string>(command, ['--foo', 'f1', 'goo1', '--foo', 'f2'], invalidArgs);
+        let result = populateArguments(command, ['--foo', 'f1', 'goo1', '--foo', 'f2'], invalidArgs);
         expectExtractResult(result, {
             foo: ['f1', 'f2'], goo: 'goo1'
         }, []);
         expect(invalidArgs).toEqual([]);
 
         command.options[0].type = ArgumentValueTypeName.Boolean;
-        result = populateArguments<string>(command, ['--foo', 'true', 'goo1', '--foo', 'false'], invalidArgs);
+        result = populateArguments(command, ['--foo', 'true', 'goo1', '--foo', 'false'], invalidArgs);
         expectExtractResult(result, {
             foo: ['true', 'false'], goo: 'goo1'
         }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['--foo', 'goo1', '--foo'], invalidArgs);
+        result = populateArguments(command, ['--foo', 'goo1', '--foo'], invalidArgs);
         expectExtractResult(result, {
             foo: ['true', 'true'], goo: 'goo1'
         }, []);
@@ -471,16 +471,16 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments<string>(command, ['--foo', 'bar', '--goo', 'gar'], invalidArgs);
+        let result = populateArguments(command, ['--foo', 'bar', '--goo', 'gar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, ['--goo', 'gar']);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['--foo=bar', '--goo=gar'], invalidArgs);
+        result = populateArguments(command, ['--foo=bar', '--goo=gar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, ['--goo=gar']);
         expect(invalidArgs).toEqual([]);
 
         command.options[0].type = ArgumentValueTypeName.Boolean;
-        result = populateArguments<string>(command, ['-f', '--goo', 'gar'], invalidArgs);
+        result = populateArguments(command, ['-f', '--goo', 'gar'], invalidArgs);
         expectExtractResult(result, { foo: 'true' }, ['--goo', 'gar']);
         expect(invalidArgs).toEqual([]);
     });
@@ -501,7 +501,7 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        const result = populateArguments<string>(command, ['--foo1', 'bar', 'foo2', '--goo', 'gar'], invalidArgs);
+        const result = populateArguments(command, ['--foo1', 'bar', 'foo2', '--goo', 'gar'], invalidArgs);
         expectExtractResult(result, { foo1: 'bar', foo2: 'foo2' }, ['--goo', 'gar']);
         expect(invalidArgs).toEqual([]);
     });
@@ -518,7 +518,7 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        const result = populateArguments<string>(command, ['bar', 'goo'], invalidArgs);
+        const result = populateArguments(command, ['bar', 'goo'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, ['goo']);
         expect(invalidArgs).toEqual([]);
     });
@@ -535,19 +535,15 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments<string>(command, ['--foo', 'bar', 'goo'], invalidArgs);
+        let result = populateArguments(command, ['--foo', 'bar', 'goo'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, ['goo']);
         expect(invalidArgs).toEqual([]);
 
         command.options[0].type = ArgumentValueTypeName.Boolean;
-        result = populateArguments<string>(command, ['--foo', 'goo'], invalidArgs);
+        result = populateArguments(command, ['--foo', 'goo'], invalidArgs);
         expectExtractResult(result, { foo: 'true' }, ['goo']);
         expect(invalidArgs).toEqual([]);
     });
-
-    // TODO:
-    //     test('Unexpected option found', () => {
-    //     });
 
     test('Positionals either side of options', () => {
 
@@ -569,7 +565,7 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments<string>(command, ['f1', '--goo1', 'g1', '--goo2', 'g2', 'f2'], invalidArgs);
+        let result = populateArguments(command, ['f1', '--goo1', 'g1', '--goo2', 'g2', 'f2'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'g1', goo2: 'g2', foo1: 'f1', foo2: 'f2'
         }, []);
@@ -577,7 +573,7 @@ describe('ArgumentsPopulation test', () => {
 
         command.options[0].type = ArgumentValueTypeName.Boolean;
         command.positionals[0].type = ArgumentValueTypeName.Boolean;
-        result = populateArguments<string>(command, ['true', '--goo1', '--goo2', 'g2', 'f2'], invalidArgs);
+        result = populateArguments(command, ['true', '--goo1', '--goo2', 'g2', 'f2'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'true', goo2: 'g2', foo1: 'true', foo2: 'f2'
         }, []);
@@ -602,13 +598,13 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments<string>(command, ['f1', '--goo1', 'g1', 'f2', '--goo2', 'g2'], invalidArgs);
+        let result = populateArguments(command, ['f1', '--goo1', 'g1', 'f2', '--goo2', 'g2'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'g1', goo2: 'g2', foo1: 'f1', foo2: 'f2'
         }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['--goo1', 'g1', 'f1', '--goo2', 'g2', 'f2'], invalidArgs);
+        result = populateArguments(command, ['--goo1', 'g1', 'f1', '--goo2', 'g2', 'f2'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'g1', goo2: 'g2', foo1: 'f1', foo2: 'f2'
         }, []);
@@ -635,13 +631,13 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments<string>(command, ['f1', '--goo1', 'true', 'f2', '--goo2', 'true'], invalidArgs);
+        let result = populateArguments(command, ['f1', '--goo1', 'true', 'f2', '--goo2', 'true'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'true', goo2: 'true', foo1: 'f1', foo2: 'f2'
         }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments<string>(command, ['f1', '--goo1', 'f2', '--goo2'], invalidArgs);
+        result = populateArguments(command, ['f1', '--goo1', 'f2', '--goo2'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'true', goo2: 'true', foo1: 'f1', foo2: 'f2'
         }, []);
@@ -665,7 +661,7 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        const result = populateArguments<string>(command, ['--foo', 'f1', '--foo', 'f2', 'g1', 'g2'], invalidArgs);
+        const result = populateArguments(command, ['--foo', 'f1', '--foo', 'f2', 'g1', 'g2'], invalidArgs);
         expectExtractResult(result, {
             foo: ['f1', 'f2'], goo: ['g1', 'g2']
         }, []);
@@ -689,7 +685,7 @@ describe('ArgumentsPopulation test', () => {
         };
 
         const invalidArgs: InvalidArg[] = [];
-        const result = populateArguments<string>(command, ['g1', 'g2', '--foo', 'f1', '--foo', 'f2'], invalidArgs);
+        const result = populateArguments(command, ['g1', 'g2', '--foo', 'f1', '--foo', 'f2'], invalidArgs);
         expectExtractResult(result, {
             foo: ['f1', 'f2'], goo: ['g1', 'g2']
         }, []);

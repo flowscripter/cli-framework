@@ -5,22 +5,23 @@
 import CLI from '../api/CLI';
 import CommandFactory from '../api/CommandFactory';
 import ServiceFactory from '../api/ServiceFactory';
-import DefaultRunner from './DefaultRunner';
-import DefaultContext from './DefaultContext';
-import { PRINTER_SERVICE } from '../core/service/PrinterService';
+import DefaultRunner from '../runtime/DefaultRunner';
+import DefaultContext from '../runtime/DefaultContext';
 
 /**
- * Default implementation of a [[CLI]].
+ * Base implementation of a [[CLI]].
  */
-export default class DefaultCLI implements CLI<string> {
+export default class BaseCLI implements CLI {
 
-    private readonly commandFactories: CommandFactory<string>[] = [];
+    private readonly commandFactories: CommandFactory[] = [];
 
-    private readonly serviceFactories: ServiceFactory<string>[] = [];
+    private readonly serviceFactories: ServiceFactory[] = [];
 
-    private context = new DefaultContext<string>();
+    private context = new DefaultContext();
 
-    private runner = new DefaultRunner<string>(PRINTER_SERVICE);
+    private runner = new DefaultRunner();
+
+    // TODO: add constructor which takes output stream and config
 
     /**
      * @inheritdoc
@@ -35,14 +36,14 @@ export default class DefaultCLI implements CLI<string> {
     /**
      * @inheritdoc
      */
-    public getCommandFactories(): Iterable<CommandFactory<string>> {
+    public getCommandFactories(): Iterable<CommandFactory> {
         return this.commandFactories;
     }
 
     /**
      * @inheritdoc
      */
-    public getServiceFactories(): Iterable<ServiceFactory<string>> {
+    public getServiceFactories(): Iterable<ServiceFactory> {
         return this.serviceFactories;
     }
 
@@ -53,8 +54,10 @@ export default class DefaultCLI implements CLI<string> {
      *
      * @param commandFactory the [[CommandFactory]] instance to add
      */
-    public addCommandFactory(commandFactory: CommandFactory<string>): void {
+    public addCommandFactory(commandFactory: CommandFactory): void {
         this.commandFactories.push(commandFactory);
+
+        // TODO: find config and add to context
 
         for (const command of commandFactory.getCommands()) {
             this.runner.addCommand(command);
@@ -67,8 +70,15 @@ export default class DefaultCLI implements CLI<string> {
      *
      * @param serviceFactory the [[ServiceFactory]] instance to add
      */
-    public addServiceFactory(serviceFactory: ServiceFactory<string>): void {
+    public addServiceFactory(serviceFactory: ServiceFactory): void {
         this.serviceFactories.push(serviceFactory);
-        this.context.addServiceFactory(serviceFactory);
+
+        // TODO: find config and add to context
+
+        // TODO: initialise service with config
+
+        for (const service of serviceFactory.getServices()) {
+            this.context.addService(service);
+        }
     }
 }

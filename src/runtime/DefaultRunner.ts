@@ -9,24 +9,21 @@ import Context from '../api/Context';
 import Parser, { CommandClause, ParseResult, ScanResult } from './parser/Parser';
 import DefaultParser from './parser/DefaultParser';
 import validateCommand from './CommandValidation';
-import { Icon, PrinterService } from '../core/service/PrinterService';
 
 /**
  * Default implementation of a [[Runner]].
  */
-export default class DefaultRunner<S_ID> implements Runner<S_ID> {
+export default class DefaultRunner implements Runner {
 
     private readonly log: debug.Debugger = debug('DefaultRunner');
 
-    private readonly printerServiceId: S_ID;
+    private readonly parser: Parser;
 
-    private readonly parser: Parser<S_ID>;
+    private readonly commands: Command[] = [];
 
-    private readonly commands: Command<S_ID>[] = [];
+    private defaultCommand: Command | undefined;
 
-    private defaultCommand: Command<S_ID> | undefined;
-
-    private commandsByNamesAndAliases: Map<string, Command<S_ID>> = new Map();
+    private commandsByNamesAndAliases: Map<string, Command> = new Map();
 
     private optionNamesAndAliases: string[] = [];
 
@@ -34,13 +31,11 @@ export default class DefaultRunner<S_ID> implements Runner<S_ID> {
      * Constructor configures the instance using the optionally specified [[Parser]] instance.
      *
      * @param parser optional [[PluginRepository]] implementation. Defaults to using [[DefaultParser]].
-     * @param printerServiceId ID of a [[PrinterService]] implementation which is expected to be
      * available in the [[Context]] provided when invoking [[run]]
      */
-    public constructor(printerServiceId: S_ID, parser?: Parser<S_ID>) {
+    public constructor(parser?: Parser) {
 
-        this.printerServiceId = printerServiceId;
-        this.parser = parser || new DefaultParser<S_ID>();
+        this.parser = parser || new DefaultParser();
     }
 
     /**
@@ -56,7 +51,7 @@ export default class DefaultRunner<S_ID> implements Runner<S_ID> {
      * * [[Command.isGlobal]] is `true` and [[Command.isGlobalQualifier]] is `false` and there is already a similarly
      * configured command.
      */
-    public addCommand(command: Command<S_ID>): void {
+    public addCommand(command: Command): void {
 
         validateCommand(command);
 
@@ -119,9 +114,14 @@ export default class DefaultRunner<S_ID> implements Runner<S_ID> {
         }
     }
 
-    private getNonGlobalParseResult(nonQualifierClauses: CommandClause<S_ID>[],
-        potentialDefaultClauses: CommandClause<S_ID>[], overallUnusedArgs: string[], printerService: PrinterService):
-        ParseResult<S_ID> | undefined {
+    /**
+     * Attempt to discover and parse a non-global [[Command]] clause
+     *
+     * @throws *Error* if:
+     * * there is a parsing error
+     */
+    private getNonGlobalParseResult(nonQualifierClauses: CommandClause[],
+        potentialDefaultClauses: CommandClause[], overallUnusedArgs: string[]): ParseResult | undefined {
 
         let parseResult;
 
@@ -149,9 +149,8 @@ export default class DefaultRunner<S_ID> implements Runner<S_ID> {
             parseResult = this.parser.parseCommandClause(nonQualifierClauses[0]);
             // fail on a parse error
             if (parseResult.invalidArgs.length > 0) {
-                printerService.error(`There were parsing errors for command: ${parseResult.command.name} `
-                    + `and args: ${parseResult.invalidArgs.map((arg) => arg.name).join(', ')}`, Icon.FAILURE);
-                return parseResult;
+                throw new Error(`There were parsing errors for command: ${parseResult.command.name} `
+                    + `and args: ${parseResult.invalidArgs.map((arg) => arg.name).join(', ')}`);
             }
             overallUnusedArgs.push(...parseResult.unusedArgs);
         }
@@ -162,32 +161,25 @@ export default class DefaultRunner<S_ID> implements Runner<S_ID> {
      * @inheritdoc
      *
      * @throws *Error* if:
-     * * the provided [[Context]] does not include a [[PrinterService]] implementation
-     * specified by [[printerServiceId]].
      * * more than one [[Command]] is specified
-     * * no [[Command]] is specified
+     * * no [[Command]] is specified and no default is specified or parsed
      * * there is a parsing error
+     * * there are unused arguments
      */
-    public async run(args: string[], context: Context<S_ID>): Promise<void> {
-
-        // check if printer service provided
-        const printerService = context.getService(this.printerServiceId) as unknown as (PrinterService | null);
-        if (printerService === null) {
-            throw new Error(`PrinterService with ID: ${this.printerServiceId} was not found in context!`);
-        }
+    public async run(args: string[], context: Context): Promise<void> {
 
         // setup parser
         this.parser.setCommands(this.commands);
 
         // scan for command clauses
-        const scanResult: ScanResult<S_ID> = this.parser.scanForCommandClauses(args);
+        const scanResult: ScanResult = this.parser.scanForCommandClauses(args);
 
         this.log(`clauses: ${scanResult.commandClauses.length}, unused args: ${scanResult.unusedLeadingArgs}`);
 
         // extracted clauses
-        const qualifierClauses: CommandClause<S_ID>[] = [];
-        const nonQualifierClauses: CommandClause<S_ID>[] = [];
-        const potentialDefaultClauses: CommandClause<S_ID>[] = [];
+        const qualifierClauses: CommandClause[] = [];
+        const nonQualifierClauses: CommandClause[] = [];
+        const potentialDefaultClauses: CommandClause[] = [];
 
         scanResult.commandClauses.forEach((commandClause) => {
             if (commandClause.command.isGlobal && commandClause.command.isGlobalQualifier) {
@@ -199,9 +191,7 @@ export default class DefaultRunner<S_ID> implements Runner<S_ID> {
 
         // check now for more than one non-qualifier command
         if (nonQualifierClauses.length > 1) {
-            const message = 'More than one command specified!';
-            printerService.error(message, Icon.FAILURE);
-            throw new Error(message);
+            throw new Error('More than one command specified!');
         }
 
         // store an overall list of unused args
@@ -217,21 +207,18 @@ export default class DefaultRunner<S_ID> implements Runner<S_ID> {
             overallUnusedArgs.push(...scanResult.unusedLeadingArgs);
         }
 
-        // parse global qualifiers args and run
-        const promises: Promise<void>[] = [];
+        // parse global qualifiers args
+        const parseResults: ParseResult[] = [];
         for (let i = 0; i < qualifierClauses.length; i += 1) {
             // TODO: pass in config defaults
             const parseResult = this.parser.parseCommandClause(qualifierClauses[i]);
 
             // fast fail on a parse error
             if (parseResult.invalidArgs.length > 0) {
-                const message = 'Parse error for global qualifier command: '
-                    + `${parseResult.command.name} and args: `
-                    + `${parseResult.invalidArgs.map((arg) => arg.name).join(', ')}`;
-                printerService.error(message, Icon.FAILURE);
-                throw new Error(message);
+                throw new Error(`Parse error for global qualifier command: ${parseResult.command.name} and args: `
+                    + `${parseResult.invalidArgs.map((arg) => arg.name).join(', ')}`);
             }
-            const { command, commandArgs, unusedArgs } = parseResult;
+            const { unusedArgs } = parseResult;
 
             // if no command found yet, and a default is specified, store as potential default clause
             if ((nonQualifierClauses.length === 0) && (this.defaultCommand) && (unusedArgs.length > 0)) {
@@ -243,37 +230,39 @@ export default class DefaultRunner<S_ID> implements Runner<S_ID> {
                 overallUnusedArgs.push(...unusedArgs);
             }
 
+            parseResults.push(parseResult);
+        }
+
+        const parseResult = this.getNonGlobalParseResult(nonQualifierClauses, potentialDefaultClauses,
+            overallUnusedArgs);
+
+        if (!parseResult) {
+            throw new Error('No command specified and no default discovered!');
+        }
+
+        if (parseResult.invalidArgs.length > 0) {
+            throw new Error(`Parse error for command: ${parseResult.command.name} and args: `
+                + `${parseResult.invalidArgs.map((arg) => arg.name).join(', ')}`);
+        }
+
+        // error on unused args
+        if (overallUnusedArgs.length > 0) {
+            throw new Error(`Unused args: ${overallUnusedArgs.join(' ')}`);
+        }
+
+        // run the global qualifiers
+        const promises: Promise<void>[] = [];
+
+        parseResults.forEach((currentParseResult) => {
+            const { command, commandArgs } = currentParseResult;
             const message = `global qualifier command: ${command.name} with args: `
                 + `${Object.keys(commandArgs).map((arg) => `${arg}=${commandArgs[arg]}`).join(', ')}`;
             this.log(`Running ${message}`);
             promises.push(command.run(commandArgs, context).catch((err) => {
-                printerService.error(`Error running ${message}: ${err.message}`, Icon.FAILURE);
-                throw err;
+                throw new Error(`Error running ${message}: ${err.message}`);
             }));
-        }
+        });
         await Promise.all(promises);
-
-        const parseResult = this.getNonGlobalParseResult(nonQualifierClauses, potentialDefaultClauses,
-            overallUnusedArgs, printerService);
-
-        if (!parseResult) {
-            const message = 'No command specified and no default discovered!';
-            printerService.error(message, Icon.FAILURE);
-            throw new Error(message);
-        }
-
-        if (parseResult.invalidArgs.length > 0) {
-            const message = 'Parse error for command: '
-                + `${parseResult.command.name} and args: `
-                + `${parseResult.invalidArgs.map((arg) => arg.name).join(', ')}`;
-            printerService.error(message, Icon.FAILURE);
-            throw new Error(message);
-        }
-
-        // warn on global unused args
-        if (overallUnusedArgs.length > 0) {
-            printerService.warn(`Unused args: ${overallUnusedArgs.join(' ')}`, Icon.ALERT);
-        }
 
         const { command, commandArgs } = parseResult;
 
@@ -283,8 +272,7 @@ export default class DefaultRunner<S_ID> implements Runner<S_ID> {
         try {
             await command.run(commandArgs, context);
         } catch (err) {
-            printerService.error(`Error running ${message}: ${err.message}`, Icon.FAILURE);
-            throw err;
+            throw new Error(`Error running ${message}: ${err.message}`);
         }
     }
 }

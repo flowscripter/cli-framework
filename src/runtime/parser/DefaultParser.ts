@@ -15,15 +15,13 @@ import Parser, {
 
 /**
  * A container holding the result of a single scanning operation.
- *
- * @typeparam S_ID is the type of the Service IDs used by the [[CLI]] instance.
  */
-export interface LocalScanResult<S_ID> {
+export interface LocalScanResult {
 
     /**
      * Result from a scan operation.
      */
-    commandClause?: CommandClause<S_ID>;
+    commandClause?: CommandClause;
 
     /**
      * Any arguments which were unused in the scanning operation. As the scanning starts at the beginning of the
@@ -35,14 +33,12 @@ export interface LocalScanResult<S_ID> {
 
 /**
  * Default implementation of a [[Parser]].
- *
- * @typeparam S_ID is the type of the Service IDs used by the [[CLI]] instance.
  */
-export default class DefaultParser<S_ID> implements Parser<S_ID> {
+export default class DefaultParser implements Parser {
 
     private readonly log: debug.Debugger = debug('DefaultParser');
 
-    private readonly commandsByNameOrAlias: Map<string, Command<S_ID>> = new Map();
+    private readonly commandsByNameOrAlias: Map<string, Command> = new Map();
 
     private readonly globalCommandNamesAndAliases: string[] = [];
 
@@ -51,7 +47,7 @@ export default class DefaultParser<S_ID> implements Parser<S_ID> {
     /**
      * @inheritdoc
      */
-    public setCommands(commands: Command<S_ID>[]): void {
+    public setCommands(commands: Command[]): void {
 
         commands.forEach((command) => {
 
@@ -75,7 +71,7 @@ export default class DefaultParser<S_ID> implements Parser<S_ID> {
         });
     }
 
-    private scanForNextCommandArg(potentialArgs: string[]): LocalScanResult<S_ID> {
+    private scanForNextCommandArg(potentialArgs: string[]): LocalScanResult {
 
         this.log(`Scanning for next command: ${potentialArgs.join(' ')}`);
 
@@ -112,7 +108,7 @@ export default class DefaultParser<S_ID> implements Parser<S_ID> {
     /**
      * @inheritdoc
      */
-    public scanForCommandClauses(args: string[]): ScanResult<S_ID> {
+    public scanForCommandClauses(args: string[]): ScanResult {
 
         this.log('Normalising global and global qualifier options...');
 
@@ -146,13 +142,13 @@ export default class DefaultParser<S_ID> implements Parser<S_ID> {
         });
         this.log(`Normalised args: ${potentialArgs.join(' ')}`);
 
-        const scanResult: ScanResult<S_ID> = {
+        const scanResult: ScanResult = {
             commandClauses: [],
             unusedLeadingArgs: []
         };
 
         // scan the set of arguments for the first command
-        let localScanResult: LocalScanResult<S_ID>;
+        let localScanResult: LocalScanResult;
 
         localScanResult = this.scanForNextCommandArg(potentialArgs);
 
@@ -193,7 +189,7 @@ export default class DefaultParser<S_ID> implements Parser<S_ID> {
     /**
      * @inheritdoc
      */
-    public parseCommandClause(commandClause: CommandClause<S_ID>): ParseResult<S_ID> {
+    public parseCommandClause(commandClause: CommandClause): ParseResult {
 
         const { command, potentialArgs } = commandClause;
 

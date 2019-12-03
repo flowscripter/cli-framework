@@ -6,17 +6,29 @@ import Service from './Service';
 
 /**
  * Interface to be implemented by a [[CommandFactory]] allowing a [[CLI]] to pass context to a [[Command]].
- *
- * @typeparam S_ID is the type of the Service IDs used by the [[CLI]] instance.
  */
-export default interface Context<S_ID> {
+export default interface Context {
+
+    /**
+     * The [[Service]] configuration objects for this [[Context]].
+     *
+     * The keys for the config map are [[Service.id]] values and the map values are configuration objects.
+     */
+    readonly serviceConfigs: Map<string, object>;
+
+    /**
+     * The [[Command]] configuration objects for this [[Context]].
+     *
+     * The keys for the config map are [[Command.name]] values and the map values are configuration objects.
+     */
+    readonly commandConfigs: Map<string, object>;
 
     /**
      * Return the specified [[Service]]
      *
-     * @param serviceId the ID of the [[Service]] to retrieve.
+     * @param id the ID of the [[Service]] to retrieve.
      *
      * @return the desired [[Service]] or `null` if the specified service was not found.
      */
-    getService(serviceId: S_ID): Service<S_ID> | null;
+    getService(id: string): Service | null;
 }

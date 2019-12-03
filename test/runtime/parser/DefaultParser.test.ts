@@ -3,20 +3,20 @@ import { ScanResult, ParseResult } from '../../../src/runtime/parser/Parser';
 import Command from '../../../src/api/Command';
 import { ArgumentValueTypeName } from '../../../src/api/Argument';
 
-function expectScanResult(result: ScanResult<string>, expected: ScanResult<string>) {
+function expectScanResult(result: ScanResult, expected: ScanResult) {
 
     expect(result.unusedLeadingArgs).toEqual(expected.unusedLeadingArgs);
     expect(result.commandClauses).toEqual(expected.commandClauses);
 }
 
-function expectParseResult(result: ParseResult<string>, expected: ParseResult<string>) {
+function expectParseResult(result: ParseResult, expected: ParseResult) {
 
     expect(result.unusedArgs).toEqual(expected.unusedArgs);
     expect(result.invalidArgs).toEqual(expected.invalidArgs);
     expect(result.commandArgs).toEqual(expected.commandArgs);
 }
 
-function getCommand<S_ID>(): Command<S_ID> {
+function getCommand(): Command {
     return {
         name: 'command',
         options: [{
@@ -31,7 +31,7 @@ function getCommand<S_ID>(): Command<S_ID> {
     };
 }
 
-function getGlobalCommand<S_ID>(): Command<S_ID> {
+function getGlobalCommand(): Command {
     return {
         name: 'globalCommand',
         isGlobal: true,
@@ -44,7 +44,7 @@ function getGlobalCommand<S_ID>(): Command<S_ID> {
     };
 }
 
-function getGlobalQualifierCommand<S_ID>(name: string): Command<S_ID> {
+function getGlobalQualifierCommand(name: string): Command {
     return {
         name,
         isGlobal: true,
@@ -61,11 +61,11 @@ function getGlobalQualifierCommand<S_ID>(name: string): Command<S_ID> {
 describe('DefaultParser test', () => {
 
     test('DefaultParser is instantiable', () => {
-        expect(new DefaultParser<string>()).toBeInstanceOf(DefaultParser);
+        expect(new DefaultParser()).toBeInstanceOf(DefaultParser);
     });
 
     test('Command not scanned if not added', () => {
-        const defaultParser: DefaultParser<string> = new DefaultParser<string>();
+        const defaultParser: DefaultParser = new DefaultParser();
 
         let scanResult = defaultParser.scanForCommandClauses(['command', 'foo', '--goo', 'g']);
 
@@ -83,9 +83,9 @@ describe('DefaultParser test', () => {
     });
 
     test('Global command scanned if added', () => {
-        const defaultParser: DefaultParser<string> = new DefaultParser<string>();
+        const defaultParser: DefaultParser = new DefaultParser();
 
-        const globalCommand = getGlobalCommand<string>();
+        const globalCommand = getGlobalCommand();
 
         defaultParser.setCommands([globalCommand]);
 
@@ -107,9 +107,9 @@ describe('DefaultParser test', () => {
     });
 
     test('Global qualifier command scanned if added', () => {
-        const defaultParser: DefaultParser<string> = new DefaultParser<string>();
+        const defaultParser: DefaultParser = new DefaultParser();
 
-        const qualifierCommand = getGlobalQualifierCommand<string>('qualifier');
+        const qualifierCommand = getGlobalQualifierCommand('qualifier');
 
         defaultParser.setCommands([qualifierCommand]);
 
@@ -131,10 +131,10 @@ describe('DefaultParser test', () => {
     });
 
     test('Two global qualifier commands scanned', () => {
-        const defaultParser: DefaultParser<string> = new DefaultParser<string>();
+        const defaultParser: DefaultParser = new DefaultParser();
 
-        const qualifierCommand1 = getGlobalQualifierCommand<string>('qualifier1');
-        const qualifierCommand2 = getGlobalQualifierCommand<string>('qualifier2');
+        const qualifierCommand1 = getGlobalQualifierCommand('qualifier1');
+        const qualifierCommand2 = getGlobalQualifierCommand('qualifier2');
 
         defaultParser.setCommands([qualifierCommand1, qualifierCommand2]);
 
@@ -165,9 +165,9 @@ describe('DefaultParser test', () => {
     });
 
     test('Non-global command scanned', () => {
-        const defaultParser: DefaultParser<string> = new DefaultParser<string>();
+        const defaultParser: DefaultParser = new DefaultParser();
 
-        const command = getCommand<string>();
+        const command = getCommand();
 
         defaultParser.setCommands([command]);
 
@@ -183,11 +183,11 @@ describe('DefaultParser test', () => {
     });
 
     test('Command scanned and qualifier and global command not scanned', () => {
-        const defaultParser: DefaultParser<string> = new DefaultParser<string>();
+        const defaultParser: DefaultParser = new DefaultParser();
 
-        const qualifierCommand = getGlobalQualifierCommand<string>('qualifier');
-        const globalCommand = getGlobalCommand<string>();
-        const command = getCommand<string>();
+        const qualifierCommand = getGlobalQualifierCommand('qualifier');
+        const globalCommand = getGlobalCommand();
+        const command = getCommand();
 
         defaultParser.setCommands([qualifierCommand, globalCommand, command]);
 
@@ -205,11 +205,11 @@ describe('DefaultParser test', () => {
     });
 
     test('Two global qualifier commands and global command scanned', () => {
-        const defaultParser: DefaultParser<string> = new DefaultParser<string>();
+        const defaultParser: DefaultParser = new DefaultParser();
 
-        const qualifierCommand1 = getGlobalQualifierCommand<string>('qualifier1');
-        const qualifierCommand2 = getGlobalQualifierCommand<string>('qualifier2');
-        const globalCommand = getGlobalCommand<string>();
+        const qualifierCommand1 = getGlobalQualifierCommand('qualifier1');
+        const qualifierCommand2 = getGlobalQualifierCommand('qualifier2');
+        const globalCommand = getGlobalCommand();
 
         defaultParser.setCommands([qualifierCommand1, qualifierCommand2, globalCommand]);
 
@@ -235,11 +235,11 @@ describe('DefaultParser test', () => {
     });
 
     test('Two global qualifier commands and global command scanned out of order', () => {
-        const defaultParser: DefaultParser<string> = new DefaultParser<string>();
+        const defaultParser: DefaultParser = new DefaultParser();
 
-        const qualifierCommand1 = getGlobalQualifierCommand<string>('qualifier1');
-        const qualifierCommand2 = getGlobalQualifierCommand<string>('qualifier2');
-        const globalCommand = getGlobalCommand<string>();
+        const qualifierCommand1 = getGlobalQualifierCommand('qualifier1');
+        const qualifierCommand2 = getGlobalQualifierCommand('qualifier2');
+        const globalCommand = getGlobalCommand();
 
         defaultParser.setCommands([qualifierCommand1, qualifierCommand2, globalCommand]);
 
@@ -265,12 +265,12 @@ describe('DefaultParser test', () => {
     });
 
     test('Two global qualifier commands, global command and non-global command scanned', () => {
-        const defaultParser: DefaultParser<string> = new DefaultParser<string>();
+        const defaultParser: DefaultParser = new DefaultParser();
 
-        const qualifierCommand1 = getGlobalQualifierCommand<string>('qualifier1');
-        const qualifierCommand2 = getGlobalQualifierCommand<string>('qualifier2');
-        const globalCommand = getGlobalCommand<string>();
-        const command = getCommand<string>();
+        const qualifierCommand1 = getGlobalQualifierCommand('qualifier1');
+        const qualifierCommand2 = getGlobalQualifierCommand('qualifier2');
+        const globalCommand = getGlobalCommand();
+        const command = getCommand();
 
         defaultParser.setCommands([qualifierCommand1, qualifierCommand2, globalCommand, command]);
 
@@ -300,11 +300,11 @@ describe('DefaultParser test', () => {
     });
 
     test('Unused leading args whilst scanning', () => {
-        const defaultParser: DefaultParser<string> = new DefaultParser<string>();
+        const defaultParser: DefaultParser = new DefaultParser();
 
-        const qualifierCommand = getGlobalQualifierCommand<string>('qualifier');
-        const globalCommand = getGlobalCommand<string>();
-        const command = getCommand<string>();
+        const qualifierCommand = getGlobalQualifierCommand('qualifier');
+        const globalCommand = getGlobalCommand();
+        const command = getCommand();
 
         defaultParser.setCommands([qualifierCommand, globalCommand, command]);
 
@@ -344,9 +344,9 @@ describe('DefaultParser test', () => {
     });
 
     test('Arguments parsed', () => {
-        const defaultParser: DefaultParser<string> = new DefaultParser<string>();
+        const defaultParser: DefaultParser = new DefaultParser();
 
-        const command = getCommand<string>();
+        const command = getCommand();
 
         defaultParser.setCommands([command]);
 
@@ -367,9 +367,9 @@ describe('DefaultParser test', () => {
     });
 
     test('Arguments parsed with trailing args', () => {
-        const defaultParser: DefaultParser<string> = new DefaultParser<string>();
+        const defaultParser: DefaultParser = new DefaultParser();
 
-        const command = getCommand<string>();
+        const command = getCommand();
 
         defaultParser.setCommands([command]);
 

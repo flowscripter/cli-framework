@@ -89,10 +89,8 @@ function validateOption(option: Option): void {
  * * the value of [[Option.defaultValue]] does not match any values specified in [[Argument.validValues]]
  * * a global/qualifier [[Command]] defines [[Option]] arguments (it should only define [[Positional]] arguments)
  * * there are duplicate [[Argument.name]] or [[Option.shortAlias]] values
- *
- * @typeparam S_ID is the type of the Service IDs used by the [[CLI]] instance.
  */
-export default function validateCommand<S_ID>(command: Command<S_ID>): void {
+export default function validateCommand(command: Command): void {
 
     const argumentNames: string[] = [];
     const optionAliases: string[] = [];

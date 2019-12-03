@@ -3,12 +3,12 @@ import Service from '../../src/api/Service';
 
 export const SERVICE_ID_B = 'service_b';
 
-export default class ServiceFactoryB implements ServiceFactory<string> {
+export default class ServiceFactoryB implements ServiceFactory {
 
     // eslint-disable-next-line class-methods-use-this
-    public getServices(): Iterable<Service<string>> {
+    public getServices(): Iterable<Service> {
         return [{
-            serviceId: SERVICE_ID_B
+            id: SERVICE_ID_B
         }];
     }
 }

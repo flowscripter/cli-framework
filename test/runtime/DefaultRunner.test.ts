@@ -4,9 +4,7 @@ import DefaultRunner from '../../src/runtime/DefaultRunner';
 import Option from '../../src/api/Option';
 import Positional from '../../src/api/Positional';
 import Command from '../../src/api/Command';
-import { Icon, Level, PRINTER_SERVICE } from '../../src/core/service/PrinterService';
-import Context from '../../src/api/Context';
-import Service from '../../src/api/Service';
+import DefaultContext from '../../src/runtime/DefaultContext';
 
 function getCommand<S_ID>(name: string, aliases: string[], isGlobal: boolean, isGlobalQualifier: boolean,
     isDefault: boolean, options: Option[], positionals: Positional[]) {
@@ -22,35 +20,15 @@ function getCommand<S_ID>(name: string, aliases: string[], isGlobal: boolean, is
     };
 }
 
-const dummyContext: Context<string> = {
-
-    getService: (serviceId: string): Service<string> | null => {
-        if (serviceId === PRINTER_SERVICE) {
-            return {
-                serviceId: PRINTER_SERVICE,
-                colorEnabled: false,
-                debug: (message: string, icon?: Icon): void => {},
-                info: (message: string, icon?: Icon): void => {},
-                warn: (message: string, icon?: Icon): void => {},
-                error: (message: string, icon?: Icon): void => {},
-                showSpinner: (message: string): void => {},
-                hideSpinner: (): void => {},
-                setLevel: (level: Level): void => {}
-            } as Service<string>;
-        }
-        return null;
-    }
-};
-
 describe('DefaultRunner test', () => {
 
     test('DefaultRunner is instantiable', () => {
-        expect(new DefaultRunner<string>(PRINTER_SERVICE)).toBeInstanceOf(DefaultRunner);
+        expect(new DefaultRunner()).toBeInstanceOf(DefaultRunner);
     });
 
     test('Check for multiple default commands', () => {
 
-        const runner = new DefaultRunner<string>(PRINTER_SERVICE);
+        const runner = new DefaultRunner();
 
         const command1 = getCommand('c1', [], false, false, true, [{
             name: 'foo1'
@@ -68,7 +46,7 @@ describe('DefaultRunner test', () => {
 
     test('Check for duplicate command name', () => {
 
-        const runner = new DefaultRunner<string>(PRINTER_SERVICE);
+        const runner = new DefaultRunner();
 
         const command1 = getCommand('c1', [], false, false, false, [{
             name: 'foo1'
@@ -86,7 +64,7 @@ describe('DefaultRunner test', () => {
 
     test('Check for duplicate command name and alias', () => {
 
-        const runner = new DefaultRunner<string>(PRINTER_SERVICE);
+        const runner = new DefaultRunner();
 
         const command1 = getCommand('command1', [], false, false, false, [{
             name: 'f'
@@ -104,7 +82,7 @@ describe('DefaultRunner test', () => {
 
     test('Check for global/qualifier command name duplicating existing option name', () => {
 
-        const runner = new DefaultRunner<string>(PRINTER_SERVICE);
+        const runner = new DefaultRunner();
 
         const command1 = getCommand('c1', [], false, false, false, [{
             name: 'foo',
@@ -123,7 +101,7 @@ describe('DefaultRunner test', () => {
 
     test('Check for global/qualifier command alias duplicating existing option name', () => {
 
-        const runner = new DefaultRunner<string>(PRINTER_SERVICE);
+        const runner = new DefaultRunner();
 
         const command1 = getCommand('c1', [], false, false, false, [{
             name: 'foo',
@@ -142,7 +120,7 @@ describe('DefaultRunner test', () => {
 
     test('Check for global/qualifier command alias duplicating existing option shortAlias', () => {
 
-        const runner = new DefaultRunner<string>(PRINTER_SERVICE);
+        const runner = new DefaultRunner();
 
         const command1 = getCommand('c1', [], false, false, false, [{
             name: 'foo',
@@ -163,9 +141,9 @@ describe('DefaultRunner test', () => {
 
         let hasRun = false;
 
-        const runner = new DefaultRunner<string>(PRINTER_SERVICE);
+        const runner = new DefaultRunner();
 
-        const command: Command<string> = {
+        const command: Command = {
             name: 'command',
             options: [{
                 name: 'foo'
@@ -174,7 +152,7 @@ describe('DefaultRunner test', () => {
         };
 
         runner.addCommand(command);
-        await runner.run(['command', '--foo', 'bar'], dummyContext);
+        await runner.run(['command', '--foo', 'bar'], new DefaultContext());
 
         expect(hasRun).toBe(true);
     });
@@ -183,9 +161,9 @@ describe('DefaultRunner test', () => {
 
         let hasRun = false;
 
-        const runner = new DefaultRunner<string>(PRINTER_SERVICE);
+        const runner = new DefaultRunner();
 
-        const command: Command<string> = {
+        const command: Command = {
             name: 'command',
             isGlobal: true,
             positionals: [{
@@ -195,7 +173,7 @@ describe('DefaultRunner test', () => {
         };
 
         runner.addCommand(command);
-        await runner.run(['--command=bar'], dummyContext);
+        await runner.run(['--command=bar'], new DefaultContext());
 
         expect(hasRun).toBe(true);
     });
@@ -204,9 +182,9 @@ describe('DefaultRunner test', () => {
 
         let hasRun = false;
 
-        const runner = new DefaultRunner<string>(PRINTER_SERVICE);
+        const runner = new DefaultRunner();
 
-        const command: Command<string> = {
+        const command: Command = {
             name: 'command',
             isDefault: true,
             options: [{
@@ -216,7 +194,7 @@ describe('DefaultRunner test', () => {
         };
 
         runner.addCommand(command);
-        await runner.run(['--foo=bar'], dummyContext);
+        await runner.run(['--foo=bar'], new DefaultContext());
 
         expect(hasRun).toBe(true);
     });
@@ -226,9 +204,9 @@ describe('DefaultRunner test', () => {
         let hasRun1 = false;
         let hasRun2 = false;
 
-        const runner = new DefaultRunner<string>(PRINTER_SERVICE);
+        const runner = new DefaultRunner();
 
-        const command1: Command<string> = {
+        const command1: Command = {
             name: 'command1',
             isGlobal: true,
             isGlobalQualifier: true,
@@ -238,7 +216,7 @@ describe('DefaultRunner test', () => {
             run: async (): Promise<void> => { hasRun1 = true; }
         };
 
-        const command2: Command<string> = {
+        const command2: Command = {
             name: 'command2',
             options: [{
                 name: 'foo'
@@ -248,7 +226,7 @@ describe('DefaultRunner test', () => {
 
         runner.addCommand(command1);
         runner.addCommand(command2);
-        await runner.run(['--command1=bar', 'command2', '--foo', 'bar'], dummyContext);
+        await runner.run(['--command1=bar', 'command2', '--foo', 'bar'], new DefaultContext());
 
         expect(hasRun1).toBe(true);
         expect(hasRun2).toBe(true);
@@ -259,9 +237,9 @@ describe('DefaultRunner test', () => {
         let hasRun1 = false;
         let hasRun2 = false;
 
-        const runner = new DefaultRunner<string>(PRINTER_SERVICE);
+        const runner = new DefaultRunner();
 
-        const command1: Command<string> = {
+        const command1: Command = {
             name: 'command1',
             isGlobal: true,
             isGlobalQualifier: true,
@@ -271,7 +249,7 @@ describe('DefaultRunner test', () => {
             run: async (): Promise<void> => { hasRun1 = true; }
         };
 
-        const command2: Command<string> = {
+        const command2: Command = {
             name: 'command2',
             isGlobal: true,
             positionals: [{
@@ -282,7 +260,7 @@ describe('DefaultRunner test', () => {
 
         runner.addCommand(command1);
         runner.addCommand(command2);
-        await runner.run(['--command1', 'gar', '--command2', 'bar'], dummyContext);
+        await runner.run(['--command1', 'gar', '--command2', 'bar'], new DefaultContext());
 
         expect(hasRun1).toBe(true);
         expect(hasRun2).toBe(true);
@@ -293,9 +271,9 @@ describe('DefaultRunner test', () => {
         let hasRun1 = false;
         let hasRun2 = false;
 
-        const runner = new DefaultRunner<string>(PRINTER_SERVICE);
+        const runner = new DefaultRunner();
 
-        const command1: Command<string> = {
+        const command1: Command = {
             name: 'command',
             isGlobal: true,
             isGlobalQualifier: true,
@@ -305,7 +283,7 @@ describe('DefaultRunner test', () => {
             run: async (): Promise<void> => { hasRun1 = true; }
         };
 
-        const command2: Command<string> = {
+        const command2: Command = {
             name: 'command2',
             isDefault: true,
             positionals: [{
@@ -316,7 +294,7 @@ describe('DefaultRunner test', () => {
 
         runner.addCommand(command1);
         runner.addCommand(command2);
-        await runner.run(['--command', 'gar', 'bar'], dummyContext);
+        await runner.run(['--command', 'gar', 'bar'], new DefaultContext());
 
         expect(hasRun1).toBe(true);
         expect(hasRun2).toBe(true);
@@ -324,7 +302,7 @@ describe('DefaultRunner test', () => {
         hasRun1 = false;
         hasRun2 = false;
 
-        await runner.run(['bar', '--command', 'gar'], dummyContext);
+        await runner.run(['bar', '--command', 'gar'], new DefaultContext());
 
         expect(hasRun1).toBe(true);
         expect(hasRun2).toBe(true);
@@ -334,9 +312,9 @@ describe('DefaultRunner test', () => {
 
         let hasRun = false;
 
-        const runner = new DefaultRunner<string>(PRINTER_SERVICE);
+        const runner = new DefaultRunner();
 
-        const command: Command<string> = {
+        const command: Command = {
             name: 'command',
             isDefault: true,
             options: [{
@@ -345,19 +323,19 @@ describe('DefaultRunner test', () => {
             run: async (): Promise<void> => { hasRun = true; }
         };
 
-        await expect(runner.run(['--foo=bar'], dummyContext)).rejects.toThrowError();
+        await expect(runner.run(['--foo=bar'], new DefaultContext())).rejects.toThrowError();
         expect(hasRun).toBe(false);
 
         runner.addCommand(command);
-        await runner.run(['--foo=bar'], dummyContext);
+        await runner.run(['--foo=bar'], new DefaultContext());
         expect(hasRun).toBe(true);
     });
 
     test('Error thrown in non-global run scenario', async () => {
 
-        const runner = new DefaultRunner<string>(PRINTER_SERVICE);
+        const runner = new DefaultRunner();
 
-        const command: Command<string> = {
+        const command: Command = {
             name: 'command',
             options: [{
                 name: 'foo'
@@ -366,14 +344,14 @@ describe('DefaultRunner test', () => {
         };
 
         runner.addCommand(command);
-        await expect(runner.run(['command', '--foo', 'bar'], dummyContext)).rejects.toThrowError();
+        await expect(runner.run(['command', '--foo', 'bar'], new DefaultContext())).rejects.toThrowError();
     });
 
     test('Error thrown in global run scenario', async () => {
 
-        const runner = new DefaultRunner<string>(PRINTER_SERVICE);
+        const runner = new DefaultRunner();
 
-        const command: Command<string> = {
+        const command: Command = {
             name: 'command',
             isGlobal: true,
             positionals: [{
@@ -383,14 +361,14 @@ describe('DefaultRunner test', () => {
         };
 
         runner.addCommand(command);
-        await expect(runner.run(['--command=bar'], dummyContext)).rejects.toThrowError();
+        await expect(runner.run(['--command=bar'], new DefaultContext())).rejects.toThrowError();
     });
 
     test('Error thrown default run scenario', async () => {
 
-        const runner = new DefaultRunner<string>(PRINTER_SERVICE);
+        const runner = new DefaultRunner();
 
-        const command: Command<string> = {
+        const command: Command = {
             name: 'command',
             isDefault: true,
             options: [{
@@ -400,16 +378,16 @@ describe('DefaultRunner test', () => {
         };
 
         runner.addCommand(command);
-        await expect(runner.run(['--foo=bar'], dummyContext)).rejects.toThrowError();
+        await expect(runner.run(['--foo=bar'], new DefaultContext())).rejects.toThrowError();
     });
 
     test('Error thrown in global qualifier run scenario', async () => {
 
         let hasRun = false;
 
-        const runner = new DefaultRunner<string>(PRINTER_SERVICE);
+        const runner = new DefaultRunner();
 
-        const command1: Command<string> = {
+        const command1: Command = {
             name: 'command1',
             isGlobal: true,
             isGlobalQualifier: true,
@@ -419,7 +397,7 @@ describe('DefaultRunner test', () => {
             run: async (): Promise<void> => { throw new Error(); }
         };
 
-        const command2: Command<string> = {
+        const command2: Command = {
             name: 'command2',
             isGlobal: true,
             positionals: [{
@@ -430,7 +408,8 @@ describe('DefaultRunner test', () => {
 
         runner.addCommand(command1);
         runner.addCommand(command2);
-        await expect(runner.run(['--command1', 'gar', '--command2', 'bar'], dummyContext)).rejects.toThrowError();
+        await expect(runner.run(['--command1', 'gar', '--command2', 'bar'],
+            new DefaultContext())).rejects.toThrowError();
         expect(hasRun).toBe(false);
     });
 
@@ -438,9 +417,9 @@ describe('DefaultRunner test', () => {
 
         let hasRun = false;
 
-        const runner = new DefaultRunner<string>(PRINTER_SERVICE);
+        const runner = new DefaultRunner();
 
-        const command: Command<string> = {
+        const command: Command = {
             name: 'command',
             options: [{
                 name: 'foo'
@@ -449,7 +428,7 @@ describe('DefaultRunner test', () => {
         };
 
         runner.addCommand(command);
-        await expect(runner.run(['command', '--foo'], dummyContext)).rejects.toThrowError();
+        await expect(runner.run(['command', '--foo'], new DefaultContext())).rejects.toThrowError();
         expect(hasRun).toBe(false);
     });
 
@@ -458,9 +437,9 @@ describe('DefaultRunner test', () => {
         let hasRun1 = false;
         let hasRun2 = false;
 
-        const runner = new DefaultRunner<string>(PRINTER_SERVICE);
+        const runner = new DefaultRunner();
 
-        const command1: Command<string> = {
+        const command1: Command = {
             name: 'command1',
             isGlobal: true,
             isGlobalQualifier: true,
@@ -470,7 +449,7 @@ describe('DefaultRunner test', () => {
             run: async (): Promise<void> => { hasRun1 = true; }
         };
 
-        const command2: Command<string> = {
+        const command2: Command = {
             name: 'command2',
             isGlobal: true,
             positionals: [{
@@ -482,8 +461,8 @@ describe('DefaultRunner test', () => {
         runner.addCommand(command1);
         runner.addCommand(command2);
         await expect(runner.run(['--command1', 'gar', '--command2'],
-            dummyContext)).rejects.toThrowError();
-        expect(hasRun1).toBe(true);
+            new DefaultContext())).rejects.toThrowError();
+        expect(hasRun1).toBe(false);
         expect(hasRun2).toBe(false);
     });
 
@@ -492,9 +471,9 @@ describe('DefaultRunner test', () => {
         let hasRun1 = false;
         let hasRun2 = false;
 
-        const runner = new DefaultRunner<string>(PRINTER_SERVICE);
+        const runner = new DefaultRunner();
 
-        const command1: Command<string> = {
+        const command1: Command = {
             name: 'command1',
             isGlobal: true,
             isGlobalQualifier: true,
@@ -504,7 +483,7 @@ describe('DefaultRunner test', () => {
             run: async (): Promise<void> => { hasRun1 = true; }
         };
 
-        const command2: Command<string> = {
+        const command2: Command = {
             name: 'command2',
             isGlobal: true,
             positionals: [{
@@ -515,11 +494,9 @@ describe('DefaultRunner test', () => {
 
         runner.addCommand(command1);
         runner.addCommand(command2);
-        // TODO: assert unused args: boo gar2 bar2
-        await runner.run(['boo', '--command1', 'gar1', 'gar2', '--command2', 'bar1', 'bar2'], dummyContext);
-        expect(hasRun1).toBe(true);
-        expect(hasRun2).toBe(true);
+        await expect(runner.run(['boo', '--command1', 'gar1', 'gar2', '--command2', 'bar1', 'bar2'],
+            new DefaultContext())).rejects.toThrowError();
+        expect(hasRun1).toBe(false);
+        expect(hasRun2).toBe(false);
     });
-
-    // TODO: check error without print service, and not with
 });

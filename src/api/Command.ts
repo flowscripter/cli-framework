@@ -15,10 +15,8 @@ export interface CommandArgs {
 
 /**
  * Interface to be implemented by a [[Command]] implementation.
- *
- * @typeparam S_ID is the type of the Service IDs used by the [[CLI]] instance.
  */
-export default interface Command<S_ID> {
+export default interface Command {
 
     /**
      * Name of the command.
@@ -114,5 +112,5 @@ export default interface Command<S_ID> {
      * @param commandArgs the arguments for the command.
      * @param context the [[Context]] in which to run.
      */
-    run(commandArgs: CommandArgs, context: Context<S_ID>): Promise<void>;
+    run(commandArgs: CommandArgs, context: Context): Promise<void>;
 }

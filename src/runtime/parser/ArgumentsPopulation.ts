@@ -257,7 +257,7 @@ function parsePotentialOption(potentialArg: string, optionsByName: Map<string, O
     return newParseContext;
 }
 
-function parsePotentialPositional<S_ID>(potentialArg: string, command: Command<S_ID>, parseContext: ParseContext):
+function parsePotentialPositional(potentialArg: string, command: Command, parseContext: ParseContext):
     ParseContext {
 
     const { positionalCount } = parseContext;
@@ -280,7 +280,7 @@ function parsePotentialPositional<S_ID>(potentialArg: string, command: Command<S
 /**
  * Generator function for parse events
  */
-function* parseEventGenerator<S_ID>(command: Command<S_ID>, potentialArgs: string[],
+function* parseEventGenerator(command: Command, potentialArgs: string[],
     optionsByName: Map<string, Option>, optionsByAlias: Map<string, Option>): Iterable<ParseEvent> {
 
     let parseContext: ParseContext = new ParseContext();
@@ -373,7 +373,7 @@ function* parseEventGenerator<S_ID>(command: Command<S_ID>, potentialArgs: strin
  *
  * @return any successfully populated [[CommandArgs]] and any args which were unused
  */
-export default function populateArguments<S_ID>(command: Command<S_ID>, potentialArgs: string[],
+export default function populateArguments(command: Command, potentialArgs: string[],
     invalidArgs: InvalidArg[]): PopulateResult {
 
     log(`Populating args: ${potentialArgs.join(' ')} for command: ${command.name}`);

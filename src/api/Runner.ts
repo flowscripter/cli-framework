@@ -7,17 +7,15 @@ import Command from './Command';
 
 /**
  * Interface to be implemented by a [[Runner]] allowing a [[CLI]] to run a [[Command]].
- *
- * @typeparam S_ID is the type of the Service IDs used by the [[CLI]] instance.
  */
-export default interface Runner<S_ID> {
+export default interface Runner {
 
     /**
      * Add the specified [[Command]] instance to this [[Runner]].
      *
      * @param command the [[Command]] to add.
      */
-    addCommand(command: Command<S_ID>): void;
+    addCommand(command: Command): void;
 
     /**
      * Parse arguments, discover [[Command]] names and [[Argument]] values and run
@@ -27,5 +25,5 @@ export default interface Runner<S_ID> {
      * e.g. `argv[0]`)
      * @param context the context for the [[Command]]
      */
-    run(args: string[], context: Context<S_ID>): Promise<void>;
+    run(args: string[], context: Context): Promise<void>;
 }

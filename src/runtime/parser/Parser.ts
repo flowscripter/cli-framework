@@ -53,15 +53,13 @@ export interface InvalidArg {
 
 /**
  * A single scan result holding a discovered [[Command]] and its potential arguments.
- *
- * @typeparam S_ID is the type of the Service IDs used by the [[CLI]] instance.
  */
-export interface CommandClause<S_ID> {
+export interface CommandClause {
 
     /**
      * The [[Command]] discovered as an argument
      */
-    command: Command<S_ID>;
+    command: Command;
 
     /**
      * The potential arguments for the discovered [[Command]] up to the next discovered [[CommandClause]]
@@ -71,15 +69,13 @@ export interface CommandClause<S_ID> {
 
 /**
  * A container holding the result of a scanning operation.
- *
- * @typeparam S_ID is the type of the Service IDs used by the [[CLI]] instance.
  */
-export interface ScanResult<S_ID> {
+export interface ScanResult {
 
     /**
      * Array of results from a scan operation.
      */
-    commandClauses: CommandClause<S_ID>[];
+    commandClauses: CommandClause[];
 
     /**
      * Any arguments which were unused in the scanning operation. As the scanning starts at the beginning of the
@@ -91,15 +87,13 @@ export interface ScanResult<S_ID> {
 
 /**
  * A container holding the result of a [[CommandClause]] parsing operation.
- *
- * @typeparam S_ID is the type of the Service IDs used by the [[CLI]] instance.
  */
-export interface ParseResult<S_ID> {
+export interface ParseResult {
 
     /**
      * The [[Command]] to run (if there are no [[invalidArgs]] set)
      */
-    readonly command: Command<S_ID>;
+    readonly command: Command;
 
     /**
      * The arguments to provide the [[Command]] with when run (if there are no [[invalidArgs]] set)
@@ -120,17 +114,15 @@ export interface ParseResult<S_ID> {
 /**
  * Interface to be implemented by a [[Parser]] allowing a [[Runner] to segment arguments into clauses based on
  * known [[Command]] names and aliases then parse the arguments for each [[Command]] clause.
- *
- * @typeparam S_ID is the type of the Service IDs used by the [[CLI]] instance.
  */
-export default interface Parser<S_ID> {
+export default interface Parser {
 
     /**
      * Set the list of [[Command]] instances to be used when scanning and parsing for commands and arguments.
      *
      * @param commands the known [[Command]] instances to use
      */
-    setCommands(commands: Command<S_ID>[]): void;
+    setCommands(commands: Command[]): void;
 
     /**
      * Scan the provided arguments and segment them into clauses demarcated by [[Command]] names and aliases.
@@ -139,7 +131,7 @@ export default interface Parser<S_ID> {
      *
      * @return the results of the scanning operation
      */
-    scanForCommandClauses(args: string[]): ScanResult<S_ID>;
+    scanForCommandClauses(args: string[]): ScanResult;
 
     /**
      * Parse the [[Command]] arguments for the specified [[CommandClause]].
@@ -148,5 +140,5 @@ export default interface Parser<S_ID> {
      *
      * @return the results of the parsing
      */
-    parseCommandClause(commandClause: CommandClause<S_ID>): ParseResult<S_ID>;
+    parseCommandClause(commandClause: CommandClause): ParseResult;
 }

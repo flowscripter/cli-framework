@@ -3,11 +3,10 @@
 /**
  * @module @flowscripter/cli-framework
  */
+import { Writable } from 'stream';
 import chalk from 'chalk';
-import { Console } from 'console';
 import ora from 'ora';
 
-// TODO: support colour config off
 import Service from '../../api/Service';
 
 export const PRINTER_SERVICE = '@flowscripter/cli-framework/printer-service';
@@ -125,19 +124,18 @@ const icons = {
 /**
  * Core implementation of [[Printer]] exposed as a [[Service]].
  */
-export class PrinterService implements Service<string>, Printer {
+export class PrinterService implements Service, Printer {
 
-    readonly serviceId = PRINTER_SERVICE;
+    readonly id = PRINTER_SERVICE;
 
     private threshold = levels[Level.INFO];
 
     private spinner: ora.Ora = ora();
 
-    // TODO: support other output stream and auto detect color support
-    private console: Console;
+    private readonly writable: Writable;
 
-    public constructor() {
-        this.console = new Console({ stdout: process.stdout });
+    public constructor(writable: Writable) {
+        this.writable = writable;
     }
 
     private log(level: number, message: string, icon?: Icon): void {
@@ -147,7 +145,7 @@ export class PrinterService implements Service<string>, Printer {
         if (this.threshold > level) {
             return;
         }
-        this.console.log(`${icon ? `${icons[icon]} ` : ''}${message}`);
+        this.writable.write(`${icon ? `${icons[icon]} ` : ''}${message}`);
     }
 
     /**

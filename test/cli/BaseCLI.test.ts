@@ -1,15 +1,15 @@
-import DefaultCLI from '../../src/runtime/DefaultCLI';
+import BaseCLI from '../../src/cli/BaseCLI';
 import CommandFactoryA from '../fixtures/CommandFactoryA';
 import ServiceFactoryA from '../fixtures/ServiceFactoryA';
 
 describe('DefaultCLI test', () => {
 
     test('DefaultCLI is instantiable', () => {
-        expect(new DefaultCLI()).toBeInstanceOf(DefaultCLI);
+        expect(new BaseCLI()).toBeInstanceOf(BaseCLI);
     });
 
     test('ServiceFactory is registered', () => {
-        const cli = new DefaultCLI();
+        const cli = new BaseCLI();
 
         expect(cli.getServiceFactories()).toHaveLength(0);
 
@@ -19,7 +19,7 @@ describe('DefaultCLI test', () => {
     });
 
     test('CommandFactory is registered', () => {
-        const cli = new DefaultCLI();
+        const cli = new BaseCLI();
 
         expect(cli.getCommandFactories()).toHaveLength(0);
 

@@ -1,35 +1,34 @@
 import DefaultContext from '../../src/runtime/DefaultContext';
-import ServiceFactoryA, { SERVICE_ID_A } from '../fixtures/ServiceFactoryA';
-import ServiceFactoryB, { SERVICE_ID_B } from '../fixtures/ServiceFactoryB';
+
+const SERVICE_ID = 'service';
 
 describe('DefaultContext test', () => {
 
     test('DefaultContext is instantiable', () => {
-        expect(new DefaultContext<string>()).toBeInstanceOf(DefaultContext);
+        expect(new DefaultContext()).toBeInstanceOf(DefaultContext);
     });
 
     test('Service is registered and available from one factory', () => {
-        const context = new DefaultContext<string>();
+        const context = new DefaultContext();
 
-        expect(context.getService(SERVICE_ID_A)).toBeNull();
+        expect(context.getService(SERVICE_ID)).toBeNull();
 
-        context.addServiceFactory(new ServiceFactoryA());
+        context.addService({
+            id: SERVICE_ID
+        });
 
-        expect(context.getService(SERVICE_ID_A)).not.toBeNull();
+        expect(context.getService(SERVICE_ID)).not.toBeNull();
     });
 
-    test('Service is found in second factory', () => {
-        const context = new DefaultContext<string>();
+    test('Cannot add duplicate service', () => {
+        const context = new DefaultContext();
 
-        expect(context.getService(SERVICE_ID_B)).toBeNull();
+        context.addService({
+            id: SERVICE_ID
+        });
 
-        context.addServiceFactory(new ServiceFactoryA());
-
-        expect(context.getService(SERVICE_ID_B)).toBeNull();
-
-        context.addServiceFactory(new ServiceFactoryB());
-
-        expect(context.getService(SERVICE_ID_B)).not.toBeNull();
-        expect(context.getService(SERVICE_ID_A)).not.toBeNull();
+        expect(() => context.addService({
+            id: SERVICE_ID
+        })).toThrow();
     });
 });

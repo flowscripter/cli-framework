@@ -6,4 +6,5 @@ export { default as Service } from './api/Service';
 export { default as Argument } from './api/Argument';
 export { default as Positional } from './api/Positional';
 export { default as Option } from './api/Option';
-export { default as DefaultCLI } from './runtime/DefaultCLI';
+export { default as BaseeCLI } from './cli/BaseCLI';
+export { default as NodeCLI } from './cli/NodeCLI';
