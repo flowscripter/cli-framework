@@ -16,7 +16,9 @@ function getCommand<S_ID>(name: string, aliases: string[], isGlobal: boolean, is
         options,
         positionals,
         isDefault,
-        run: async (): Promise<void> => { }
+        run: async (): Promise<void> => {
+            // empty
+        }
     };
 }
 

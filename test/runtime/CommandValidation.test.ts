@@ -10,7 +10,9 @@ function getCommand<S_ID>(isGlobal: boolean, isGlobalQualifier: boolean, options
         isGlobalQualifier,
         options,
         positionals,
-        run: async (): Promise<void> => { }
+        run: async (): Promise<void> => {
+            // empty
+        }
     };
 }
 
