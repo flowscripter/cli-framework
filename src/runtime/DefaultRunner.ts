@@ -4,7 +4,7 @@
 
 import debug from 'debug';
 import Runner from '../api/Runner';
-import Command from '../api/Command';
+import Command, { CommandArgs } from '../api/Command';
 import Context from '../api/Context';
 import Parser, { CommandClause, ParseResult, ScanResult } from './parser/Parser';
 import DefaultParser from './parser/DefaultParser';
@@ -114,6 +114,17 @@ export default class DefaultRunner implements Runner {
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private getConfigForCommand(commandName: string, context: Context): CommandArgs | undefined {
+        const config = context.commandConfigs.get(commandName);
+        if (config) {
+            this.log(`Found config: ${JSON.stringify(config)} for command: ${commandName}`);
+        } else {
+            this.log(`No config found for command: ${commandName}`);
+        }
+        return config;
+    }
+
     /**
      * Attempt to discover and parse a non-global [[Command]] clause
      *
@@ -121,21 +132,39 @@ export default class DefaultRunner implements Runner {
      * * there is a parsing error
      */
     private getNonGlobalParseResult(nonQualifierClauses: CommandClause[],
-        potentialDefaultClauses: CommandClause[], overallUnusedArgs: string[]): ParseResult | undefined {
+        potentialDefaultClauses: CommandClause[], overallUnusedArgs: string[], context: Context):
+        ParseResult | undefined {
 
         let parseResult;
 
         // look for a default if we don't have a non-qualifier command
         if (nonQualifierClauses.length === 0) {
-            this.log('No command specified, looking for a potential default');
+            this.log('No command specified, looking for a potential default in potential clauses');
             for (let i = 0; i < potentialDefaultClauses.length; i += 1) {
                 const potentialCommandClause = potentialDefaultClauses[i];
                 // check if default was already found
                 if (parseResult) {
                     overallUnusedArgs.push(...potentialCommandClause.potentialArgs);
                 } else {
-                    // TODO: pass in config defaults
-                    const potentialDefaultParseResult = this.parser.parseCommandClause(potentialCommandClause);
+                    const config = this.getConfigForCommand(potentialCommandClause.command.name, context);
+                    const potentialDefaultParseResult = this.parser.parseCommandClause(potentialCommandClause, config);
+                    // ignore if there are parse errors
+                    if (potentialDefaultParseResult.invalidArgs.length > 0) {
+                        overallUnusedArgs.push(...potentialCommandClause.potentialArgs);
+                    } else {
+                        parseResult = potentialDefaultParseResult;
+                    }
+                }
+            }
+            if (this.defaultCommand) {
+                this.log('No default command discovered, attempting to parse with config only');
+                if (parseResult === undefined) {
+                    const potentialCommandClause: CommandClause = {
+                        command: this.defaultCommand,
+                        potentialArgs: []
+                    };
+                    const config = this.getConfigForCommand(potentialCommandClause.command.name, context);
+                    const potentialDefaultParseResult = this.parser.parseCommandClause(potentialCommandClause, config);
                     // ignore if there are parse errors
                     if (potentialDefaultParseResult.invalidArgs.length > 0) {
                         overallUnusedArgs.push(...potentialCommandClause.potentialArgs);
@@ -145,8 +174,9 @@ export default class DefaultRunner implements Runner {
                 }
             }
         } else {
-            // TODO: pass in config defaults
-            parseResult = this.parser.parseCommandClause(nonQualifierClauses[0]);
+            const commandClause = nonQualifierClauses[0];
+            const config = this.getConfigForCommand(commandClause.command.name, context);
+            parseResult = this.parser.parseCommandClause(commandClause, config);
             // fail on a parse error
             if (parseResult.invalidArgs.length > 0) {
                 throw new Error(`There were parsing errors for command: ${parseResult.command.name} `
@@ -210,8 +240,11 @@ export default class DefaultRunner implements Runner {
         // parse global qualifiers args
         const parseResults: ParseResult[] = [];
         for (let i = 0; i < qualifierClauses.length; i += 1) {
-            // TODO: pass in config defaults
-            const parseResult = this.parser.parseCommandClause(qualifierClauses[i]);
+
+            const currentClause = qualifierClauses[i];
+            const commandName = currentClause.command.name;
+            const config = this.getConfigForCommand(commandName, context);
+            const parseResult = this.parser.parseCommandClause(currentClause, config);
 
             // fast fail on a parse error
             if (parseResult.invalidArgs.length > 0) {
@@ -234,7 +267,7 @@ export default class DefaultRunner implements Runner {
         }
 
         const parseResult = this.getNonGlobalParseResult(nonQualifierClauses, potentialDefaultClauses,
-            overallUnusedArgs);
+            overallUnusedArgs, context);
 
         if (!parseResult) {
             throw new Error('No command specified and no default discovered!');

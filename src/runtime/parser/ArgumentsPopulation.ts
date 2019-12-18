@@ -4,6 +4,7 @@
 
 /* eslint-disable no-continue */
 
+import _ from 'lodash';
 import debug from 'debug';
 import Command, { CommandArgs } from '../../api/Command';
 import { InvalidArg, InvalidReason } from './Parser';
@@ -163,7 +164,7 @@ function* flushParseContext(parseContext: ParseContext): Iterable<ParseEvent> {
         return;
     case ParseState.OptionNameFound:
         if (parseContext.option && (parseContext.option.type === ArgumentValueTypeName.Boolean)
-            && (parseContext.value === undefined)) {
+            && (_.isUndefined(parseContext.value))) {
             // set implicit value of true
             yield {
                 type: ParseEventType.OptionSuccess,
@@ -399,13 +400,13 @@ export default function populateArguments(command: Command, potentialArgs: strin
 
         switch (parseEvent.type) {
         case ParseEventType.Unused:
-            if (parseEvent.unusedArg === undefined) {
+            if (_.isUndefined(parseEvent.unusedArg)) {
                 throw new Error('Unexpected state in parsing, unusedArg is not populated!');
             }
             unusedArgs.push(parseEvent.unusedArg);
             break;
         case ParseEventType.Error:
-            if (parseEvent.error === undefined) {
+            if (_.isUndefined(parseEvent.error)) {
                 throw new Error('Unexpected state in parsing, error is not populated!');
             }
             invalidArgs.push({
@@ -416,10 +417,10 @@ export default function populateArguments(command: Command, potentialArgs: strin
             break;
         case ParseEventType.PositionalSuccess:
         case ParseEventType.OptionSuccess:
-            if ((parseEvent.name === undefined) || (parseEvent.value === undefined)) {
+            if (_.isUndefined(parseEvent.name) || _.isUndefined(parseEvent.value)) {
                 throw new Error('Unexpected state in parsing, name or value is not populated!');
             }
-            if (commandArgs[parseEvent.name] === undefined) {
+            if (_.isUndefined(commandArgs[parseEvent.name])) {
                 commandArgs[parseEvent.name] = parseEvent.value as ArgumentValueType;
             } else if (Array.isArray(commandArgs[parseEvent.name])) {
                 if (Array.isArray(parseEvent.value)) {

@@ -1,12 +1,11 @@
-/** global console */
-
 /**
  * @module @flowscripter/cli-framework
  */
+
+import _ from 'lodash';
 import { Writable } from 'stream';
 import chalk from 'chalk';
 import ora from 'ora';
-
 import Service from '../../api/Service';
 
 export const PRINTER_SERVICE = '@flowscripter/cli-framework/printer-service';
@@ -213,5 +212,33 @@ export class PrinterService implements Service, Printer {
      */
     public setLevel(level: Level): void {
         this.threshold = levels[level];
+    }
+
+    /**
+     * @inheritdoc
+     *
+     * Supported configuration:
+     *
+     * * *colorEnabled: boolean | string*
+     * * *level: Level | string*
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    public init(config?: any): void {
+        if (_.isEmpty(config)) {
+            return;
+        }
+
+        if (_.isString(config.colorEnabled)) {
+            this.colorEnabled = (config.colorEnabled.toLowerCase() === 'true');
+        } else if (_.isBoolean(config.colorEnabled)) {
+            this.colorEnabled = config.colorEnabled;
+        }
+
+        if (_.isString(config.threshold)) {
+            const level = levels[config.threshold.toUpperCase() as Level];
+            if (_.isUndefined(level)) {
+                this.threshold = level;
+            }
+        }
     }
 }

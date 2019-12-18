@@ -25,7 +25,9 @@ export default interface CLI {
     getServiceFactories(): Iterable<ServiceFactory>;
 
     /**
-     * Execute the CLI.
+     * Execute the CLI with the provided arguments.
+     *
+     * @param args the arguments to parse
      */
-    execute(): Promise<void>;
+    execute(args: string[]): Promise<void>;
 }

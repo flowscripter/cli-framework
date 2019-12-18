@@ -3,7 +3,6 @@
  */
 
 import { Writable } from 'stream';
-
 import ServiceFactory from '../api/ServiceFactory';
 import Service from '../api/Service';
 import { PrinterService } from './service/PrinterService';
@@ -16,7 +15,9 @@ export default class CoreServiceFactory implements ServiceFactory {
         this.writable = writable;
     }
 
-    // eslint-disable-next-line class-methods-use-this
+    /**
+     * @inheritdoc
+     */
     public getServices(): Iterable<Service> {
         return [
             new PrinterService(this.writable)
