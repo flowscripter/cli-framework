@@ -7,6 +7,10 @@ export default class CommandFactoryA implements CommandFactory {
     public getCommands(): Iterable<Command> {
         return [{
             name: 'command_a',
+            isDefault: true,
+            options: [{
+                name: 'foo'
+            }],
             run: async (): Promise<void> => {
                 // empty
             }

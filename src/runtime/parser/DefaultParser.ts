@@ -2,8 +2,9 @@
  * @module @flowscripter/cli-framework
  */
 
+import _ from 'lodash';
 import debug from 'debug';
-import Command from '../../api/Command';
+import Command, { CommandArgs } from '../../api/Command';
 import populateArguments from './ArgumentsPopulation';
 import { validateOptionValue, validatePositionalValue } from './ArgumentsValidation';
 import Parser, {
@@ -130,7 +131,7 @@ export default class DefaultParser implements Parser {
                     this.log(`Found global command name: ${potentialCommandName}`);
                     potentialArgs.push(potentialCommandName);
 
-                    if (nextArg !== undefined) {
+                    if (!_.isUndefined(nextArg)) {
                         potentialArgs.push(nextArg);
                     }
                 } else {
@@ -189,15 +190,19 @@ export default class DefaultParser implements Parser {
     /**
      * @inheritdoc
      */
-    public parseCommandClause(commandClause: CommandClause): ParseResult {
+    public parseCommandClause(commandClause: CommandClause, config?: CommandArgs): ParseResult {
 
         const { command, potentialArgs } = commandClause;
 
         const invalidArgs: InvalidArg[] = [];
 
-        const { commandArgs, unusedArgs } = populateArguments(command, potentialArgs, invalidArgs);
+        // eslint-disable-next-line prefer-const
+        let { commandArgs, unusedArgs } = populateArguments(command, potentialArgs, invalidArgs);
 
-        // TODO: merge in config defaults
+        // merge in config defaults
+        if (!_.isUndefined(config)) {
+            commandArgs = _.merge(commandArgs, config);
+        }
 
         if (command.options) {
             command.options.forEach((option) => {

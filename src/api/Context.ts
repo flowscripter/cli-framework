@@ -3,6 +3,7 @@
  */
 
 import Service from './Service';
+import { CommandArgs } from './Command';
 
 /**
  * Interface to be implemented by a [[CommandFactory]] allowing a [[CLI]] to pass context to a [[Command]].
@@ -12,16 +13,18 @@ export default interface Context {
     /**
      * The [[Service]] configuration objects for this [[Context]].
      *
-     * The keys for the config map are [[Service.id]] values and the map values are configuration objects.
+     * The keys for the config map are [[Service.id]] values and the map values are generic configuration objects.
      */
-    readonly serviceConfigs: Map<string, object>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    readonly serviceConfigs: Map<string, any>;
 
     /**
      * The [[Command]] configuration objects for this [[Context]].
      *
-     * The keys for the config map are [[Command.name]] values and the map values are configuration objects.
+     * The keys for the config map are [[Command.name]] values and the map values are in the form of
+     * [[CommandArgs]].
      */
-    readonly commandConfigs: Map<string, object>;
+    readonly commandConfigs: Map<string, CommandArgs>;
 
     /**
      * Return the specified [[Service]]

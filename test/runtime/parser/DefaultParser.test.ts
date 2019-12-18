@@ -27,7 +27,9 @@ function getCommand(): Command {
             name: 'foo',
             type: ArgumentValueTypeName.String
         }],
-        run: async (): Promise<void> => { }
+        run: async (): Promise<void> => {
+            // empty
+        }
     };
 }
 
@@ -40,7 +42,9 @@ function getGlobalCommand(): Command {
         }, {
             name: 'foo'
         }],
-        run: async (): Promise<void> => { }
+        run: async (): Promise<void> => {
+            // empty
+        }
     };
 }
 
@@ -54,7 +58,9 @@ function getGlobalQualifierCommand(name: string): Command {
         }, {
             name: 'foo'
         }],
-        run: async (): Promise<void> => { }
+        run: async (): Promise<void> => {
+            // empty
+        }
     };
 }
 
@@ -385,6 +391,84 @@ describe('DefaultParser test', () => {
                 foo: 'bar'
             },
             unusedArgs: ['hello', '--world'],
+            invalidArgs: []
+        });
+    });
+
+    test('All arguments provided in config', () => {
+        const defaultParser: DefaultParser = new DefaultParser();
+
+        const command = getCommand();
+
+        defaultParser.setCommands([command]);
+
+        const parseResult = defaultParser.parseCommandClause({
+            command,
+            potentialArgs: []
+        }, {
+            goo: 'g',
+            foo: 'bar'
+        });
+
+        expectParseResult(parseResult, {
+            command,
+            commandArgs: {
+                goo: 'g',
+                foo: 'bar'
+            },
+            unusedArgs: [],
+            invalidArgs: []
+        });
+    });
+
+    test('Some arguments provided in config', () => {
+        const defaultParser: DefaultParser = new DefaultParser();
+
+        const command = getCommand();
+
+        defaultParser.setCommands([command]);
+
+        const parseResult = defaultParser.parseCommandClause({
+            command,
+            potentialArgs: ['--goo', 'g']
+        }, {
+            foo: 'bar'
+        });
+
+        expectParseResult(parseResult, {
+            command,
+            commandArgs: {
+                goo: 'g',
+                foo: 'bar'
+            },
+            unusedArgs: [],
+            invalidArgs: []
+        });
+    });
+
+    test('Extra config provided', () => {
+        const defaultParser: DefaultParser = new DefaultParser();
+
+        const command = getCommand();
+
+        defaultParser.setCommands([command]);
+
+        const parseResult = defaultParser.parseCommandClause({
+            command,
+            potentialArgs: ['--goo', 'g']
+        }, {
+            foo: 'bar',
+            yee: 'ha'
+        });
+
+        expectParseResult(parseResult, {
+            command,
+            commandArgs: {
+                goo: 'g',
+                foo: 'bar',
+                yee: 'ha'
+            },
+            unusedArgs: [],
             invalidArgs: []
         });
     });

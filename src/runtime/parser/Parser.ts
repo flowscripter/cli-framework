@@ -137,8 +137,10 @@ export default interface Parser {
      * Parse the [[Command]] arguments for the specified [[CommandClause]].
      *
      * @param commandClause the [[Command]] with its potential arguments to parse
+     * @param config optional configuration object in the form of [[CommandArgs]] to initialise command arguments
+     * before parsing
      *
      * @return the results of the parsing
      */
-    parseCommandClause(commandClause: CommandClause): ParseResult;
+    parseCommandClause(commandClause: CommandClause, config?: CommandArgs): ParseResult;
 }

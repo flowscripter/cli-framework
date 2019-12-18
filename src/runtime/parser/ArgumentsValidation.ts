@@ -2,6 +2,7 @@
  * @module @flowscripter/cli-framework
  */
 
+import _ from 'lodash';
 import Argument, { ArgumentValueTypeName } from '../../api/Argument';
 import Option from '../../api/Option';
 import Positional from '../../api/Positional';
@@ -65,7 +66,7 @@ function validateArrayValue(argument: Argument, value: ArgumentSingleValueType[]
     for (let i = 0; i < value.length; i += 1) {
         const singleValue: ArgumentSingleValueType = value[i];
         const { validValue, error } = validateValue(argument, singleValue);
-        if (validValue !== undefined) {
+        if (!_.isUndefined(validValue)) {
             convertedArray.push(validValue);
         }
         if (error) {
@@ -86,7 +87,7 @@ function validateArgumentValue(argument: Argument, value: ArgumentValueType | un
     ArgumentValueType | undefined {
 
     // if there is a value, check if it is valid
-    if (value !== undefined) {
+    if (!_.isUndefined(value)) {
         let validationResult;
 
         if (Array.isArray(value)) {
@@ -109,7 +110,7 @@ function validateArgumentValue(argument: Argument, value: ArgumentValueType | un
         return validationResult.validValue;
     }
     // if there is no value, check if there is a default
-    if (defaultValue !== undefined) {
+    if (!_.isUndefined(defaultValue)) {
         return defaultValue;
     }
     // if there is no value, check if it was optional

@@ -14,7 +14,11 @@ describe('DefaultContext test', () => {
         expect(context.getService(SERVICE_ID)).toBeNull();
 
         context.addService({
-            id: SERVICE_ID
+            id: SERVICE_ID,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars,@typescript-eslint/no-explicit-any
+            init: (config?: any): void => {
+                // empty
+            }
         });
 
         expect(context.getService(SERVICE_ID)).not.toBeNull();
@@ -24,11 +28,19 @@ describe('DefaultContext test', () => {
         const context = new DefaultContext();
 
         context.addService({
-            id: SERVICE_ID
+            id: SERVICE_ID,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars,@typescript-eslint/no-explicit-any
+            init: (config?: any): void => {
+                // empty
+            }
         });
 
         expect(() => context.addService({
-            id: SERVICE_ID
+            id: SERVICE_ID,
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars,@typescript-eslint/no-explicit-any
+            init: (config?: any): void => {
+                // empty
+            }
         })).toThrow();
     });
 });
