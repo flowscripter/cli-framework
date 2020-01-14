@@ -13,7 +13,7 @@
 
 This project provides a Javascript framework for developing Command Line Interface (CLI) applications running in NodeJS.
 
-#### Key Features 
+#### Key Features
 
 * Dynamic plugin based import of commands using [@flowscripter/esm-dynamic-plugins](https://github.com/flowscripter/esm-dynamic-plugins)
 * ES2015 module based
@@ -30,9 +30,9 @@ This project provides a Javascript framework for developing Command Line Interfa
 The key concepts are:
 
 * A host application extends the *CLI* interface (a default CLI implementation is provided).
-* The *CLI* is responsible for: 
+* The *CLI* is responsible for:
     * maintaining a list of *CommandFactories* and ensuring the *Commands* they provide are available to a *Runner*
-    when it parses arguments to find a *Command* to execute. 
+    when it parses arguments to find a *Command* to execute.
     * maintaining a list of *ServiceFactories* and ensuring the *Services* they provide are available in the *Context*
     when a *Command* is run.
     * providing invocation arguments to the *Runner* which parses them and determines which *Command* to run.
@@ -51,12 +51,12 @@ The following high level class diagram illustrates these relationships:
 All functionality for a CLI is implemented within a *Command*. The *Command* declares:
 
 * a `name` which should be specified in the command line arguments to invoke it. The name must consist of
-alphanumeric non-whitespace ASCII characters or `_` and `-` characters. It also cannot start with `-`. 
+alphanumeric non-whitespace ASCII characters or `_` and `-` characters. It also cannot start with `-`.
 * a number of expected arguments (explained further below)
 * a function to run to execute the command
 * some basic configuration options which define its type and therefore how it is invoked
 
-The types of command are: *Global*, *Global Qualifier*, *Default* and *Non-Global* (i.e. a normal *Command*) 
+The types of command are: *Global*, *Global Qualifier*, *Default* and *Non-Global* (i.e. a normal *Command*)
 
 #### Command
 
@@ -68,7 +68,7 @@ Some concrete examples:
 
     myHelloWorldApp say hello
     myNetworkApp connect --host=localhost
-     
+
 #### Default Command
 
 If a command is declared *default* it will be run if no other command is extracted from the command line:
@@ -102,7 +102,7 @@ global qualifier command specified:
     executable --<global_qualifier_command_1_name> [global_qualifier_command_1_arguments] \
                --<global_qualifier_command_2_name> [global_qualifier_command_2_arguments] \
                <command_name> [command_arguments]
- 
+
 Each command will be executed before any other specified global, non-global (i.e.
 normal) or default command is executed. This behaviour allows them to modify the context in which later commands run.
 
@@ -111,10 +111,10 @@ A concrete example:
     myNetworkApp --loglevel debug download --host=localhost --all
 
 **NOTE**: Global qualifier commands only support *positionals* (and not *options*). See "Global and Global Qualifier Command Arguments" further below.
- 
+
 ## Arguments
 
-Arguments can take two forms: *Option* or *Positional*. 
+Arguments can take two forms: *Option* or *Positional*.
 
 Common to both are the following features:
 
@@ -126,7 +126,7 @@ It cannot start with `-`.
 **Options**
 
 An *option* argument also provides for:
- 
+
 * a short character alias for the option which should always be an alphabetic ASCII character.
 * whether the option is mandatory
 * an optional default value
@@ -140,7 +140,7 @@ There are three ways in which options can be specified:
     --<option_name>=<option_value>
     -<option_alias> <option_value>
 
-For boolean options, specifying the value is not required. Both of the following set the value to `true`: 
+For boolean options, specifying the value is not required. Both of the following set the value to `true`:
 
     --<boolean_option_name>
     --<boolean_option_name> true
@@ -150,7 +150,7 @@ For boolean options, specifying the value is not required. Both of the following
 
 **Positionals**
 
-A *positional* argument is specified by a value which appears at the correct position in the list of command 
+A *positional* argument is specified by a value which appears at the correct position in the list of command
 line arguments:
 
      executable <command> <positional_1_value> <positional_2_value>
@@ -160,7 +160,7 @@ A *positional* argument also provides for optional "varargs" support which allow
      executable <command> --<option>=<value> <positional_1_value_1> <positional_1_value_2> <positional_1_value_3>
 
 Only one "varargs" positional can be defined and it must be the last positional expected for the command.
- 
+
 If, and only if, a positional is specified as supporting "varargs", it can also declare whether it is optional. In this case
 appearance of a value for positional is not required:
 
@@ -169,7 +169,7 @@ appearance of a value for positional is not required:
 ## Global and Global Qualifier Command Arguments
 
 Global commands and global qualifier commands only support *positionals* (and not *options*).
- 
+
 For such commands the first *positional* may be specified in the following alternative forms:
 
     executable --<global_command> <positional_1_value>
@@ -177,7 +177,7 @@ For such commands the first *positional* may be specified in the following alter
     executable --<qualifier_command> <positional_1_value> <command>
     executable --<qualifier_command>=<positional_1_value> <command>
 
-To avoid confusing usage semantics it is recommended that global commands and global qualifier commands only 
+To avoid confusing usage semantics it is recommended that global commands and global qualifier commands only
 support one *positional*. Otherwise invocations such as the following are valid:
 
     executable --<global_command>=<positional_1_value> <positional_2_value>
@@ -185,10 +185,10 @@ support one *positional*. Otherwise invocations such as the following are valid:
 
 ## Example Project
 
-[ts-example-cli](https://github.com/flowscripter/ts-example-cli) is a demo CLI application based on
+[ts-example-cli](https://github.com/flowscripter/ts-example-cli) is a demo CLI Typescript application based on
 this framework.
 
-The [Flowscripter CLI](https://github.com/flowscripter/cli) is a fully functional CLI application based on
+[js-example-cli](https://github.com/flowscripter/js-example-cli) is a demo CLI Javascript application based on
 this framework.
 
 ## Parsing Logic
@@ -210,8 +210,8 @@ following are all equivalent:
 `executable --<qualifier_command_1> <qualifier_command_1_argument> <default_command_argument> --<qualifier_command_2> <qualifier_command_2_argument>`
 
 **Arguments Must Follow Command**
- 
-All arguments for a command are expected to FOLLOW the command i.e. this is **NOT** valid: 
+
+All arguments for a command are expected to FOLLOW the command i.e. this is **NOT** valid:
 
 `executable <command_argument> <command>`
 
@@ -222,22 +222,22 @@ The order of options for a particular command is not important i.e. these are eq
 * `<command> --<option_1> <option_1_value> --<option_2> <option_2_value>`
 * `<command> --<option_2> <option_2_value> --<option_1> <option_1_value>`
 
-**Arbitrary Command Order** 
+**Arbitrary Command Order**
 
 The order of global qualifiers and global command/non-global command is not important i.e. these are equivalent:
 
 * `executable <command> [command_arguments] --<qualifier_command_1> [qualifier_command_1_arguments] --<qualifier_command_2> [qualifier_command_2_arguments]`
 * `executable --<qualifier_command_1> [qualifier_command_1_arguments] <command> [command_arguments] --<qualifier_command_2> [qualifier_command_2_arguments]`
 
-**No Command Interleaving** 
+**No Command Interleaving**
 
 Arguments for commands cannot be interleaved with other commands i.e. this is **NOT** valid:
 
 `executable --<qualifier_command> <command> [command_arguments] [qualifier_command_arguments]`
 
-**Single Command** 
+**Single Command**
 
-Apart from global qualifier commands, there is expected to be only one command specified i.e. this will **NOT** work: 
+Apart from global qualifier commands, there is expected to be only one command specified i.e. this will **NOT** work:
 
 `executable <command_1> [command_1_arguments] <command_2> [command_2_arguments] `
 
@@ -267,7 +267,7 @@ Apart from global qualifier commands, there is expected to be only one command s
 
 ## Development
 
-Firstly: 
+Firstly:
 
 ```
 npm install
@@ -296,38 +296,38 @@ The following diagram provides an overview of the main classes:
 
 ## Further Details
 
-Further details on project configuration files and Javascript version support can be found in 
+Further details on project configuration files and Javascript version support can be found in
 the [template for this project](https://github.com/flowscripter/ts-template/blob/master/README.md#overview).
 
 ## Alternatives
 
-There are two popular alternatives available. Both are well documented and feature rich: 
+There are two popular alternatives available. Both are well documented and feature rich:
 
-* [oclif](https://oclif.io) 
+* [oclif](https://oclif.io)
 * [Gluegun](https://infinitered.github.io/gluegun)
 
 The core functionality of a CLI framework boils down to:
- 
-1. **a plugin mechanism**: Neither of the above alternatives provided a dynamic, abstracted plugin import mechanism 
-based on ES2015 modules:  
+
+1. **a plugin mechanism**: Neither of the above alternatives provided a dynamic, abstracted plugin import mechanism
+based on ES2015 modules:
     * `oclif` relies on available plugins being declared in `package.json`.
     * `Gluegun` supports dynamic loading of plugins based on a required folder structure.
-1. **parsing input/printing output**: to achieve this functionality, both of the above alternatives 
+1. **parsing input/printing output**: to achieve this functionality, both of the above alternatives
 rely heavily on other CLI support packages under the hood e.g. [yargs-parser](https://github.com/yargs/yargs-parser) or
 [colors.js](https://github.com/Marak/colors.js) etc.
 
     * This makes sense, but both seem to suffer from feature creep as they move towards being a 'product' in their own
     right and both come with a growing list of dependencies. This project aims for a very lightweight, abstracted service model
-    so that almost all features are optional and customisable. It also aims to keep the core framework clear of 
-    ANY behavioural logic e.g. reading from configs, logging, help etc.   
-    
-    * This project had some pretty specific requirements for argument parsing to accommodate the ideas of global 
-    qualifier commands. [yargs-parser](https://github.com/yargs/yargs-parser) was a bit over-powered and 
+    so that almost all features are optional and customisable. It also aims to keep the core framework clear of
+    ANY behavioural logic e.g. reading from configs, logging, help etc.
+
+    * This project had some pretty specific requirements for argument parsing to accommodate the ideas of global
+    qualifier commands. [yargs-parser](https://github.com/yargs/yargs-parser) was a bit over-powered and
     yet still didn't quite fit the bill, despite some efforts. A lot of time was also spent with
-     [command-line-args](https://github.com/75lb/command-line-args) but the need to hack in support for positional args caused endless pain.    
+     [command-line-args](https://github.com/75lb/command-line-args) but the need to hack in support for positional args caused endless pain.
 
 Additional reasons for the existence of this project include:
- 
+
 * despite the wonders of transpilers and bundlers, both alternatives mentioned above proved quite hard to get
  working in a native ES2015 application.
 * there was no native ES2015 CLI framework - until now

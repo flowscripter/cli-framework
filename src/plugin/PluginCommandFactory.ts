@@ -4,10 +4,9 @@
 
 import CommandFactory from '../api/CommandFactory';
 import Command from '../api/Command';
-import VersionCommand from './command/VersionCommand';
-import HelpCommand from './command/HelpCommand';
+import InstallCommand from './command/InstallCommand';
 
-export default class CoreCommandFactory implements CommandFactory {
+export default class PluginCommandFactory implements CommandFactory {
 
     /**
      * @inheritdoc
@@ -15,8 +14,7 @@ export default class CoreCommandFactory implements CommandFactory {
     // eslint-disable-next-line class-methods-use-this
     public getCommands(): Iterable<Command> {
         return [
-            new VersionCommand(),
-            new HelpCommand()
+            new InstallCommand()
         ];
     }
 }
