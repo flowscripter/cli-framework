@@ -82,7 +82,7 @@
         "ts-jest": "24.2.0",
         "typedoc": "0.15.8",
         "typedoc-plugin-external-module-name": "2.1.0",
-        "typescript": "3.7.4"
+        "typescript": "3.7.5"
     },
     "dependencies": {
         "chalk": "3.0.0",
