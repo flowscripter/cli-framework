@@ -74,7 +74,7 @@
         "rollup-plugin-eslint": "7.0.0",
         "rollup-plugin-json": "4.0.0",
         "rollup-plugin-node-resolve": "5.2.0",
-        "rollup-plugin-peer-deps-external": "2.2.0",
+        "rollup-plugin-peer-deps-external": "2.2.2",
         "rollup-plugin-typescript2": "0.25.3",
         "semantic-release": "16.0.4",
         "sonarqube-scanner": "2.5.0",
