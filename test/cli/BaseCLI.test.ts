@@ -1,53 +1,154 @@
-import BaseCLI from '../../src/cli/BaseCLI';
+import { mockProcessStdout, mockProcessStderr } from 'jest-mock-process';
 import CommandFactoryA from '../fixtures/CommandFactoryA';
-import ServiceFactoryA from '../fixtures/ServiceFactoryA';
+import ServiceFactoryA, { SERVICE_ID_A } from '../fixtures/ServiceFactoryA';
+import BaseCLI from '../../src/cli/BaseCLI';
 
-describe('DefaultCLI test', () => {
+const mockStdout = mockProcessStdout();
+const mockStderr = mockProcessStderr();
 
-    test('DefaultCLI is instantiable', () => {
-        expect(new BaseCLI(process.stdout)).toBeInstanceOf(BaseCLI);
+describe('BaseCLI test', () => {
+
+    beforeEach(() => {
+        mockStdout.mockReset();
+        mockStderr.mockReset();
+    });
+
+    afterAll(() => {
+        mockStdout.mockRestore();
+        mockStderr.mockRestore();
+    });
+
+    test('BaseCLI is instantiable', () => {
+        const cliConfig = {
+            name: 'cli',
+            description: 'good',
+            version: '1.2.3',
+            stdout: process.stdout,
+            stderr: process.stderr,
+        };
+        expect(new BaseCLI(cliConfig)).toBeInstanceOf(BaseCLI);
     });
 
     test('ServiceFactory is registered', () => {
-        const cli = new BaseCLI(process.stdout);
+        const cliConfig = {
+            name: 'cli',
+            description: 'good',
+            version: '1.2.3',
+            stdout: process.stdout,
+            stderr: process.stderr,
+        };
+        const cli = new BaseCLI(cliConfig);
 
-        expect(cli.getServiceFactories()).toHaveLength(1);
+        expect(cli.serviceFactories).toHaveLength(1);
 
         cli.addServiceFactory(new ServiceFactoryA());
 
-        expect(cli.getServiceFactories()).toHaveLength(2);
+        expect(cli.serviceFactories).toHaveLength(2);
     });
 
     test('CommandFactory is registered', () => {
-        const cli = new BaseCLI(process.stdout);
+        const cliConfig = {
+            name: 'cli',
+            description: 'good',
+            version: '1.2.3',
+            stdout: process.stdout,
+            stderr: process.stderr,
+        };
+        const cli = new BaseCLI(cliConfig);
 
-        expect(cli.getCommandFactories()).toHaveLength(1);
+        expect(cli.commandFactories).toHaveLength(1);
 
         cli.addCommandFactory(new CommandFactoryA());
 
-        expect(cli.getCommandFactories()).toHaveLength(2);
+        expect(cli.commandFactories).toHaveLength(2);
     });
 
-    test('Default command is run with required arguments', () => {
-        const cli = new BaseCLI(process.stdout);
+    test('Default command is run', async () => {
+        const cliConfig = {
+            name: 'cli',
+            description: 'good',
+            version: '1.2.3',
+            stdout: process.stdout,
+            stderr: process.stderr
+        };
+        const cli = new BaseCLI(cliConfig);
 
         cli.addCommandFactory(new CommandFactoryA());
 
-        cli.execute(['--foo', 'bar']);
+        const result = await cli.execute([]);
+
+        expect(result).toEqual(0);
     });
 
-    test('Default command is run with required arguments provided in config', () => {
+    test('Execute failure returns 1', async () => {
+        const cliConfig = {
+            name: 'cli',
+            description: 'good',
+            version: '1.2.3',
+            stdout: process.stdout,
+            stderr: process.stderr,
+        };
+        const cli = new BaseCLI(cliConfig);
+
+        cli.addCommandFactory(new CommandFactoryA());
+
+        const result = await cli.execute(['blah']);
+
+        expect(result).toEqual(1);
+    });
+
+    test('Default command is run with required arguments provided in config', async () => {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const config: Map<string, any> = new Map();
-        config.set('command_a', {
+        const commandConfigs = new Map<string, any>();
+        commandConfigs.set('command_a', {
             foo: 'bar'
         });
 
-        const cli = new BaseCLI(process.stdout, config);
+        const cliConfig = {
+            name: 'cli',
+            description: 'good',
+            version: '1.2.3',
+            stdout: process.stdout,
+            stderr: process.stderr,
+            commandConfigs
+        };
+
+        const cli = new BaseCLI(cliConfig);
 
         cli.addCommandFactory(new CommandFactoryA());
 
-        cli.execute([]);
+        const result = await cli.execute([]);
+
+        expect(result).toEqual(0);
+    });
+
+    test('Service is configured with provided config', async () => {
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const serviceConfigs = new Map<string, any>();
+        serviceConfigs.set(SERVICE_ID_A, {
+            foo: 'bar'
+        });
+
+        const cliConfig = {
+            name: 'cli',
+            description: 'good',
+            version: '1.2.3',
+            stdout: process.stdout,
+            stderr: process.stderr,
+            serviceConfigs
+        };
+
+        const serviceFactoryA = new ServiceFactoryA();
+
+        const cli = new BaseCLI(cliConfig);
+
+        cli.addServiceFactory(serviceFactoryA);
+
+        const result = await cli.execute([]);
+
+        expect(result).toEqual(0);
+        expect(serviceFactoryA.serviceA.config.foo).toEqual('bar');
     });
 });

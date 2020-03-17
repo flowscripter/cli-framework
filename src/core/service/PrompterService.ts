@@ -6,7 +6,7 @@ import Service from '../../api/Service';
 
 export const PROMPTER_SERVICE = '@flowscripter/cli-framework/prompter-service';
 
-// TODO: implement
+// TODO: implement: https://github.com/enquirer/enquirer#-prompts
 /**
  * Interface to be implemented by a [[Service]] allowing a [[Command]] to prompt the user for further input while
  * it is running.
@@ -21,6 +21,15 @@ export default interface Prompter {
 export class PrompterService implements Service, Prompter {
 
     readonly id = PROMPTER_SERVICE;
+
+    readonly initPriority: number;
+
+    /**
+     * @param initPriority to determine the relative order in which multiple [[Service]] instances are initialised.
+     */
+    public constructor(initPriority: number) {
+        this.initPriority = initPriority;
+    }
 
     /**
      * @inheritdoc

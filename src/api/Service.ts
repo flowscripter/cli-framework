@@ -2,21 +2,29 @@
  * @module @flowscripter/cli-framework
  */
 
+import Context from './Context';
+
 /**
  * Interface to be implemented by a [[Service]] implementation.
  */
 export default interface Service {
 
     /**
-     * The implemented Service ID
+     * The implemented Service ID.
      */
     readonly id: string;
 
     /**
-     * Initialise the service
-     *
-     * @param config optional configuration for the service
+     * Used to determine the order in which multiple [[Service]] instances will be initialised. Higher values
+     * will run before lower values.
      */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    init(config?: any): void;
+    readonly initPriority: number;
+
+    /**
+     * Initialise the service.
+     *
+     * @param context the [[Context]] in which to initialise. Note that other services should not be accessed
+     * from the provided [[Context]] as they may not yet be initialised.
+     */
+    init(context: Context): void;
 }

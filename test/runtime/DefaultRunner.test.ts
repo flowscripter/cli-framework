@@ -1,21 +1,53 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import DefaultRunner from '../../src/runtime/DefaultRunner';
 import Option from '../../src/api/Option';
 import Positional from '../../src/api/Positional';
-import Command from '../../src/api/Command';
 import DefaultContext from '../../src/runtime/DefaultContext';
+import DefaultParser from '../../src/runtime/parser/DefaultParser';
+import SubCommand from '../../src/api/SubCommand';
+import GlobalCommand from '../../src/api/GlobalCommand';
+import GlobalCommandArgument from '../../src/api/GlobalCommandArgument';
+import GlobalModifierCommand from '../../src/api/GlobalModifierCommand';
+import GroupCommand from '../../src/api/GroupCommand';
 
-function getCommand<S_ID>(name: string, aliases: string[], isGlobal: boolean, isGlobalQualifier: boolean,
-    isDefault: boolean, options: Option[], positionals: Positional[]) {
+function getSubCommand<S_ID>(name: string, options: Option[], positionals: Positional[]): SubCommand {
     return {
         name,
-        aliases,
-        isGlobal,
-        isGlobalQualifier,
         options,
         positionals,
-        isDefault,
+        run: async (): Promise<void> => {
+            // empty
+        }
+    };
+}
+
+function getGlobalCommand<S_ID>(name: string, shortAlias: string, argument?: GlobalCommandArgument): GlobalCommand {
+    return {
+        name,
+        shortAlias,
+        argument,
+        run: async (): Promise<void> => {
+            // empty
+        }
+    };
+}
+
+function getGlobalModifierCommand<S_ID>(name: string, shortAlias: string, runPriority: number,
+    argument?: GlobalCommandArgument): GlobalModifierCommand {
+    return {
+        name,
+        shortAlias,
+        runPriority,
+        argument,
+        run: async (): Promise<void> => {
+            // empty
+        }
+    };
+}
+
+function getGroupCommand<S_ID>(name: string, memberSubCommands: SubCommand[]): GroupCommand {
+    return {
+        name,
+        memberSubCommands,
         run: async (): Promise<void> => {
             // empty
         }
@@ -25,480 +57,388 @@ function getCommand<S_ID>(name: string, aliases: string[], isGlobal: boolean, is
 describe('DefaultRunner test', () => {
 
     test('DefaultRunner is instantiable', () => {
-        expect(new DefaultRunner()).toBeInstanceOf(DefaultRunner);
+        expect(new DefaultRunner(new DefaultParser())).toBeInstanceOf(DefaultRunner);
     });
 
-    test('Check for multiple default commands', () => {
+    test('Check valid default command type', async () => {
+        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const subCommand = getSubCommand('command', [], []);
+        const runner = new DefaultRunner(new DefaultParser());
 
-        const runner = new DefaultRunner();
+        await expect(runner.run(['command'], context, [subCommand],
+            getGlobalModifierCommand('modifier', 'm', 0))).rejects.toThrowError();
+        await expect(runner.run(['command'], context, [subCommand],
+            getGroupCommand('group', [getSubCommand('sub', [], [])]))).rejects.toThrowError();
 
-        const command1 = getCommand('c1', [], false, false, true, [{
-            name: 'foo1'
-        }], []);
-
-        const command2 = getCommand('c2', [], false, false, true, [{
-            name: 'foo1'
-        }], []);
-
-        runner.addCommand(command1);
-        expect(() => {
-            runner.addCommand(command2);
-        }).toThrow();
+        await runner.run(['command'], context, [subCommand], getSubCommand('sub', [], []));
+        await runner.run(['command'], context, [subCommand], getGlobalCommand('global', 'g'));
     });
 
-    test('Check for duplicate command name', () => {
+    test('Check for duplicate command name', async () => {
 
-        const runner = new DefaultRunner();
+        const runner = new DefaultRunner(new DefaultParser());
+        const command1 = getSubCommand('c1', [], []);
+        const command2 = getSubCommand('c1', [], []);
 
-        const command1 = getCommand('c1', [], false, false, false, [{
-            name: 'foo1'
-        }], []);
+        let context = new DefaultContext({}, [], [], new Map(), new Map());
+        await runner.run(['c1'], context, [command1]);
 
-        const command2 = getCommand('c1', [], false, false, false, [{
-            name: 'foo1'
-        }], []);
-
-        runner.addCommand(command1);
-        expect(() => {
-            runner.addCommand(command2);
-        }).toThrow();
+        context = new DefaultContext({}, [], [], new Map(), new Map());
+        await expect(runner.run(['c1'], context, [command1, command2])).rejects.toThrowError();
     });
 
-    test('Check for duplicate command name and alias', () => {
-
-        const runner = new DefaultRunner();
-
-        const command1 = getCommand('command1', [], false, false, false, [{
-            name: 'f'
-        }], []);
-
-        const command2 = getCommand('command2', ['command1'], false, false, false, [{
-            name: 'foo',
-        }], []);
-
-        runner.addCommand(command1);
-        expect(() => {
-            runner.addCommand(command2);
-        }).toThrow();
-    });
-
-    test('Check for global/qualifier command name duplicating existing option name', () => {
-
-        const runner = new DefaultRunner();
-
-        const command1 = getCommand('c1', [], false, false, false, [{
-            name: 'foo',
-            shortAlias: 'f'
-        }], []);
-
-        const command2 = getCommand('foo', [], true, false, false, [{
-            name: 'foo1'
-        }], []);
-
-        runner.addCommand(command1);
-        expect(() => {
-            runner.addCommand(command2);
-        }).toThrow();
-    });
-
-    test('Check for global/qualifier command alias duplicating existing option name', () => {
-
-        const runner = new DefaultRunner();
-
-        const command1 = getCommand('c1', [], false, false, false, [{
-            name: 'foo',
-            shortAlias: 'f'
-        }], []);
-
-        const command2 = getCommand('c2', ['foo'], true, false, false, [{
-            name: 'foo1'
-        }], []);
-
-        runner.addCommand(command1);
-        expect(() => {
-            runner.addCommand(command2);
-        }).toThrow();
-    });
-
-    test('Check for global/qualifier command alias duplicating existing option shortAlias', () => {
-
-        const runner = new DefaultRunner();
-
-        const command1 = getCommand('c1', [], false, false, false, [{
-            name: 'foo',
-            shortAlias: 'f'
-        }], []);
-
-        const command2 = getCommand('c2', ['f'], true, false, false, [{
-            name: 'foo1'
-        }], []);
-
-        runner.addCommand(command1);
-        expect(() => {
-            runner.addCommand(command2);
-        }).toThrow();
-    });
-
-    test('Non-global run scenario', async () => {
+    test('Sub-Command run scenario', async () => {
 
         let hasRun = false;
 
-        const runner = new DefaultRunner();
-
-        const command: Command = {
-            name: 'command',
-            options: [{
-                name: 'foo'
-            }],
-            run: async (): Promise<void> => { hasRun = true; }
+        const option = {
+            name: 'foo',
+            shortAlias: 'f'
         };
+        const command = getSubCommand('command', [option], []);
 
-        runner.addCommand(command);
-        await runner.run(['command', '--foo', 'bar'], new DefaultContext());
+        command.run = async (): Promise<void> => { hasRun = true; };
 
+        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const runner = new DefaultRunner(new DefaultParser());
+
+        await runner.run(['command', '--foo', 'bar'], context, [command]);
         expect(hasRun).toBe(true);
     });
 
-    test('Global run scenario', async () => {
+    test('Global Modifier run scenario', async () => {
+
+        let modifierHasRun = false;
+        let subHasRun = false;
+
+        const globalModifierCommand = getGlobalModifierCommand('modifierCommand', 'c', 1, {
+            name: 'value'
+        });
+        const subCommand = getSubCommand('subCommand', [], []);
+
+        globalModifierCommand.run = async (): Promise<void> => { modifierHasRun = true; };
+        subCommand.run = async (): Promise<void> => { subHasRun = true; };
+
+        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const runner = new DefaultRunner(new DefaultParser());
+
+        await runner.run(['--modifierCommand=bar', 'subCommand'], context, [globalModifierCommand, subCommand]);
+
+        expect(modifierHasRun).toBe(true);
+        expect(subHasRun).toBe(true);
+
+        modifierHasRun = false;
+        subHasRun = false;
+
+        await runner.run(['-c', 'bar', 'subCommand'], context, [globalModifierCommand, subCommand]);
+
+        expect(modifierHasRun).toBe(true);
+        expect(subHasRun).toBe(true);
+    });
+
+    test('Global Command run scenario', async () => {
 
         let hasRun = false;
 
-        const runner = new DefaultRunner();
+        const command = getGlobalCommand('command', 'c', {
+            name: 'value'
+        });
 
-        const command: Command = {
-            name: 'command',
-            isGlobal: true,
-            positionals: [{
-                name: 'foo'
-            }],
-            run: async (): Promise<void> => { hasRun = true; }
-        };
+        command.run = async (): Promise<void> => { hasRun = true; };
 
-        runner.addCommand(command);
-        await runner.run(['--command=bar'], new DefaultContext());
+        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const runner = new DefaultRunner(new DefaultParser());
 
+        await runner.run(['--command=bar'], context, [command]);
+
+        expect(hasRun).toBe(true);
+
+        hasRun = false;
+
+        await runner.run(['-c', 'bar'], context, [command]);
         expect(hasRun).toBe(true);
     });
 
-    test('Default run scenario', async () => {
+    test('Group Command run scenario', async () => {
 
-        let hasRun = false;
+        let subHasRun = false;
+        let groupHasRun = false;
 
-        const runner = new DefaultRunner();
+        const subCommand = getSubCommand('command', [], []);
+        const command = getGroupCommand('group', [subCommand]);
 
-        const command: Command = {
-            name: 'command',
-            isDefault: true,
-            options: [{
-                name: 'foo'
-            }],
-            run: async (): Promise<void> => { hasRun = true; }
-        };
+        subCommand.run = async (): Promise<void> => { subHasRun = true; };
+        command.run = async (): Promise<void> => { groupHasRun = true; };
 
-        runner.addCommand(command);
-        await runner.run(['--foo=bar'], new DefaultContext());
+        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const runner = new DefaultRunner(new DefaultParser());
 
-        expect(hasRun).toBe(true);
+        await runner.run(['group', 'command'], context, [command]);
+
+        expect(groupHasRun).toBe(true);
+        expect(subHasRun).toBe(true);
+
+        await runner.run(['group:command'], context, [command]);
+
+        expect(groupHasRun).toBe(true);
+        expect(subHasRun).toBe(true);
     });
 
     test('Global qualifier and non-global run scenario', async () => {
 
-        let hasRun1 = false;
-        let hasRun2 = false;
+        let modifierHasRun = false;
+        let subHasRun = false;
 
-        const runner = new DefaultRunner();
-
-        const command1: Command = {
-            name: 'command1',
-            isGlobal: true,
-            isGlobalQualifier: true,
-            positionals: [{
-                name: 'goo'
-            }],
-            run: async (): Promise<void> => { hasRun1 = true; }
+        const modifierCommand = getGlobalModifierCommand('modifier', 'm', 1, {
+            name: 'value'
+        });
+        const option = {
+            name: 'foo',
+            shortAlias: 'f'
         };
+        const subCommand = getSubCommand('command', [option], []);
 
-        const command2: Command = {
-            name: 'command2',
-            options: [{
-                name: 'foo'
-            }],
-            run: async (): Promise<void> => { hasRun2 = true; }
-        };
+        modifierCommand.run = async (): Promise<void> => { modifierHasRun = true; };
+        subCommand.run = async (): Promise<void> => { subHasRun = true; };
 
-        runner.addCommand(command1);
-        runner.addCommand(command2);
-        await runner.run(['--command1=bar', 'command2', '--foo', 'bar'], new DefaultContext());
+        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const runner = new DefaultRunner(new DefaultParser());
 
-        expect(hasRun1).toBe(true);
-        expect(hasRun2).toBe(true);
+        await runner.run(['--modifier=bar', 'command', '--foo', 'bar'], context, [modifierCommand, subCommand]);
+
+        expect(modifierHasRun).toBe(true);
+        expect(subHasRun).toBe(true);
     });
 
     test('Global qualifier and global run scenario', async () => {
 
-        let hasRun1 = false;
-        let hasRun2 = false;
+        let modifierHasRun = false;
+        let globalHasRun = false;
 
-        const runner = new DefaultRunner();
+        const modifierCommand = getGlobalModifierCommand('modifier', 'm', 1, {
+            name: 'value'
+        });
+        const globalCommand = getGlobalCommand('global', 'g', {
+            name: 'value'
+        });
 
-        const command1: Command = {
-            name: 'command1',
-            isGlobal: true,
-            isGlobalQualifier: true,
-            positionals: [{
-                name: 'goo'
-            }],
-            run: async (): Promise<void> => { hasRun1 = true; }
-        };
+        modifierCommand.run = async (): Promise<void> => { modifierHasRun = true; };
+        globalCommand.run = async (): Promise<void> => { globalHasRun = true; };
 
-        const command2: Command = {
-            name: 'command2',
-            isGlobal: true,
-            positionals: [{
-                name: 'foo'
-            }],
-            run: async (): Promise<void> => { hasRun2 = true; }
-        };
+        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const runner = new DefaultRunner(new DefaultParser());
 
-        runner.addCommand(command1);
-        runner.addCommand(command2);
-        await runner.run(['--command1', 'gar', '--command2', 'bar'], new DefaultContext());
+        await runner.run(['--modifier=bar', '-g', 'bar'], context, [modifierCommand, globalCommand]);
 
-        expect(hasRun1).toBe(true);
-        expect(hasRun2).toBe(true);
+        expect(modifierHasRun).toBe(true);
+        expect(globalHasRun).toBe(true);
     });
 
     test('Global qualifier and default run scenario', async () => {
 
-        let hasRun1 = false;
-        let hasRun2 = false;
+        let modifierHasRun = false;
+        let defaultHasRun = false;
 
-        const runner = new DefaultRunner();
+        const modifierCommand = getGlobalModifierCommand('modifier', 'm', 1, {
+            name: 'value'
+        });
+        const globalCommand = getGlobalCommand('global', 'g');
 
-        const command1: Command = {
-            name: 'command',
-            isGlobal: true,
-            isGlobalQualifier: true,
-            positionals: [{
-                name: 'goo'
-            }],
-            run: async (): Promise<void> => { hasRun1 = true; }
-        };
+        modifierCommand.run = async (): Promise<void> => { modifierHasRun = true; };
+        globalCommand.run = async (): Promise<void> => { defaultHasRun = true; };
 
-        const command2: Command = {
-            name: 'command2',
-            isDefault: true,
-            positionals: [{
-                name: 'foo'
-            }],
-            run: async (): Promise<void> => { hasRun2 = true; }
-        };
+        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const runner = new DefaultRunner(new DefaultParser());
 
-        runner.addCommand(command1);
-        runner.addCommand(command2);
-        await runner.run(['--command', 'gar', 'bar'], new DefaultContext());
+        await runner.run(['--modifier=bar'], context, [modifierCommand, globalCommand], globalCommand);
 
-        expect(hasRun1).toBe(true);
-        expect(hasRun2).toBe(true);
-
-        hasRun1 = false;
-        hasRun2 = false;
-
-        await runner.run(['bar', '--command', 'gar'], new DefaultContext());
-
-        expect(hasRun1).toBe(true);
-        expect(hasRun2).toBe(true);
+        expect(modifierHasRun).toBe(true);
+        expect(defaultHasRun).toBe(true);
     });
 
-    test('Default not added fails run scenario', async () => {
+    test('Default run scenario', async () => {
 
-        let hasRun = false;
+        let subHasRun = false;
 
-        const runner = new DefaultRunner();
-
-        const command: Command = {
-            name: 'command',
-            isDefault: true,
-            options: [{
-                name: 'foo'
-            }],
-            run: async (): Promise<void> => { hasRun = true; }
+        const option = {
+            name: 'foo',
+            shortAlias: 'f'
         };
+        const subCommand = getSubCommand('command', [option], []);
 
-        await expect(runner.run(['--foo=bar'], new DefaultContext())).rejects.toThrowError();
-        expect(hasRun).toBe(false);
+        subCommand.run = async (): Promise<void> => { subHasRun = true; };
 
-        runner.addCommand(command);
-        await runner.run(['--foo=bar'], new DefaultContext());
-        expect(hasRun).toBe(true);
+        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const runner = new DefaultRunner(new DefaultParser());
+
+        await runner.run(['--foo=bar'], context, [], subCommand);
+
+        expect(subHasRun).toBe(true);
     });
 
     test('Error thrown in non-global run scenario', async () => {
 
-        const runner = new DefaultRunner();
-
-        const command: Command = {
-            name: 'command',
-            options: [{
-                name: 'foo'
-            }],
-            run: async (): Promise<void> => { throw new Error(); }
+        const option = {
+            name: 'foo',
+            shortAlias: 'f'
         };
+        const subCommand = getSubCommand('command', [option], []);
 
-        runner.addCommand(command);
-        await expect(runner.run(['command', '--foo', 'bar'], new DefaultContext())).rejects.toThrowError();
+        subCommand.run = async (): Promise<void> => { throw new Error(); };
+
+        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const runner = new DefaultRunner(new DefaultParser());
+
+        await expect(runner.run(['command', '--foo', 'bar'], context, [subCommand])).toBeDefined();
     });
 
     test('Error thrown in global run scenario', async () => {
 
-        const runner = new DefaultRunner();
+        const globalCommand = getGlobalCommand('global', 'g', {
+            name: 'value'
+        });
 
-        const command: Command = {
-            name: 'command',
-            isGlobal: true,
-            positionals: [{
-                name: 'foo'
-            }],
-            run: async (): Promise<void> => { throw new Error(); }
-        };
+        globalCommand.run = async (): Promise<void> => { throw new Error('d34db33f'); };
 
-        runner.addCommand(command);
-        await expect(runner.run(['--command=bar'], new DefaultContext())).rejects.toThrowError();
+        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const runner = new DefaultRunner(new DefaultParser());
+
+        const error = await runner.run(['--global=bar'], context, [globalCommand]);
+        expect(error).toBeDefined();
+        if (error) {
+            expect(error.includes('d34db33f')).toBeTruthy();
+        }
     });
 
-    test('Error thrown default run scenario', async () => {
+    test('Error thrown in global modifier run scenario', async () => {
 
-        const runner = new DefaultRunner();
+        let globalHasRun = false;
 
-        const command: Command = {
-            name: 'command',
-            isDefault: true,
-            options: [{
-                name: 'foo'
-            }],
-            run: async (): Promise<void> => { throw new Error(); }
-        };
+        const globalModifierCommand = getGlobalModifierCommand('modifier', 'm', 1);
+        const globalCommand = getGlobalCommand('global', 'g');
 
-        runner.addCommand(command);
-        await expect(runner.run(['--foo=bar'], new DefaultContext())).rejects.toThrowError();
-    });
+        globalModifierCommand.run = async (): Promise<void> => { throw new Error('d34db33f'); };
+        globalCommand.run = async (): Promise<void> => { globalHasRun = true; };
 
-    test('Error thrown in global qualifier run scenario', async () => {
+        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const runner = new DefaultRunner(new DefaultParser());
 
-        let hasRun = false;
-
-        const runner = new DefaultRunner();
-
-        const command1: Command = {
-            name: 'command1',
-            isGlobal: true,
-            isGlobalQualifier: true,
-            positionals: [{
-                name: 'goo'
-            }],
-            run: async (): Promise<void> => { throw new Error(); }
-        };
-
-        const command2: Command = {
-            name: 'command2',
-            isGlobal: true,
-            positionals: [{
-                name: 'foo'
-            }],
-            run: async (): Promise<void> => { hasRun = true; }
-        };
-
-        runner.addCommand(command1);
-        runner.addCommand(command2);
-        await expect(runner.run(['--command1', 'gar', '--command2', 'bar'],
-            new DefaultContext())).rejects.toThrowError();
-        expect(hasRun).toBe(false);
+        const error = await runner.run(['--global', '--modifier'], context, [globalCommand, globalModifierCommand]);
+        expect(error).toBeDefined();
+        if (error) {
+            expect(error.includes('d34db33f')).toBeTruthy();
+        }
+        expect(globalHasRun).toBe(false);
     });
 
     test('Parse error in non-global run scenario', async () => {
 
         let hasRun = false;
 
-        const runner = new DefaultRunner();
+        const subCommand = getSubCommand('command', [], []);
 
-        const command: Command = {
-            name: 'command',
-            options: [{
-                name: 'foo'
-            }],
-            run: async (): Promise<void> => { hasRun = true; }
-        };
+        subCommand.run = async (): Promise<void> => { hasRun = true; };
 
-        runner.addCommand(command);
-        await expect(runner.run(['command', '--foo'], new DefaultContext())).rejects.toThrowError();
+        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const runner = new DefaultRunner(new DefaultParser());
+
+        const error = await runner.run(['command', '-bad'], context, [subCommand]);
+        expect(error).toBeDefined();
+        if (error) {
+            expect(error.includes('Unused args')).toBeTruthy();
+        }
         expect(hasRun).toBe(false);
     });
 
-    test('Parse error in global with global qualifier run scenario', async () => {
+    test('Error thrown default run scenario', async () => {
 
-        let hasRun1 = false;
-        let hasRun2 = false;
+        const globalCommand = getGlobalCommand('global', 'g');
 
-        const runner = new DefaultRunner();
+        globalCommand.run = async (): Promise<void> => { throw new Error('d34db33f'); };
 
-        const command1: Command = {
-            name: 'command1',
-            isGlobal: true,
-            isGlobalQualifier: true,
-            positionals: [{
-                name: 'goo'
-            }],
-            run: async (): Promise<void> => { hasRun1 = true; }
-        };
+        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const runner = new DefaultRunner(new DefaultParser());
 
-        const command2: Command = {
-            name: 'command2',
-            isGlobal: true,
-            positionals: [{
-                name: 'foo'
-            }],
-            run: async (): Promise<void> => { hasRun2 = true; }
-        };
-
-        runner.addCommand(command1);
-        runner.addCommand(command2);
-        await expect(runner.run(['--command1', 'gar', '--command2'],
-            new DefaultContext())).rejects.toThrowError();
-        expect(hasRun1).toBe(false);
-        expect(hasRun2).toBe(false);
+        const error = await runner.run([], context, [], globalCommand);
+        expect(error).toBeDefined();
+        if (error) {
+            expect(error.includes('d34db33f')).toBeTruthy();
+        }
     });
 
-    test('Unused args in qualifier and non-global run scenario', async () => {
+    test('Illegal multiple commands invoked', async () => {
 
-        let hasRun1 = false;
-        let hasRun2 = false;
-
-        const runner = new DefaultRunner();
-
-        const command1: Command = {
-            name: 'command1',
-            isGlobal: true,
-            isGlobalQualifier: true,
-            positionals: [{
-                name: 'goo'
-            }],
-            run: async (): Promise<void> => { hasRun1 = true; }
+        const option = {
+            name: 'foo',
+            shortAlias: 'f'
         };
+        const subCommand1 = getSubCommand('command1', [option], []);
+        const subCommand2 = getSubCommand('command2', [], []);
 
-        const command2: Command = {
-            name: 'command2',
-            isGlobal: true,
-            positionals: [{
-                name: 'foo'
-            }],
-            run: async (): Promise<void> => { hasRun2 = true; }
+        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const runner = new DefaultRunner(new DefaultParser());
+
+        const error = await runner.run(['command1', '--foo', 'bar', 'command2'], context, [subCommand1, subCommand2]);
+        expect(error).toBeDefined();
+        if (error) {
+            expect(error.includes('More than one command')).toBeTruthy();
+        }
+    });
+
+    test('Ensure global modifier and global run priority order', async () => {
+
+        const hasRun: string[] = [];
+
+        const modifier1Command = getGlobalModifierCommand('modifier1', '1', 2, {
+            name: 'value'
+        });
+        const modifier2Command = getGlobalModifierCommand('modifier2', '2', 1, {
+            name: 'value'
+        });
+        const globalCommand = getGlobalCommand('global', 'g', {
+            name: 'value'
+        });
+
+        modifier1Command.run = async (): Promise<void> => { hasRun.push(modifier1Command.name); };
+        modifier2Command.run = async (): Promise<void> => { hasRun.push(modifier2Command.name); };
+        globalCommand.run = async (): Promise<void> => { hasRun.push(globalCommand.name); };
+
+        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const runner = new DefaultRunner(new DefaultParser());
+
+        await runner.run(['--modifier2=foo', '-g', 'bar', '--modifier1=bar'], context,
+            [globalCommand, modifier1Command, modifier2Command]);
+
+        expect(hasRun[0]).toBe('modifier1');
+        expect(hasRun[1]).toBe('modifier2');
+        expect(hasRun[2]).toBe('global');
+    });
+
+    test('Error thrown for unused leading args', async () => {
+
+        const option = {
+            name: 'foo',
+            shortAlias: 'f'
         };
+        const subCommand = getSubCommand('command', [option], []);
 
-        runner.addCommand(command1);
-        runner.addCommand(command2);
-        await expect(runner.run(['boo', '--command1', 'gar1', 'gar2', '--command2', 'bar1', 'bar2'],
-            new DefaultContext())).rejects.toThrowError();
-        expect(hasRun1).toBe(false);
-        expect(hasRun2).toBe(false);
+        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const runner = new DefaultRunner(new DefaultParser());
+
+        await expect(runner.run(['blah', 'command', '--foo', 'bar'], context, [subCommand])).toBeDefined();
+    });
+
+    test('Error thrown for unused trailing args', async () => {
+
+        const option = {
+            name: 'foo',
+            shortAlias: 'f'
+        };
+        const subCommand = getSubCommand('command', [option], []);
+
+        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const runner = new DefaultRunner(new DefaultParser());
+
+        await expect(runner.run(['command', '--foo', 'bar', 'blah'], context, [subCommand])).toBeDefined();
     });
 });

@@ -6,13 +6,15 @@
 
 import _ from 'lodash';
 import debug from 'debug';
-import Command, { CommandArgs } from '../../api/Command';
-import { InvalidArg, InvalidReason } from './Parser';
+import { CommandArgs } from '../../api/Command';
+import { InvalidArg, InvalidReason } from '../../api/Parser';
 import Option from '../../api/Option';
 import Positional from '../../api/Positional';
-import { ArgumentValueTypeName } from '../../api/Argument';
+import { ArgumentValueTypeName, ArgumentSingleValueType, ArgumentValueType } from '../../api/ArgumentValueType';
+import SubCommand from '../../api/SubCommand';
+import { PopulateResult } from './PopulateResult';
 
-const log: debug.Debugger = debug('ArgumentPopulation');
+const log: debug.Debugger = debug('SubCommandValuePopulation');
 
 /**
  * Parse states for parsing loop logic
@@ -122,17 +124,17 @@ interface ParseEvent {
     readonly type: ParseEventType;
 
     /**
-     * The name of an argument i.e. [[type]] is OptionSuccess, PositionalSuccess, IllegalMultipleValues
+     * The name of an argument i.e. [[type]] is OptionSuccess or PositionalSuccess
      */
     readonly name?: string;
 
     /**
-     * The value of an argument i.e. [[type]] is OptionSuccess, PositionalSuccess, or IllegalMultipleValues
+     * The value of an argument i.e. [[type]] is OptionSuccess or PositionalSuccess
      */
     readonly value?: string | string[];
 
     /**
-     * Parse error i.e. [[type]] is IllegalMultipleValues
+     * Parse error i.e. [[type]] is Error
      */
     readonly error?: InvalidReason;
 
@@ -142,29 +144,13 @@ interface ParseEvent {
     readonly unusedArg?: string;
 }
 
-/**
- * A container holding the result of arguments population.
- */
-export interface PopulateResult {
-
-    /**
-     * Populated arguments
-     */
-    commandArgs: CommandArgs;
-
-    /**
-     * Any arguments which were unused during arguments population.
-     */
-    unusedArgs: string[];
-}
-
 function* flushParseContext(parseContext: ParseContext): Iterable<ParseEvent> {
     switch (parseContext.state) {
     case ParseState.Empty:
         return;
     case ParseState.OptionNameFound:
         if (parseContext.option && (parseContext.option.type === ArgumentValueTypeName.Boolean)
-            && (_.isUndefined(parseContext.value))) {
+            && _.isUndefined(parseContext.value)) {
             // set implicit value of true
             yield {
                 type: ParseEventType.OptionSuccess,
@@ -248,6 +234,7 @@ function parsePotentialOption(potentialArg: string, optionsByName: Map<string, O
         }
         // map to option
         newParseContext.option = optionsByAlias.get(newParseContext.name);
+        // replace option shortAlias with option name
         if (newParseContext.option) {
             newParseContext.name = newParseContext.option.name;
         }
@@ -258,21 +245,21 @@ function parsePotentialOption(potentialArg: string, optionsByName: Map<string, O
     return newParseContext;
 }
 
-function parsePotentialPositional(potentialArg: string, command: Command, parseContext: ParseContext):
+function parsePotentialPositional(potentialArg: string, subCommand: SubCommand, parseContext: ParseContext):
     ParseContext {
 
     const { positionalCount } = parseContext;
 
     // check if no valid positional
-    if (!command.positionals || positionalCount > (command.positionals.length - 1)) {
+    if (positionalCount > (subCommand.positionals.length - 1)) {
         return new ParseContext();
     }
     const newParsecontext = new ParseContext(ParseState.PositionalFound);
-    newParsecontext.positional = command.positionals[positionalCount];
+    newParsecontext.positional = subCommand.positionals[positionalCount];
     newParsecontext.name = newParsecontext.positional.name;
     newParsecontext.value = potentialArg;
     newParsecontext.positionalCount = positionalCount;
-    if (!newParsecontext.positional.isVarArg) {
+    if (!newParsecontext.positional.isVarArgMultiple) {
         newParsecontext.positionalCount += 1;
     }
     return newParsecontext;
@@ -281,7 +268,7 @@ function parsePotentialPositional(potentialArg: string, command: Command, parseC
 /**
  * Generator function for parse events
  */
-function* parseEventGenerator(command: Command, potentialArgs: string[],
+function* parseEventGenerator(subCommand: SubCommand, potentialArgs: string[],
     optionsByName: Map<string, Option>, optionsByAlias: Map<string, Option>): Iterable<ParseEvent> {
 
     let parseContext: ParseContext = new ParseContext();
@@ -344,7 +331,7 @@ function* parseEventGenerator(command: Command, potentialArgs: string[],
         }
 
         // attempt to parse as positional
-        newParseContext = parsePotentialPositional(potentialArg, command, parseContext);
+        newParseContext = parsePotentialPositional(potentialArg, subCommand, parseContext);
         if (newParseContext.state === ParseState.PositionalFound) {
 
             if (!newParseContext.value) {
@@ -366,37 +353,43 @@ function* parseEventGenerator(command: Command, potentialArgs: string[],
 }
 
 /**
- * Populate [[CommandArgs]] for the provided [[Command]] using the provided potential args
+ * Populate [[CommandArgs]] for the provided [[SubCommand]] using the provided potential args.
  *
- * @param command the [[Command]] for which [[CommandArgs]] values should be populated
+ * @param subCommand the [[SubCommand]] for which [[CommandArgs]] values should be populated
  * @param potentialArgs the potential args to use for population
  * @param invalidArgs an array of [[InvalidArg]] which may be added to if the provided args have parse errors
  *
  * @return any successfully populated [[CommandArgs]] and any args which were unused
  */
-export default function populateArguments(command: Command, potentialArgs: string[],
+export default function populateSubCommandValues(subCommand: SubCommand, potentialArgs: string[],
     invalidArgs: InvalidArg[]): PopulateResult {
 
-    log(`Populating args: ${potentialArgs.join(' ')} for command: ${command.name}`);
+    log(`Populating args: ${potentialArgs.join(' ')} for sub-command: ${subCommand.name}`);
+
+    const commandArgs: CommandArgs = {};
+    const unusedArgs: string[] = [];
+
+    // short circuit if provided sub-command has no options and no positionals
+    if ((subCommand.options.length === 0) && (subCommand.positionals.length === 0)) {
+        return {
+            commandArgs,
+            unusedArgs: potentialArgs
+        };
+    }
 
     // need to be able to map from option names and aliases
     const optionsByName: Map<string, Option> = new Map();
     const optionsByAlias: Map<string, Option> = new Map();
 
-    if (command.options) {
-        command.options.forEach((option) => {
-            optionsByName.set(option.name, option);
-            if (option.shortAlias) {
-                optionsByAlias.set(option.shortAlias, option);
-            }
-        });
-    }
-
-    const commandArgs: CommandArgs = {};
-    const unusedArgs: string[] = [];
+    subCommand.options.forEach((option) => {
+        optionsByName.set(option.name, option);
+        if (option.shortAlias) {
+            optionsByAlias.set(option.shortAlias, option);
+        }
+    });
 
     // loop through parsing events
-    for (const parseEvent of parseEventGenerator(command, potentialArgs, optionsByName, optionsByAlias)) {
+    for (const parseEvent of parseEventGenerator(subCommand, potentialArgs, optionsByName, optionsByAlias)) {
 
         switch (parseEvent.type) {
         case ParseEventType.Unused:

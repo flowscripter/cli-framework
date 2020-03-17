@@ -1,7 +1,8 @@
-import populateArguments, { PopulateResult } from '../../../src/runtime/parser/ArgumentsPopulation';
-import { InvalidArg, InvalidReason } from '../../../src/runtime/parser/Parser';
+import populateSubCommandValues from '../../../src/runtime/parser/SubCommandValuePopulation';
+import { InvalidArg, InvalidReason } from '../../../src/api/Parser';
 import { CommandArgs } from '../../../src/api/Command';
-import { ArgumentValueTypeName } from '../../../src/api/Argument';
+import { ArgumentValueTypeName } from '../../../src/api/ArgumentValueType';
+import { PopulateResult } from '../../../src/runtime/parser/PopulateResult';
 
 function expectExtractResult(result: PopulateResult, commandArgs: CommandArgs, unusedArgs: string[]) {
 
@@ -9,7 +10,7 @@ function expectExtractResult(result: PopulateResult, commandArgs: CommandArgs, u
     expect(result.unusedArgs).toEqual(unusedArgs);
 }
 
-describe('ArgumentsPopulation test', () => {
+describe('SubCommandValuePopulation test', () => {
 
     test('Option argument', () => {
 
@@ -19,19 +20,25 @@ describe('ArgumentsPopulation test', () => {
                 name: 'foo',
                 shortAlias: 'f'
             }],
+            positionals: [],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments(command, ['--foo', 'bar'], invalidArgs);
+        let result = populateSubCommandValues(command, ['--foo', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['--foo=bar'], invalidArgs);
+        result = populateSubCommandValues(command, ['--foo=bar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['-f', 'bar'], invalidArgs);
+        result = populateSubCommandValues(command, ['-f', 'bar'], invalidArgs);
+        expectExtractResult(result, { foo: 'bar' }, []);
+        expect(invalidArgs).toEqual([]);
+
+        result = populateSubCommandValues(command, ['-f=bar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, []);
         expect(invalidArgs).toEqual([]);
     });
@@ -45,22 +52,23 @@ describe('ArgumentsPopulation test', () => {
                 shortAlias: 'f',
                 type: ArgumentValueTypeName.Number
             }],
-            run: async (): Promise<void> => {
-            }
+            positionals: [],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
+            run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments(command, ['--foo', '1'], invalidArgs);
+        let result = populateSubCommandValues(command, ['--foo', '1'], invalidArgs);
         expectExtractResult(result, { foo: '1' }, []);
         expect(invalidArgs).toEqual([]);
 
         command.options[0].type = ArgumentValueTypeName.String;
-        result = populateArguments(command, ['-f', 'bar'], invalidArgs);
+        result = populateSubCommandValues(command, ['-f', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, []);
         expect(invalidArgs).toEqual([]);
 
         command.options[0].type = ArgumentValueTypeName.Boolean;
-        result = populateArguments(command, ['-f'], invalidArgs);
+        result = populateSubCommandValues(command, ['-f'], invalidArgs);
         expectExtractResult(result, { foo: 'true' }, []);
         expect(invalidArgs).toEqual([]);
     });
@@ -74,23 +82,29 @@ describe('ArgumentsPopulation test', () => {
                 shortAlias: 'f',
                 isArray: true
             }],
+            positionals: [],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments(command, ['--foo', 'bar'], invalidArgs);
+        let result = populateSubCommandValues(command, ['--foo', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['--foo', 'bar', '--foo', 'bar'], invalidArgs);
+        result = populateSubCommandValues(command, ['--foo', 'bar', '--foo', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: ['bar', 'bar'] }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['--foo=bar', '--foo', 'bar'], invalidArgs);
+        result = populateSubCommandValues(command, ['--foo=bar', '--foo', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: ['bar', 'bar'] }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['--foo=bar', '-f', 'bar'], invalidArgs);
+        result = populateSubCommandValues(command, ['--foo=bar', '-f', 'bar'], invalidArgs);
+        expectExtractResult(result, { foo: ['bar', 'bar'] }, []);
+        expect(invalidArgs).toEqual([]);
+
+        result = populateSubCommandValues(command, ['--foo=bar', '-f=bar'], invalidArgs);
         expectExtractResult(result, { foo: ['bar', 'bar'] }, []);
         expect(invalidArgs).toEqual([]);
     });
@@ -106,21 +120,23 @@ describe('ArgumentsPopulation test', () => {
             }, {
                 name: 'goo',
             }],
+            positionals: [],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments(command, ['--foo', 'bar', '--goo=gar'], invalidArgs);
+        let result = populateSubCommandValues(command, ['--foo', 'bar', '--goo=gar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar', goo: 'gar' }, []);
         expect(invalidArgs).toEqual([]);
 
         command.options[0].type = ArgumentValueTypeName.Boolean;
-        result = populateArguments(command, ['--foo', '--goo=gar'], invalidArgs);
+        result = populateSubCommandValues(command, ['--foo', '--goo=gar'], invalidArgs);
         expectExtractResult(result, { foo: 'true', goo: 'gar' }, []);
         expect(invalidArgs).toEqual([]);
 
         command.options[0].isArray = true;
-        result = populateArguments(command, ['--foo', '--foo', 'false', '--goo=gar'], invalidArgs);
+        result = populateSubCommandValues(command, ['--foo', '--foo', 'false', '--goo=gar'], invalidArgs);
         expectExtractResult(result, { foo: ['true', 'false'], goo: 'gar' }, []);
         expect(invalidArgs).toEqual([]);
     });
@@ -138,21 +154,23 @@ describe('ArgumentsPopulation test', () => {
                 isArray: true,
                 shortAlias: 'g',
             }],
+            positionals: [],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments(command, ['--foo', 'bar1', '--goo=true', '--foo', 'bar2',
+        let result = populateSubCommandValues(command, ['--foo', 'bar1', '--goo=true', '--foo', 'bar2',
             '--goo=false'], invalidArgs);
         expectExtractResult(result, { foo: ['bar1', 'bar2'], goo: ['true', 'false'] }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['--foo', 'bar1', '--goo=true', '--goo=false',
+        result = populateSubCommandValues(command, ['--foo', 'bar1', '--goo=true', '--goo=false',
             '--foo', 'bar2'], invalidArgs);
         expectExtractResult(result, { foo: ['bar1', 'bar2'], goo: ['true', 'false'] }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['--foo', 'bar1', '-g', '--foo', 'bar2', '-g=false'],
+        result = populateSubCommandValues(command, ['--foo', 'bar1', '-g', '--foo', 'bar2', '-g=false'],
             invalidArgs);
         expectExtractResult(result, { foo: ['bar1', 'bar2'], goo: ['true', 'false'] }, []);
         expect(invalidArgs).toEqual([]);
@@ -165,15 +183,17 @@ describe('ArgumentsPopulation test', () => {
             options: [{
                 name: 'foo'
             }],
+            positionals: [],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments(command, ['--goo=moo'], invalidArgs);
+        let result = populateSubCommandValues(command, ['--goo=moo'], invalidArgs);
         expectExtractResult(result, {}, ['--goo=moo']);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['--goo', 'moo'], invalidArgs);
+        result = populateSubCommandValues(command, ['--goo', 'moo'], invalidArgs);
         expectExtractResult(result, { }, ['--goo', 'moo']);
         expect(invalidArgs).toEqual([]);
     });
@@ -186,19 +206,21 @@ describe('ArgumentsPopulation test', () => {
                 name: 'foo',
                 shortAlias: 'f',
             }],
+            positionals: [],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         let invalidArgs: InvalidArg[] = [];
-        let result = populateArguments(command, ['-foo=moo'], invalidArgs);
+        let result = populateSubCommandValues(command, ['-foo=moo'], invalidArgs);
         expectExtractResult(result, {}, ['-foo=moo']);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['--f', 'moo'], invalidArgs);
+        result = populateSubCommandValues(command, ['--f', 'moo'], invalidArgs);
         expectExtractResult(result, { }, ['--f', 'moo']);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['--foo=', 'moo'], invalidArgs);
+        result = populateSubCommandValues(command, ['--foo=', 'moo'], invalidArgs);
         expectExtractResult(result, { }, ['moo']);
         expect(invalidArgs).toEqual([
             {
@@ -208,7 +230,7 @@ describe('ArgumentsPopulation test', () => {
         ]);
 
         invalidArgs = [];
-        result = populateArguments(command, ['-f=', 'moo'], invalidArgs);
+        result = populateSubCommandValues(command, ['-f=', 'moo'], invalidArgs);
         expectExtractResult(result, { }, ['moo']);
         expect(invalidArgs).toEqual([
             {
@@ -222,14 +244,16 @@ describe('ArgumentsPopulation test', () => {
 
         const command = {
             name: 'command',
+            options: [],
             positionals: [{
                 name: 'foo'
             }],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments(command, ['bar'], invalidArgs);
+        let result = populateSubCommandValues(command, ['bar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, []);
         expect(invalidArgs).toEqual([]);
 
@@ -237,7 +261,7 @@ describe('ArgumentsPopulation test', () => {
             name: 'bar'
         });
 
-        result = populateArguments(command, ['foo', 'bar'], invalidArgs);
+        result = populateSubCommandValues(command, ['foo', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: 'foo', bar: 'bar' }, []);
         expect(invalidArgs).toEqual([]);
     });
@@ -246,26 +270,27 @@ describe('ArgumentsPopulation test', () => {
 
         const command = {
             name: 'command',
+            options: [],
             positionals: [{
                 name: 'foo',
                 type: ArgumentValueTypeName.Number
             }],
-            run: async (): Promise<void> => {
-            }
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
+            run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments(command, ['1'], invalidArgs);
+        let result = populateSubCommandValues(command, ['1'], invalidArgs);
         expectExtractResult(result, { foo: '1' }, []);
         expect(invalidArgs).toEqual([]);
 
         command.positionals[0].type = ArgumentValueTypeName.String;
-        result = populateArguments(command, ['bar'], invalidArgs);
+        result = populateSubCommandValues(command, ['bar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, []);
         expect(invalidArgs).toEqual([]);
 
         command.positionals[0].type = ArgumentValueTypeName.Boolean;
-        result = populateArguments(command, ['true'], invalidArgs);
+        result = populateSubCommandValues(command, ['true'], invalidArgs);
         expectExtractResult(result, { foo: 'true' }, []);
         expect(invalidArgs).toEqual([]);
     });
@@ -274,17 +299,18 @@ describe('ArgumentsPopulation test', () => {
 
         const command = {
             name: 'command',
+            options: [],
             positionals: [{
                 name: 'foo1'
             }, {
                 name: 'foo2'
             }],
-            run: async (): Promise<void> => {
-            }
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
+            run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        const result = populateArguments(command, ['f1', 'f2'], invalidArgs);
+        const result = populateSubCommandValues(command, ['f1', 'f2'], invalidArgs);
         expectExtractResult(result, { foo1: 'f1', foo2: 'f2' }, []);
         expect(invalidArgs).toEqual([]);
     });
@@ -293,20 +319,27 @@ describe('ArgumentsPopulation test', () => {
 
         const command = {
             name: 'command',
+            options: [],
             positionals: [{
                 name: 'foo',
-                isVarArg: true
+                isVarArgMultiple: true,
+                isVarArgOptional: true
             }],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments(command, ['bar', 'bar'], invalidArgs);
+        let result = populateSubCommandValues(command, ['bar', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: ['bar', 'bar'] }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['bar'], invalidArgs);
+        result = populateSubCommandValues(command, ['bar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, []);
+        expect(invalidArgs).toEqual([]);
+
+        result = populateSubCommandValues(command, [], invalidArgs);
+        expectExtractResult(result, { }, []);
         expect(invalidArgs).toEqual([]);
     });
 
@@ -314,31 +347,33 @@ describe('ArgumentsPopulation test', () => {
 
         const command = {
             name: 'command',
+            options: [],
             positionals: [{
                 name: 'foo'
             }, {
                 name: 'bar',
-                isVarArg: true
+                isVarArgMultiple: true,
+                isVarArgOptional: true
             }],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments(command, ['foo'], invalidArgs);
+        let result = populateSubCommandValues(command, ['foo'], invalidArgs);
         expectExtractResult(result, { foo: 'foo' }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['foo', 'bar'], invalidArgs);
+        result = populateSubCommandValues(command, ['foo', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: 'foo', bar: 'bar' }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['foo', 'bar', 'bar'], invalidArgs);
+        result = populateSubCommandValues(command, ['foo', 'bar', 'bar'], invalidArgs);
         expectExtractResult(result, { foo: 'foo', bar: ['bar', 'bar'] }, []);
         expect(invalidArgs).toEqual([]);
 
-        command.positionals[0].isVarArg = true;
-        result = populateArguments(command, ['foo', 'bar'], invalidArgs);
-        expectExtractResult(result, { foo: ['foo', 'bar'] }, []);
+        result = populateSubCommandValues(command, ['foo'], invalidArgs);
+        expectExtractResult(result, { foo: 'foo' }, []);
         expect(invalidArgs).toEqual([]);
     });
 
@@ -358,23 +393,24 @@ describe('ArgumentsPopulation test', () => {
             }, {
                 name: 'foo2'
             }],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments(command, ['--goo1=g1', 'f1', 'f2', '--goo2=g2'], invalidArgs);
+        let result = populateSubCommandValues(command, ['--goo1=g1', 'f1', 'f2', '--goo2=g2'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'g1', goo2: 'g2', foo1: 'f1', foo2: 'f2'
         }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['--goo1', 'g1', 'f1', 'f2', '--goo2', 'g2'], invalidArgs);
+        result = populateSubCommandValues(command, ['--goo1', 'g1', 'f1', 'f2', '--goo2', 'g2'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'g1', goo2: 'g2', foo1: 'f1', foo2: 'f2'
         }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['-g1', 'g1', 'f1', 'f2', '-g2', 'g2'], invalidArgs);
+        result = populateSubCommandValues(command, ['-g1', 'g1', 'f1', 'f2', '-g2', 'g2'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'g1', goo2: 'g2', foo1: 'f1', foo2: 'f2'
         }, []);
@@ -399,23 +435,24 @@ describe('ArgumentsPopulation test', () => {
             }, {
                 name: 'foo2'
             }],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments(command, ['--goo1', 'f1', 'f2', '--goo2'], invalidArgs);
+        let result = populateSubCommandValues(command, ['--goo1', 'f1', 'f2', '--goo2'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'true', goo2: 'true', foo1: 'f1', foo2: 'f2'
         }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['--goo1', 'true', 'f1', 'f2', '--goo2', 'false'], invalidArgs);
+        result = populateSubCommandValues(command, ['--goo1', 'true', 'f1', 'f2', '--goo2', 'false'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'true', goo2: 'false', foo1: 'f1', foo2: 'f2'
         }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['-g1', 'true', 'f1', 'f2', '-g2', 'false'], invalidArgs);
+        result = populateSubCommandValues(command, ['-g1', 'true', 'f1', 'f2', '-g2', 'false'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'true', goo2: 'false', foo1: 'f1', foo2: 'f2'
         }, []);
@@ -434,24 +471,25 @@ describe('ArgumentsPopulation test', () => {
             positionals: [{
                 name: 'goo'
             }],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments(command, ['--foo', 'f1', 'goo1', '--foo', 'f2'], invalidArgs);
+        let result = populateSubCommandValues(command, ['--foo', 'f1', 'goo1', '--foo', 'f2'], invalidArgs);
         expectExtractResult(result, {
             foo: ['f1', 'f2'], goo: 'goo1'
         }, []);
         expect(invalidArgs).toEqual([]);
 
         command.options[0].type = ArgumentValueTypeName.Boolean;
-        result = populateArguments(command, ['--foo', 'true', 'goo1', '--foo', 'false'], invalidArgs);
+        result = populateSubCommandValues(command, ['--foo', 'true', 'goo1', '--foo', 'false'], invalidArgs);
         expectExtractResult(result, {
             foo: ['true', 'false'], goo: 'goo1'
         }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['--foo', 'goo1', '--foo'], invalidArgs);
+        result = populateSubCommandValues(command, ['--foo', 'goo1', '--foo'], invalidArgs);
         expectExtractResult(result, {
             foo: ['true', 'true'], goo: 'goo1'
         }, []);
@@ -467,20 +505,22 @@ describe('ArgumentsPopulation test', () => {
                 shortAlias: 'f',
                 type: ArgumentValueTypeName.String
             }],
+            positionals: [],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments(command, ['--foo', 'bar', '--goo', 'gar'], invalidArgs);
+        let result = populateSubCommandValues(command, ['--foo', 'bar', '--goo', 'gar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, ['--goo', 'gar']);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['--foo=bar', '--goo=gar'], invalidArgs);
+        result = populateSubCommandValues(command, ['--foo=bar', '--goo=gar'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, ['--goo=gar']);
         expect(invalidArgs).toEqual([]);
 
         command.options[0].type = ArgumentValueTypeName.Boolean;
-        result = populateArguments(command, ['-f', '--goo', 'gar'], invalidArgs);
+        result = populateSubCommandValues(command, ['-f', '--goo', 'gar'], invalidArgs);
         expectExtractResult(result, { foo: 'true' }, ['--goo', 'gar']);
         expect(invalidArgs).toEqual([]);
     });
@@ -497,11 +537,12 @@ describe('ArgumentsPopulation test', () => {
             positionals: [{
                 name: 'foo2'
             }],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        const result = populateArguments(command, ['--foo1', 'bar', 'foo2', '--goo', 'gar'], invalidArgs);
+        const result = populateSubCommandValues(command, ['--foo1', 'bar', 'foo2', '--goo', 'gar'], invalidArgs);
         expectExtractResult(result, { foo1: 'bar', foo2: 'foo2' }, ['--goo', 'gar']);
         expect(invalidArgs).toEqual([]);
     });
@@ -510,15 +551,17 @@ describe('ArgumentsPopulation test', () => {
 
         const command = {
             name: 'command',
+            options: [],
             positionals: [{
                 name: 'foo',
                 type: ArgumentValueTypeName.String
             }],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        const result = populateArguments(command, ['bar', 'goo'], invalidArgs);
+        const result = populateSubCommandValues(command, ['bar', 'goo'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, ['goo']);
         expect(invalidArgs).toEqual([]);
     });
@@ -531,16 +574,18 @@ describe('ArgumentsPopulation test', () => {
                 name: 'foo',
                 type: ArgumentValueTypeName.String
             }],
+            positionals: [],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments(command, ['--foo', 'bar', 'goo'], invalidArgs);
+        let result = populateSubCommandValues(command, ['--foo', 'bar', 'goo'], invalidArgs);
         expectExtractResult(result, { foo: 'bar' }, ['goo']);
         expect(invalidArgs).toEqual([]);
 
         command.options[0].type = ArgumentValueTypeName.Boolean;
-        result = populateArguments(command, ['--foo', 'goo'], invalidArgs);
+        result = populateSubCommandValues(command, ['--foo', 'goo'], invalidArgs);
         expectExtractResult(result, { foo: 'true' }, ['goo']);
         expect(invalidArgs).toEqual([]);
     });
@@ -561,11 +606,12 @@ describe('ArgumentsPopulation test', () => {
             }, {
                 name: 'foo2'
             }],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments(command, ['f1', '--goo1', 'g1', '--goo2', 'g2', 'f2'], invalidArgs);
+        let result = populateSubCommandValues(command, ['f1', '--goo1', 'g1', '--goo2', 'g2', 'f2'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'g1', goo2: 'g2', foo1: 'f1', foo2: 'f2'
         }, []);
@@ -573,7 +619,7 @@ describe('ArgumentsPopulation test', () => {
 
         command.options[0].type = ArgumentValueTypeName.Boolean;
         command.positionals[0].type = ArgumentValueTypeName.Boolean;
-        result = populateArguments(command, ['true', '--goo1', '--goo2', 'g2', 'f2'], invalidArgs);
+        result = populateSubCommandValues(command, ['true', '--goo1', '--goo2', 'g2', 'f2'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'true', goo2: 'g2', foo1: 'true', foo2: 'f2'
         }, []);
@@ -594,17 +640,18 @@ describe('ArgumentsPopulation test', () => {
             }, {
                 name: 'foo2'
             }],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments(command, ['f1', '--goo1', 'g1', 'f2', '--goo2', 'g2'], invalidArgs);
+        let result = populateSubCommandValues(command, ['f1', '--goo1', 'g1', 'f2', '--goo2', 'g2'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'g1', goo2: 'g2', foo1: 'f1', foo2: 'f2'
         }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['--goo1', 'g1', 'f1', '--goo2', 'g2', 'f2'], invalidArgs);
+        result = populateSubCommandValues(command, ['--goo1', 'g1', 'f1', '--goo2', 'g2', 'f2'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'g1', goo2: 'g2', foo1: 'f1', foo2: 'f2'
         }, []);
@@ -627,17 +674,18 @@ describe('ArgumentsPopulation test', () => {
             }, {
                 name: 'foo2'
             }],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        let result = populateArguments(command, ['f1', '--goo1', 'true', 'f2', '--goo2', 'true'], invalidArgs);
+        let result = populateSubCommandValues(command, ['f1', '--goo1', 'true', 'f2', '--goo2', 'true'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'true', goo2: 'true', foo1: 'f1', foo2: 'f2'
         }, []);
         expect(invalidArgs).toEqual([]);
 
-        result = populateArguments(command, ['f1', '--goo1', 'f2', '--goo2'], invalidArgs);
+        result = populateSubCommandValues(command, ['f1', '--goo1', 'f2', '--goo2'], invalidArgs);
         expectExtractResult(result, {
             goo1: 'true', goo2: 'true', foo1: 'f1', foo2: 'f2'
         }, []);
@@ -655,13 +703,14 @@ describe('ArgumentsPopulation test', () => {
             }],
             positionals: [{
                 name: 'goo',
-                isVarArg: true
+                isVarArgMultiple: true
             }],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        const result = populateArguments(command, ['--foo', 'f1', '--foo', 'f2', 'g1', 'g2'], invalidArgs);
+        const result = populateSubCommandValues(command, ['--foo', 'f1', '--foo', 'f2', 'g1', 'g2'], invalidArgs);
         expectExtractResult(result, {
             foo: ['f1', 'f2'], goo: ['g1', 'g2']
         }, []);
@@ -679,15 +728,23 @@ describe('ArgumentsPopulation test', () => {
             }],
             positionals: [{
                 name: 'goo',
-                isVarArg: true
+                isVarArgMultiple: true,
+                isVarArgOptional: true
             }],
+            // eslint-disable-next-line @typescript-eslint/no-empty-function
             run: async (): Promise<void> => { }
         };
 
         const invalidArgs: InvalidArg[] = [];
-        const result = populateArguments(command, ['g1', 'g2', '--foo', 'f1', '--foo', 'f2'], invalidArgs);
+        let result = populateSubCommandValues(command, ['g1', 'g2', '--foo', 'f1', '--foo', 'f2'], invalidArgs);
         expectExtractResult(result, {
             foo: ['f1', 'f2'], goo: ['g1', 'g2']
+        }, []);
+        expect(invalidArgs).toEqual([]);
+
+        result = populateSubCommandValues(command, ['--foo', 'f1', '--foo', 'f2'], invalidArgs);
+        expectExtractResult(result, {
+            foo: ['f1', 'f2']
         }, []);
         expect(invalidArgs).toEqual([]);
     });

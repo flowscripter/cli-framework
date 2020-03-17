@@ -6,24 +6,19 @@ import Context from './Context';
 import Command from './Command';
 
 /**
- * Interface to be implemented by a [[Runner]] allowing a [[CLI]] to run a [[Command]].
+ * Interface used by a [[CLI]] to parse arguments and run a [[Command]].
  */
 export default interface Runner {
 
     /**
-     * Add the specified [[Command]] instance to this [[Runner]].
+     * Parse arguments, discover [[Command]] names and [[Argument]] values and run using the specified [[Context]].
      *
-     * @param command the [[Command]] to add.
+     * @param args the command line arguments to the [[CLI]] process (not including the name of the executable).
+     * @param context the context for the [[Command]].
+     * @param commands all [[Command]] instances which are known to the CLI.
+     * @param defaultCommand optional [[Command]] implementation.
+     * @return if there was an error parsing the provided args or the command fails to run,
+     * a message indicating the reason will be returned.
      */
-    addCommand(command: Command): void;
-
-    /**
-     * Parse arguments, discover [[Command]] names and [[Argument]] values and run
-     * using the specified [[Context]].
-     *
-     * @param args the command line arguments to the [[CLI]] process (not including the name of the executable
-     * e.g. `argv[0]`)
-     * @param context the context for the [[Command]]
-     */
-    run(args: string[], context: Context): Promise<void>;
+    run(args: string[], context: Context, commands: Command[], defaultCommand?: Command): Promise<string | undefined>;
 }

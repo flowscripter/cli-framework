@@ -3,12 +3,14 @@
  */
 
 import _ from 'lodash';
-import Argument, { ArgumentValueTypeName } from '../../api/Argument';
+import Argument from '../../api/Argument';
 import Option from '../../api/Option';
 import Positional from '../../api/Positional';
-import { InvalidArg, InvalidReason } from './Parser';
+import { InvalidArg, InvalidReason } from '../../api/Parser';
+import { ArgumentSingleValueType, ArgumentValueType, ArgumentValueTypeName } from '../../api/ArgumentValueType';
+import GlobalCommandArgument from '../../api/GlobalCommandArgument';
 
-function validateValue(argument: Argument, value: ArgumentSingleValueType):
+function validateValue(argument: Argument, name: string, value: ArgumentSingleValueType):
     { validValue?: ArgumentSingleValueType; error?: InvalidArg } {
 
     let convertedValue = value;
@@ -19,7 +21,7 @@ function validateValue(argument: Argument, value: ArgumentSingleValueType):
         if (value !== 'true' && value !== 'false') {
             return {
                 error: {
-                    name: argument.name,
+                    name,
                     value,
                     reason: InvalidReason.IncorrectType
                 }
@@ -31,7 +33,7 @@ function validateValue(argument: Argument, value: ArgumentSingleValueType):
         if (Number.isNaN(Number(value))) {
             return {
                 error: {
-                    name: argument.name,
+                    name,
                     value,
                     reason: InvalidReason.IncorrectType
                 }
@@ -49,7 +51,7 @@ function validateValue(argument: Argument, value: ArgumentSingleValueType):
     if (argument.validValues && argument.validValues.length > 0 && !argument.validValues.includes(value)) {
         return {
             error: {
-                name: argument.name,
+                name,
                 value,
                 reason: InvalidReason.IllegalValue
             }
@@ -58,14 +60,14 @@ function validateValue(argument: Argument, value: ArgumentSingleValueType):
     return { validValue: convertedValue };
 }
 
-function validateArrayValue(argument: Argument, value: ArgumentSingleValueType[]):
+function validateArrayValue(argument: Argument, name: string, value: ArgumentSingleValueType[]):
     { validValue?: ArgumentSingleValueType[]; error?: InvalidArg } {
 
     const convertedArray: ArgumentSingleValueType[] = [];
 
     for (let i = 0; i < value.length; i += 1) {
         const singleValue: ArgumentSingleValueType = value[i];
-        const { validValue, error } = validateValue(argument, singleValue);
+        const { validValue, error } = validateValue(argument, name, singleValue);
         if (!_.isUndefined(validValue)) {
             convertedArray.push(validValue);
         }
@@ -82,7 +84,7 @@ function validateArrayValue(argument: Argument, value: ArgumentSingleValueType[]
     };
 }
 
-function validateArgumentValue(argument: Argument, value: ArgumentValueType | undefined, isArray: boolean,
+function validateArgumentValue(argument: Argument, name: string, value: ArgumentValueType | undefined, isArray: boolean,
     isOptional: boolean, defaultValue: ArgumentValueType | undefined, invalidArgs: InvalidArg[]):
     ArgumentValueType | undefined {
 
@@ -93,15 +95,15 @@ function validateArgumentValue(argument: Argument, value: ArgumentValueType | un
         if (Array.isArray(value)) {
             if (!isArray) {
                 invalidArgs.push({
-                    name: argument.name,
+                    name,
                     value,
                     reason: InvalidReason.IllegalMultipleValues
                 });
                 return undefined;
             }
-            validationResult = validateArrayValue(argument, value);
+            validationResult = validateArrayValue(argument, name, value);
         } else {
-            validationResult = validateValue(argument, value);
+            validationResult = validateValue(argument, name, value);
         }
         if (validationResult.error) {
             invalidArgs.push(validationResult.error);
@@ -117,7 +119,7 @@ function validateArgumentValue(argument: Argument, value: ArgumentValueType | un
     if (!isOptional) {
 
         invalidArgs.push({
-            name: argument.name,
+            name,
             reason: InvalidReason.MissingValue
         });
     }
@@ -137,7 +139,7 @@ function validateArgumentValue(argument: Argument, value: ArgumentValueType | un
 export function validateOptionValue(option: Option, value: ArgumentValueType | undefined, invalidArgs: InvalidArg[]):
     ArgumentValueType | undefined {
 
-    return validateArgumentValue(option, value, option.isArray || false,
+    return validateArgumentValue(option, option.name, value, option.isArray || false,
         option.isOptional || false, option.defaultValue, invalidArgs);
 }
 
@@ -153,6 +155,22 @@ export function validateOptionValue(option: Option, value: ArgumentValueType | u
 export function validatePositionalValue(positional: Positional, value: ArgumentValueType | undefined,
     invalidArgs: InvalidArg[]): ArgumentValueType | undefined {
 
-    return validateArgumentValue(positional, value, positional.isVarArg || false,
+    return validateArgumentValue(positional, positional.name, value, positional.isVarArgMultiple || false,
         positional.isVarArgOptional || false, undefined, invalidArgs);
+}
+
+/**
+ * Validates the provided value against the provided [[GlobalCommandArgument]].
+ *
+ * @param glocalCommandArgument the [[GlobalCommandArgument]] to validate against
+ * @param value the value (if any) for the [[GlobalCommandArgument]]
+ * @param invalidArgs an array of [[InvalidArg]] which may be added to if the provided value is invalid
+ *
+ * @return a valid value or undefined if the provided value was either undefined or invalid
+ */
+export function validateGlobalCommandArgumentValue(glocalCommandArgument: GlobalCommandArgument,
+    value: ArgumentValueType | undefined, invalidArgs: InvalidArg[]): ArgumentValueType | undefined {
+
+    return validateArgumentValue(glocalCommandArgument, glocalCommandArgument.name, value, false,
+        glocalCommandArgument.isOptional || false, glocalCommandArgument.defaultValue, invalidArgs);
 }

@@ -2,7 +2,9 @@
  * @module @flowscripter/cli-framework
  */
 
-import Command, { CommandArgs } from '../../api/Command';
+import Command, { CommandArgs } from './Command';
+import { ArgumentValueType } from './ArgumentValueType';
+import GroupCommand from './GroupCommand';
 
 /**
  * Possible reasons for an invalid argument
@@ -57,6 +59,11 @@ export interface InvalidArg {
 export interface CommandClause {
 
     /**
+     * Optional parent [[GroupCommand]] discovered as an argument if the discovered command was a member [[SubCommand]]
+     */
+    groupCommand?: GroupCommand;
+
+    /**
      * The [[Command]] discovered as an argument
      */
     command: Command;
@@ -91,12 +98,17 @@ export interface ScanResult {
 export interface ParseResult {
 
     /**
-     * The [[Command]] to run (if there are no [[invalidArgs]] set)
+     * Optional parent [[GroupCommand]] discovered as an argument if the discovered command was a member [[SubCommand]]
+     */
+    groupCommand?: GroupCommand;
+
+    /**
+     * The [[Command]] to run (if [[invalidArgs]] is empty)
      */
     readonly command: Command;
 
     /**
-     * The arguments to provide the [[Command]] with when run (if there are no [[invalidArgs]] set)
+     * The arguments to provide the [[Command]] with when run (if [[invalidArgs]] is empty)
      */
     readonly commandArgs: CommandArgs;
 
@@ -113,7 +125,8 @@ export interface ParseResult {
 
 /**
  * Interface to be implemented by a [[Parser]] allowing a [[Runner] to segment arguments into clauses based on
- * known [[Command]] names and aliases then parse the arguments for each [[Command]] clause.
+ * known [[Command]] names (and short aliases if [[GlobalCommand]]), then parse the arguments for
+ * each [[Command]] clause.
  */
 export default interface Parser {
 
@@ -140,7 +153,7 @@ export default interface Parser {
      * @param config optional configuration object in the form of [[CommandArgs]] to initialise command arguments
      * before parsing
      *
-     * @return the results of the parsing
+     * @return the results of the parsing operation
      */
     parseCommandClause(commandClause: CommandClause, config?: CommandArgs): ParseResult;
 }

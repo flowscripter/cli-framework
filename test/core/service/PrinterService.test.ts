@@ -1,6 +1,6 @@
 import { mockProcessStdout } from 'jest-mock-process';
 
-import { Level, PrinterService } from '../../../src/core/service/PrinterService';
+import { Level, StdoutPrinterService } from '../../../src/core/service/PrinterService';
 
 const mockStdout = mockProcessStdout();
 
@@ -15,11 +15,31 @@ describe('PrinterService test', () => {
     });
 
     test('PrinterService is instantiable', () => {
-        expect(new PrinterService(process.stdout)).toBeInstanceOf(PrinterService);
+        expect(new StdoutPrinterService(process.stdout, 100)).toBeInstanceOf(StdoutPrinterService);
+    });
+
+    test('Bold works (testing with color disabled)', () => {
+        const ps = new StdoutPrinterService(process.stdout, 100);
+        ps.colorEnabled = false;
+
+        ps.info(`hello ${ps.bold('world')}`);
+
+        expect(mockStdout).toHaveBeenLastCalledWith('hello world');
+        expect(mockStdout).toHaveBeenCalledTimes(1);
+    });
+
+    test('Writable accessible', () => {
+        const ps = new StdoutPrinterService(process.stdout, 100);
+        ps.colorEnabled = false;
+
+        ps.writable.write('hello world');
+
+        expect(mockStdout).toHaveBeenLastCalledWith('hello world');
+        expect(mockStdout).toHaveBeenCalledTimes(1);
     });
 
     test('Level filtering works', () => {
-        const ps = new PrinterService(process.stdout);
+        const ps = new StdoutPrinterService(process.stdout, 100);
         ps.colorEnabled = false;
 
         ps.info('hello info 1');

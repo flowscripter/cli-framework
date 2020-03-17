@@ -6,6 +6,9 @@ import CommandFactory from '../api/CommandFactory';
 import Command from '../api/Command';
 import InstallCommand from './command/InstallCommand';
 
+/**
+ * Provides plugin commands.
+ */
 export default class PluginCommandFactory implements CommandFactory {
 
     /**

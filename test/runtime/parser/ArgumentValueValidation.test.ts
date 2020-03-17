@@ -1,8 +1,10 @@
-import { validateOptionValue, validatePositionalValue } from '../../../src/runtime/parser/ArgumentsValidation';
+import { validateOptionValue, validatePositionalValue, validateGlobalCommandArgumentValue }
+    from '../../../src/runtime/parser/ArgumentValueValidation';
 import Option from '../../../src/api/Option';
-import { InvalidArg, InvalidReason } from '../../../src/runtime/parser/Parser';
-import { ArgumentValueTypeName } from '../../../src/api/Argument';
+import { InvalidArg, InvalidReason } from '../../../src/api/Parser';
 import Positional from '../../../src/api/Positional';
+import { ArgumentValueTypeName } from '../../../src/api/ArgumentValueType';
+import GlobalCommandArgument from '../../../src/api/GlobalCommandArgument';
 
 describe('ArgumentsValidation test', () => {
 
@@ -97,6 +99,16 @@ describe('ArgumentsValidation test', () => {
         };
         expect(validateOptionValue(option, ['true', 'false'], invalidArgs)).toEqual([true, false]);
         expect(invalidArgs).toEqual([]);
+
+        option = {
+            name: 'foo'
+        };
+        expect(validateOptionValue(option, ['true', 'false'], invalidArgs)).toBeUndefined();
+        expect(invalidArgs).toEqual([{
+            name: 'foo',
+            value: ['true', 'false'],
+            reason: InvalidReason.IllegalMultipleValues
+        }]);
     });
 
     test('Default option value', () => {
@@ -251,12 +263,12 @@ describe('ArgumentsValidation test', () => {
         }]);
     });
 
-    test('Positional varargs', () => {
+    test('Positional varargs multiple', () => {
 
         let positional: Positional = {
             name: 'foo',
             type: ArgumentValueTypeName.String,
-            isVarArg: true
+            isVarArgMultiple: true
         };
         const invalidArgs: InvalidArg[] = [];
         expect(validatePositionalValue(positional, ['foo', 'bar'], invalidArgs)).toEqual(['foo', 'bar']);
@@ -265,7 +277,7 @@ describe('ArgumentsValidation test', () => {
         positional = {
             name: 'foo',
             type: ArgumentValueTypeName.Number,
-            isVarArg: true
+            isVarArgMultiple: true
         };
         expect(validatePositionalValue(positional, ['1', '2'], invalidArgs)).toEqual([1, 2]);
         expect(invalidArgs).toEqual([]);
@@ -273,10 +285,22 @@ describe('ArgumentsValidation test', () => {
         positional = {
             name: 'foo',
             type: ArgumentValueTypeName.Boolean,
-            isVarArg: true
+            isVarArgMultiple: true
         };
         expect(validatePositionalValue(positional, ['true', 'false'], invalidArgs)).toEqual([true, false]);
         expect(invalidArgs).toEqual([]);
+
+        positional = {
+            name: 'foo',
+            type: ArgumentValueTypeName.Boolean,
+            isVarArgMultiple: true
+        };
+        expect(validatePositionalValue(positional, undefined, invalidArgs)).toBeUndefined();
+        expect(invalidArgs).toEqual([{
+            name: 'foo',
+            value: undefined,
+            reason: InvalidReason.MissingValue
+        }]);
     });
 
     test('Positional varargs optional', () => {
@@ -286,19 +310,39 @@ describe('ArgumentsValidation test', () => {
             type: ArgumentValueTypeName.String,
             isVarArgOptional: true
         };
-        const invalidArgs: InvalidArg[] = [];
+        let invalidArgs: InvalidArg[] = [];
         expect(validatePositionalValue(positional, undefined, invalidArgs)).toBeUndefined();
         expect(invalidArgs).toEqual([]);
 
         positional = {
             name: 'foo',
-            type: ArgumentValueTypeName.String
+            type: ArgumentValueTypeName.String,
+            isVarArgOptional: true
         };
-        expect(validatePositionalValue(positional, undefined, invalidArgs)).toBeUndefined();
+        expect(validatePositionalValue(positional, 'foo', invalidArgs)).toEqual('foo');
+        expect(invalidArgs).toEqual([]);
+
+        positional = {
+            name: 'foo',
+            type: ArgumentValueTypeName.String,
+            isVarArgOptional: true
+        };
+        expect(validatePositionalValue(positional, ['foo', 'bar'], invalidArgs)).toBeUndefined();
         expect(invalidArgs).toEqual([{
             name: 'foo',
-            reason: InvalidReason.MissingValue
+            value: ['foo', 'bar'],
+            reason: InvalidReason.IllegalMultipleValues
         }]);
+
+        positional = {
+            name: 'foo',
+            type: ArgumentValueTypeName.String,
+            isVarArgMultiple: true,
+            isVarArgOptional: true
+        };
+        invalidArgs = [];
+        expect(validatePositionalValue(positional, ['foo', 'bar'], invalidArgs)).toEqual(['foo', 'bar']);
+        expect(invalidArgs).toEqual([]);
     });
 
     test('Invalid positional argument value', () => {
@@ -320,6 +364,137 @@ describe('ArgumentsValidation test', () => {
         expect(validatePositionalValue(positional, 'goo', invalidArgs)).toBeUndefined();
         expect(invalidArgs).toEqual([{
             name: 'foo',
+            value: 'goo',
+            reason: InvalidReason.IllegalValue
+        }]);
+    });
+
+    test('Global command argument types', () => {
+
+        let globalCommandArgument: GlobalCommandArgument = {
+            name: 'value',
+            type: ArgumentValueTypeName.String
+        };
+        let invalidArgs: InvalidArg[] = [];
+        expect(validateGlobalCommandArgumentValue(globalCommandArgument, 'foo', invalidArgs)).toEqual('foo');
+        expect(invalidArgs).toEqual([]);
+
+        globalCommandArgument = {
+            name: 'value',
+            type: ArgumentValueTypeName.Number
+        };
+        expect(validateGlobalCommandArgumentValue(globalCommandArgument, '1', invalidArgs)).toEqual(1);
+        expect(invalidArgs).toEqual([]);
+
+        globalCommandArgument = {
+            name: 'value',
+            type: ArgumentValueTypeName.Boolean
+        };
+        expect(validateGlobalCommandArgumentValue(globalCommandArgument, 'true', invalidArgs)).toBe(true);
+        expect(invalidArgs).toEqual([]);
+
+        globalCommandArgument = {
+            name: 'value',
+            type: ArgumentValueTypeName.String
+        };
+        expect(validateGlobalCommandArgumentValue(globalCommandArgument, '1', invalidArgs)).toEqual('1');
+        expect(invalidArgs).toEqual([]);
+
+        globalCommandArgument = {
+            name: 'value',
+            type: ArgumentValueTypeName.Number
+        };
+        expect(validateGlobalCommandArgumentValue(globalCommandArgument, 'foo', invalidArgs))
+            .toBeUndefined();
+        expect(invalidArgs).toEqual([{
+            name: 'value',
+            value: 'foo',
+            reason: InvalidReason.IncorrectType
+        }]);
+
+        globalCommandArgument = {
+            name: 'value',
+            type: ArgumentValueTypeName.Boolean
+        };
+        invalidArgs = [];
+        expect(validateGlobalCommandArgumentValue(globalCommandArgument, 'foo', invalidArgs))
+            .toBeUndefined();
+        expect(invalidArgs).toEqual([{
+            name: 'value',
+            value: 'foo',
+            reason: InvalidReason.IncorrectType
+        }]);
+    });
+
+    test('Global command argument type not specified', () => {
+
+        const globalCommandArgument: GlobalCommandArgument = {
+            name: 'value'
+        };
+        const invalidArgs: InvalidArg[] = [];
+        expect(validateGlobalCommandArgumentValue(globalCommandArgument, 'foo', invalidArgs))
+            .toEqual('foo');
+        expect(invalidArgs).toEqual([]);
+    });
+
+    test('Default global command argument value', () => {
+
+        const globalCommandArgument: GlobalCommandArgument = {
+            name: 'value',
+            type: ArgumentValueTypeName.String,
+            defaultValue: 'bar'
+        };
+        const invalidArgs: InvalidArg[] = [];
+        expect(validateGlobalCommandArgumentValue(globalCommandArgument, undefined, invalidArgs))
+            .toEqual('bar');
+        expect(invalidArgs).toEqual([]);
+    });
+
+    test('Optional global command argument', () => {
+
+        let globalCommandArgument: GlobalCommandArgument = {
+            name: 'value',
+            type: ArgumentValueTypeName.String,
+            isOptional: true
+        };
+        const invalidArgs: InvalidArg[] = [];
+        expect(validateGlobalCommandArgumentValue(globalCommandArgument, undefined, invalidArgs))
+            .toBeUndefined();
+        expect(invalidArgs).toEqual([]);
+
+        globalCommandArgument = {
+            name: 'value',
+            type: ArgumentValueTypeName.String
+        };
+        expect(validateGlobalCommandArgumentValue(globalCommandArgument, undefined, invalidArgs))
+            .toBeUndefined();
+        expect(invalidArgs).toEqual([{
+            name: 'value',
+            reason: InvalidReason.MissingValue
+        }]);
+    });
+
+    test('Invalid global command argument value', () => {
+
+        let globalCommandArgument: GlobalCommandArgument = {
+            name: 'value',
+            type: ArgumentValueTypeName.String,
+            validValues: ['bar', 'two']
+        };
+        const invalidArgs: InvalidArg[] = [];
+        expect(validateGlobalCommandArgumentValue(globalCommandArgument, 'bar', invalidArgs))
+            .toEqual('bar');
+        expect(invalidArgs).toEqual([]);
+
+        globalCommandArgument = {
+            name: 'value',
+            type: ArgumentValueTypeName.String,
+            validValues: ['bar', 'two']
+        };
+        expect(validateGlobalCommandArgumentValue(globalCommandArgument, 'goo', invalidArgs))
+            .toBeUndefined();
+        expect(invalidArgs).toEqual([{
+            name: 'value',
             value: 'goo',
             reason: InvalidReason.IllegalValue
         }]);

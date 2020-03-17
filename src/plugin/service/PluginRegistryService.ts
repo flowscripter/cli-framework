@@ -33,4 +33,6 @@ export class PluginRegistryService implements Service, PluginRegistry {
         //     return;
         // }
     }
+
+    readonly initPriority: number = 0;
 }

@@ -6,6 +6,9 @@ import ServiceFactory from '../api/ServiceFactory';
 import Service from '../api/Service';
 import { PluginRegistryService } from './service/PluginRegistryService';
 
+/**
+ * Provides plugin services.
+ */
 export default class PluginServiceFactory implements ServiceFactory {
 
     /**

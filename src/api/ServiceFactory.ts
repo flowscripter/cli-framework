@@ -5,7 +5,7 @@
 import Service from './Service';
 
 /**
- * Interface to be implemented by a [[ServiceFactory]] allowing a [[CLI]] to load [[Service]] implementations.
+ * Interface used by a [[CLI]] to load [[Service]] implementations.
  */
 export default interface ServiceFactory {
 
