@@ -35,5 +35,10 @@ describe('NoColorCommand test', () => {
 
         expect(stdoutService.colorEnabled).toEqual(false);
         expect(stderrService.colorEnabled).toEqual(false);
+
+        await noColorCommand.run({ value: false }, context);
+
+        expect(stdoutService.colorEnabled).toEqual(true);
+        expect(stderrService.colorEnabled).toEqual(true);
     });
 });
