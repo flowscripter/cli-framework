@@ -1,7 +1,10 @@
 import DefaultParser from '../../../src/runtime/parser/DefaultParser';
-import { ScanResult, ParseResult } from '../../../src/runtime/parser/Parser';
-import Command from '../../../src/api/Command';
-import { ArgumentValueTypeName } from '../../../src/api/Argument';
+import { ScanResult, ParseResult } from '../../../src/api/Parser';
+import SubCommand from '../../../src/api/SubCommand';
+import GlobalCommand from '../../../src/api/GlobalCommand';
+import { ArgumentValueTypeName } from '../../../src/api/ArgumentValueType';
+import GroupCommand from '../../../src/api/GroupCommand';
+import GlobalModifierCommand from '../../../src/api/GlobalModifierCommand';
 
 function expectScanResult(result: ScanResult, expected: ScanResult) {
 
@@ -16,11 +19,12 @@ function expectParseResult(result: ParseResult, expected: ParseResult) {
     expect(result.commandArgs).toEqual(expected.commandArgs);
 }
 
-function getCommand(): Command {
+function getSubCommand(): SubCommand {
     return {
         name: 'command',
         options: [{
             name: 'goo',
+            shortAlias: 'g',
             type: ArgumentValueTypeName.String
         }],
         positionals: [{
@@ -33,31 +37,37 @@ function getCommand(): Command {
     };
 }
 
-function getGlobalCommand(): Command {
+function getGlobalCommand(): GlobalCommand {
     return {
         name: 'globalCommand',
-        isGlobal: true,
-        positionals: [{
-            name: 'goo'
-        }, {
-            name: 'foo'
-        }],
+        shortAlias: 'g',
+        argument: {
+            name: 'value'
+        },
         run: async (): Promise<void> => {
             // empty
         }
     };
 }
 
-function getGlobalQualifierCommand(name: string): Command {
+function getGlobalModifierCommand(name: string, shortAlias: string): GlobalModifierCommand {
     return {
         name,
-        isGlobal: true,
-        isGlobalQualifier: true,
-        positionals: [{
-            name: 'goo'
-        }, {
-            name: 'foo'
-        }],
+        runPriority: 1,
+        shortAlias,
+        argument: {
+            name: 'value'
+        },
+        run: async (): Promise<void> => {
+            // empty
+        }
+    };
+}
+
+function getGroupCommand(name: string, memberSubCommands: ReadonlyArray<SubCommand>): GroupCommand {
+    return {
+        name,
+        memberSubCommands,
         run: async (): Promise<void> => {
             // empty
         }
@@ -70,27 +80,37 @@ describe('DefaultParser test', () => {
         expect(new DefaultParser()).toBeInstanceOf(DefaultParser);
     });
 
-    test('Command not scanned if not added', () => {
+    test('Sub-command not scanned if not added', () => {
         const defaultParser: DefaultParser = new DefaultParser();
 
         let scanResult = defaultParser.scanForCommandClauses(['command', 'foo', '--goo', 'g']);
-
         expectScanResult(scanResult, {
             commandClauses: [],
             unusedLeadingArgs: ['command', 'foo', '--goo', 'g']
         });
 
         scanResult = defaultParser.scanForCommandClauses(['--command', 'foo', '--goo', 'g']);
-
         expectScanResult(scanResult, {
             commandClauses: [],
             unusedLeadingArgs: ['--command', 'foo', '--goo', 'g']
         });
     });
 
-    test('Global command scanned if added', () => {
+    test('Sub-command member not scanned if parent not specified', () => {
         const defaultParser: DefaultParser = new DefaultParser();
+        const groupCommand = getGroupCommand('group', [getSubCommand()]);
 
+        defaultParser.setCommands([groupCommand]);
+
+        const scanResult = defaultParser.scanForCommandClauses(['command', 'foo', '--goo', 'g']);
+        expectScanResult(scanResult, {
+            commandClauses: [],
+            unusedLeadingArgs: ['command', 'foo', '--goo', 'g']
+        });
+    });
+
+    test('Global command scanned', () => {
+        const defaultParser: DefaultParser = new DefaultParser();
         const globalCommand = getGlobalCommand();
 
         defaultParser.setCommands([globalCommand]);
@@ -104,133 +124,225 @@ describe('DefaultParser test', () => {
         };
 
         let scanResult = defaultParser.scanForCommandClauses(['--globalCommand', 'g', 'bar']);
-
         expectScanResult(scanResult, expected);
 
         scanResult = defaultParser.scanForCommandClauses(['--globalCommand=g', 'bar']);
+        expectScanResult(scanResult, expected);
 
+        scanResult = defaultParser.scanForCommandClauses(['-g', 'g', 'bar']);
+        expectScanResult(scanResult, expected);
+
+        scanResult = defaultParser.scanForCommandClauses(['-g=g', 'bar']);
         expectScanResult(scanResult, expected);
     });
 
-    test('Global qualifier command scanned if added', () => {
+    test('Global modifier command scanned', () => {
         const defaultParser: DefaultParser = new DefaultParser();
+        const modifierCommand = getGlobalModifierCommand('modifier', 'm');
 
-        const qualifierCommand = getGlobalQualifierCommand('qualifier');
-
-        defaultParser.setCommands([qualifierCommand]);
+        defaultParser.setCommands([modifierCommand]);
 
         const expected = {
             commandClauses: [{
-                command: qualifierCommand,
+                command: modifierCommand,
                 potentialArgs: ['g', 'bar']
             }],
             unusedLeadingArgs: []
         };
 
-        let scanResult = defaultParser.scanForCommandClauses(['--qualifier', 'g', 'bar']);
-
+        let scanResult = defaultParser.scanForCommandClauses(['--modifier', 'g', 'bar']);
         expectScanResult(scanResult, expected);
 
-        scanResult = defaultParser.scanForCommandClauses(['--qualifier=g', 'bar']);
+        scanResult = defaultParser.scanForCommandClauses(['--modifier=g', 'bar']);
+        expectScanResult(scanResult, expected);
 
+        scanResult = defaultParser.scanForCommandClauses(['-m', 'g', 'bar']);
+        expectScanResult(scanResult, expected);
+
+        scanResult = defaultParser.scanForCommandClauses(['-m=g', 'bar']);
         expectScanResult(scanResult, expected);
     });
 
-    test('Two global qualifier commands scanned', () => {
+    test('Two global modifier commands scanned', () => {
         const defaultParser: DefaultParser = new DefaultParser();
+        const modifierCommand1 = getGlobalModifierCommand('modifier1', '1');
+        const modifierCommand2 = getGlobalModifierCommand('modifier2', '2');
 
-        const qualifierCommand1 = getGlobalQualifierCommand('qualifier1');
-        const qualifierCommand2 = getGlobalQualifierCommand('qualifier2');
-
-        defaultParser.setCommands([qualifierCommand1, qualifierCommand2]);
+        defaultParser.setCommands([modifierCommand1, modifierCommand2]);
 
         const expected = {
             commandClauses: [{
-                command: qualifierCommand1,
+                command: modifierCommand1,
                 potentialArgs: ['g', 'bar']
             }, {
-                command: qualifierCommand2,
+                command: modifierCommand2,
                 potentialArgs: ['g', 'bar']
             }],
             unusedLeadingArgs: []
         };
 
         let scanResult = defaultParser.scanForCommandClauses([
-            '--qualifier1', 'g', 'bar',
-            '--qualifier2', 'g', 'bar'
+            '--modifier1', 'g', 'bar',
+            '--modifier2', 'g', 'bar'
         ]);
-
         expectScanResult(scanResult, expected);
 
         scanResult = defaultParser.scanForCommandClauses([
-            '--qualifier1=g', 'bar',
-            '--qualifier2=g', 'bar'
+            '--modifier1=g', 'bar',
+            '--modifier2=g', 'bar'
         ]);
+        expectScanResult(scanResult, expected);
 
+        scanResult = defaultParser.scanForCommandClauses([
+            '-1', 'g', 'bar',
+            '-2', 'g', 'bar'
+        ]);
+        expectScanResult(scanResult, expected);
+
+        scanResult = defaultParser.scanForCommandClauses([
+            '-1=g', 'bar',
+            '-2=g', 'bar'
+        ]);
         expectScanResult(scanResult, expected);
     });
 
-    test('Non-global command scanned', () => {
+    test('Sub-command scanned', () => {
         const defaultParser: DefaultParser = new DefaultParser();
+        const subCommand = getSubCommand();
 
-        const command = getCommand();
-
-        defaultParser.setCommands([command]);
+        defaultParser.setCommands([subCommand]);
 
         const scanResult = defaultParser.scanForCommandClauses(['command', 'bar', '--goo', 'g']);
-
         expectScanResult(scanResult, {
             commandClauses: [{
-                command,
+                command: subCommand,
                 potentialArgs: ['bar', '--goo', 'g']
             }],
             unusedLeadingArgs: []
         });
     });
 
-    test('Command scanned and qualifier and global command not scanned', () => {
+    test('Two sub-commands scanned (illegal scenario)', () => {
         const defaultParser: DefaultParser = new DefaultParser();
+        const subCommand = getSubCommand();
 
-        const qualifierCommand = getGlobalQualifierCommand('qualifier');
+        defaultParser.setCommands([subCommand]);
+
+        const scanResult = defaultParser.scanForCommandClauses(['command', 'bar', '--goo', 'g']);
+        expectScanResult(scanResult, {
+            commandClauses: [{
+                command: subCommand,
+                potentialArgs: ['bar', '--goo', 'g']
+            }],
+            unusedLeadingArgs: []
+        });
+    });
+
+    test('Group command scanned', () => {
+        const defaultParser: DefaultParser = new DefaultParser();
+        const subCommand = getSubCommand();
+        const groupCommand = getGroupCommand('group', [subCommand]);
+
+        defaultParser.setCommands([groupCommand]);
+
+        const expected = {
+            commandClauses: [{
+                groupCommand,
+                command: subCommand,
+                potentialArgs: ['bar', '--goo', 'g']
+            }],
+            unusedLeadingArgs: []
+        };
+
+        let scanResult = defaultParser.scanForCommandClauses(['group', 'command', 'bar', '--goo', 'g']);
+        expectScanResult(scanResult, expected);
+
+        scanResult = defaultParser.scanForCommandClauses(['group:command', 'bar', '--goo', 'g']);
+        expectScanResult(scanResult, expected);
+    });
+
+    test('Two group commands scanned (illegal scenario)', () => {
+        const defaultParser: DefaultParser = new DefaultParser();
+        const subCommand = getSubCommand();
+        const groupCommand1 = getGroupCommand('group1', [subCommand]);
+        const groupCommand2 = getGroupCommand('group2', [subCommand]);
+
+        defaultParser.setCommands([groupCommand1, groupCommand2]);
+
+        let scanResult = defaultParser.scanForCommandClauses([
+            'group1', 'command', 'bar', '--goo', 'g',
+            'group2', 'command', 'bar', '--goo', 'g'
+        ]);
+        expectScanResult(scanResult, {
+            commandClauses: [{
+                groupCommand: groupCommand1,
+                command: subCommand,
+                potentialArgs: ['bar', '--goo', 'g']
+            }, {
+                groupCommand: groupCommand2,
+                command: subCommand,
+                potentialArgs: ['bar', '--goo', 'g']
+            }],
+            unusedLeadingArgs: []
+        });
+
+        scanResult = defaultParser.scanForCommandClauses([
+            'group1', 'command', 'bar', '--goo', 'g',
+            'group2:command', 'bar', '--goo', 'g'
+        ]);
+        expectScanResult(scanResult, {
+            commandClauses: [{
+                groupCommand: groupCommand1,
+                command: subCommand,
+                potentialArgs: ['bar', '--goo', 'g']
+            }, {
+                groupCommand: groupCommand2,
+                command: subCommand,
+                potentialArgs: ['bar', '--goo', 'g']
+            }],
+            unusedLeadingArgs: []
+        });
+    });
+
+    test('Sub-command scanned and modifier and global command not scanned', () => {
+        const defaultParser: DefaultParser = new DefaultParser();
+        const modifierCommand = getGlobalModifierCommand('modifier', 'm');
         const globalCommand = getGlobalCommand();
-        const command = getCommand();
+        const subCommand = getSubCommand();
 
-        defaultParser.setCommands([qualifierCommand, globalCommand, command]);
+        defaultParser.setCommands([modifierCommand, globalCommand, subCommand]);
 
         const scanResult = defaultParser.scanForCommandClauses([
             'command', 'bar', '--goo', 'g'
         ]);
-
         expectScanResult(scanResult, {
             commandClauses: [{
-                command,
+                command: subCommand,
                 potentialArgs: ['bar', '--goo', 'g']
             }],
             unusedLeadingArgs: []
         });
     });
 
-    test('Two global qualifier commands and global command scanned', () => {
+    test('Two global modifier commands and global command scanned', () => {
         const defaultParser: DefaultParser = new DefaultParser();
-
-        const qualifierCommand1 = getGlobalQualifierCommand('qualifier1');
-        const qualifierCommand2 = getGlobalQualifierCommand('qualifier2');
+        const modifierCommand1 = getGlobalModifierCommand('modifier1', '1');
+        const modifierCommand2 = getGlobalModifierCommand('modifier2', '2');
         const globalCommand = getGlobalCommand();
 
-        defaultParser.setCommands([qualifierCommand1, qualifierCommand2, globalCommand]);
+        defaultParser.setCommands([modifierCommand1, modifierCommand2, globalCommand]);
 
-        const scanResult = defaultParser.scanForCommandClauses([
-            '--qualifier1', 'g', 'bar',
-            '--qualifier2', 'g', 'bar',
+        let scanResult = defaultParser.scanForCommandClauses([
+            '--modifier1', 'g', 'bar',
+            '--modifier2', 'g', 'bar',
             '--globalCommand', 'bar', '--goo', 'g',
         ]);
-
         expectScanResult(scanResult, {
             commandClauses: [{
-                command: qualifierCommand1,
+                command: modifierCommand1,
                 potentialArgs: ['g', 'bar']
             }, {
-                command: qualifierCommand2,
+                command: modifierCommand2,
                 potentialArgs: ['g', 'bar']
             }, {
                 command: globalCommand,
@@ -238,67 +350,190 @@ describe('DefaultParser test', () => {
             }],
             unusedLeadingArgs: []
         });
+
+        scanResult = defaultParser.scanForCommandClauses([
+            '-1', 'g', 'bar',
+            '-2', 'g', 'bar',
+            '-g', 'bar', '--goo', 'g',
+        ]);
+        expectScanResult(scanResult, {
+            commandClauses: [{
+                command: modifierCommand1,
+                potentialArgs: ['g', 'bar']
+            }, {
+                command: modifierCommand2,
+                potentialArgs: ['g', 'bar']
+            }, {
+                command: globalCommand,
+                potentialArgs: ['bar', '--goo', 'g']
+            }],
+            unusedLeadingArgs: []
+        });
+
+        scanResult = defaultParser.scanForCommandClauses([
+            '-1=g', 'bar',
+            '-2=g', 'bar',
+            '-g=bar', '--goo=g',
+        ]);
+        expectScanResult(scanResult, {
+            commandClauses: [{
+                command: modifierCommand1,
+                potentialArgs: ['g', 'bar']
+            }, {
+                command: modifierCommand2,
+                potentialArgs: ['g', 'bar']
+            }, {
+                command: globalCommand,
+                potentialArgs: ['bar', '--goo=g']
+            }],
+            unusedLeadingArgs: []
+        });
     });
 
-    test('Two global qualifier commands and global command scanned out of order', () => {
+    test('Two global modifier commands and global command scanned out of order', () => {
         const defaultParser: DefaultParser = new DefaultParser();
-
-        const qualifierCommand1 = getGlobalQualifierCommand('qualifier1');
-        const qualifierCommand2 = getGlobalQualifierCommand('qualifier2');
+        const modifierCommand1 = getGlobalModifierCommand('modifier1', '1');
+        const modifierCommand2 = getGlobalModifierCommand('modifier2', '2');
         const globalCommand = getGlobalCommand();
 
-        defaultParser.setCommands([qualifierCommand1, qualifierCommand2, globalCommand]);
+        defaultParser.setCommands([modifierCommand1, modifierCommand2, globalCommand]);
 
         const scanResult = defaultParser.scanForCommandClauses([
-            '--qualifier1', 'g', 'bar',
+            '--modifier1', 'g', 'bar',
             '--globalCommand', 'bar', '--goo', 'g',
-            '--qualifier2', 'g', 'bar'
+            '--modifier2', 'g', 'bar'
         ]);
 
         expectScanResult(scanResult, {
             commandClauses: [{
-                command: qualifierCommand1,
+                command: modifierCommand1,
                 potentialArgs: ['g', 'bar']
             }, {
                 command: globalCommand,
                 potentialArgs: ['bar', '--goo', 'g']
             }, {
-                command: qualifierCommand2,
+                command: modifierCommand2,
                 potentialArgs: ['g', 'bar']
             }],
             unusedLeadingArgs: []
         });
     });
 
-    test('Two global qualifier commands, global command and non-global command scanned', () => {
+    test('Two global modifier commands and group command scanned out of order', () => {
         const defaultParser: DefaultParser = new DefaultParser();
+        const modifierCommand1 = getGlobalModifierCommand('modifier1', '1');
+        const modifierCommand2 = getGlobalModifierCommand('modifier2', '2');
+        const subCommand = getSubCommand();
+        const groupCommand = getGroupCommand('group', [subCommand]);
 
-        const qualifierCommand1 = getGlobalQualifierCommand('qualifier1');
-        const qualifierCommand2 = getGlobalQualifierCommand('qualifier2');
+        defaultParser.setCommands([modifierCommand1, modifierCommand2, groupCommand]);
+
+        const scanResult = defaultParser.scanForCommandClauses([
+            '--modifier1', 'g', 'bar',
+            'group:command', 'bar', '--goo', 'g',
+            '--modifier2', 'g', 'bar'
+        ]);
+
+        expectScanResult(scanResult, {
+            commandClauses: [{
+                command: modifierCommand1,
+                potentialArgs: ['g', 'bar']
+            }, {
+                groupCommand,
+                command: subCommand,
+                potentialArgs: ['bar', '--goo', 'g']
+            }, {
+                command: modifierCommand2,
+                potentialArgs: ['g', 'bar']
+            }],
+            unusedLeadingArgs: []
+        });
+    });
+
+    test('Two global modifier commands, global command and sub-command scanned (illegal scenario)', () => {
+        const defaultParser: DefaultParser = new DefaultParser();
+        const modifierCommand1 = getGlobalModifierCommand('modifier1', '1');
+        const modifierCommand2 = getGlobalModifierCommand('modifier2', '2');
         const globalCommand = getGlobalCommand();
-        const command = getCommand();
+        const subCommand = getSubCommand();
 
-        defaultParser.setCommands([qualifierCommand1, qualifierCommand2, globalCommand, command]);
+        defaultParser.setCommands([modifierCommand1, modifierCommand2, globalCommand, subCommand]);
+
+        let scanResult = defaultParser.scanForCommandClauses([
+            'command', 'bar', '--goo', 'g',
+            '--modifier1', 'g', 'bar',
+            '--globalCommand', 'bar', '--goo', 'g',
+            '--modifier2', 'g', 'bar'
+        ]);
+        expectScanResult(scanResult, {
+            commandClauses: [{
+                command: subCommand,
+                potentialArgs: ['bar', '--goo', 'g']
+            }, {
+                command: modifierCommand1,
+                potentialArgs: ['g', 'bar']
+            }, {
+                command: globalCommand,
+                potentialArgs: ['bar', '--goo', 'g']
+            }, {
+                command: modifierCommand2,
+                potentialArgs: ['g', 'bar']
+            }],
+            unusedLeadingArgs: []
+        });
+
+        scanResult = defaultParser.scanForCommandClauses([
+            'command', 'bar', '--goo=g',
+            '-1=g', 'bar',
+            '-g=bar', '--goo', 'g',
+            '-2=g', 'bar'
+        ]);
+        expectScanResult(scanResult, {
+            commandClauses: [{
+                command: subCommand,
+                potentialArgs: ['bar', '--goo=g']
+            }, {
+                command: modifierCommand1,
+                potentialArgs: ['g', 'bar']
+            }, {
+                command: globalCommand,
+                potentialArgs: ['bar', '--goo', 'g']
+            }, {
+                command: modifierCommand2,
+                potentialArgs: ['g', 'bar']
+            }],
+            unusedLeadingArgs: []
+        });
+    });
+
+    test('Two global modifier commands, group command and sub-command scanned (illegal scenario)', () => {
+        const defaultParser: DefaultParser = new DefaultParser();
+        const modifierCommand1 = getGlobalModifierCommand('modifier1', '1');
+        const modifierCommand2 = getGlobalModifierCommand('modifier2', '2');
+        const subCommand = getSubCommand();
+        const groupCommand = getGroupCommand('group', [subCommand]);
+
+        defaultParser.setCommands([modifierCommand1, modifierCommand2, groupCommand, subCommand]);
 
         const scanResult = defaultParser.scanForCommandClauses([
             'command', 'bar', '--goo', 'g',
-            '--qualifier1', 'g', 'bar',
-            '--globalCommand', 'bar', '--goo', 'g',
-            '--qualifier2', 'g', 'bar'
+            '--modifier1', 'g', 'bar',
+            'group:command', 'bar', '--goo', 'g',
+            '--modifier2', 'g', 'bar'
         ]);
-
         expectScanResult(scanResult, {
             commandClauses: [{
-                command,
+                command: subCommand,
                 potentialArgs: ['bar', '--goo', 'g']
             }, {
-                command: qualifierCommand1,
+                command: modifierCommand1,
                 potentialArgs: ['g', 'bar']
             }, {
-                command: globalCommand,
+                groupCommand,
+                command: subCommand,
                 potentialArgs: ['bar', '--goo', 'g']
             }, {
-                command: qualifierCommand2,
+                command: modifierCommand2,
                 potentialArgs: ['g', 'bar']
             }],
             unusedLeadingArgs: []
@@ -307,25 +542,23 @@ describe('DefaultParser test', () => {
 
     test('Unused leading args whilst scanning', () => {
         const defaultParser: DefaultParser = new DefaultParser();
-
-        const qualifierCommand = getGlobalQualifierCommand('qualifier');
+        const modifierCommand = getGlobalModifierCommand('modifier', 'm');
         const globalCommand = getGlobalCommand();
-        const command = getCommand();
+        const subCommand = getSubCommand();
 
-        defaultParser.setCommands([qualifierCommand, globalCommand, command]);
+        defaultParser.setCommands([modifierCommand, globalCommand, subCommand]);
 
         let scanResult = defaultParser.scanForCommandClauses([
             'hello', '--world',
             'command', 'bar', '--goo', 'g',
-            '--qualifier', 'g', 'bar'
+            '--modifier', 'g', 'bar'
         ]);
-
         expectScanResult(scanResult, {
             commandClauses: [{
-                command,
+                command: subCommand,
                 potentialArgs: ['bar', '--goo', 'g']
             }, {
-                command: qualifierCommand,
+                command: modifierCommand,
                 potentialArgs: ['g', 'bar']
             }],
             unusedLeadingArgs: ['hello', '--world']
@@ -334,35 +567,46 @@ describe('DefaultParser test', () => {
         scanResult = defaultParser.scanForCommandClauses([
             'hello', '--world',
             '--globalCommand', 'bar', '--goo', 'g',
-            '--qualifier', 'g', 'bar'
+            '--modifier', 'g', 'bar'
         ]);
-
         expectScanResult(scanResult, {
             commandClauses: [{
                 command: globalCommand,
                 potentialArgs: ['bar', '--goo', 'g']
             }, {
-                command: qualifierCommand,
+                command: modifierCommand,
                 potentialArgs: ['g', 'bar']
             }],
             unusedLeadingArgs: ['hello', '--world']
         });
     });
 
-    test('Arguments parsed', () => {
+    test('Arguments parsed for sub-command', () => {
         const defaultParser: DefaultParser = new DefaultParser();
+        const subCommand = getSubCommand();
 
-        const command = getCommand();
+        defaultParser.setCommands([subCommand]);
 
-        defaultParser.setCommands([command]);
-
-        const parseResult = defaultParser.parseCommandClause({
-            command,
+        let parseResult = defaultParser.parseCommandClause({
+            command: subCommand,
             potentialArgs: ['bar', '--goo', 'g']
         });
-
         expectParseResult(parseResult, {
-            command,
+            command: subCommand,
+            commandArgs: {
+                goo: 'g',
+                foo: 'bar'
+            },
+            unusedArgs: [],
+            invalidArgs: []
+        });
+
+        parseResult = defaultParser.parseCommandClause({
+            command: subCommand,
+            potentialArgs: ['bar', '-g=g']
+        });
+        expectParseResult(parseResult, {
+            command: subCommand,
             commandArgs: {
                 goo: 'g',
                 foo: 'bar'
@@ -372,20 +616,84 @@ describe('DefaultParser test', () => {
         });
     });
 
-    test('Arguments parsed with trailing args', () => {
+    test('Arguments parsed for global command', () => {
         const defaultParser: DefaultParser = new DefaultParser();
+        const globalCommand = getGlobalCommand();
 
-        const command = getCommand();
+        defaultParser.setCommands([globalCommand]);
 
-        defaultParser.setCommands([command]);
-
-        const parseResult = defaultParser.parseCommandClause({
-            command,
-            potentialArgs: ['bar', '--goo', 'g', 'hello', '--world']
+        let parseResult = defaultParser.parseCommandClause({
+            command: globalCommand,
+            potentialArgs: ['--globalCommand=foo']
+        });
+        expectParseResult(parseResult, {
+            command: globalCommand,
+            commandArgs: {
+                value: 'foo'
+            },
+            unusedArgs: [],
+            invalidArgs: []
         });
 
+        parseResult = defaultParser.parseCommandClause({
+            command: globalCommand,
+            potentialArgs: ['-g', 'foo']
+        });
         expectParseResult(parseResult, {
-            command,
+            command: globalCommand,
+            commandArgs: {
+                value: 'foo'
+            },
+            unusedArgs: [],
+            invalidArgs: []
+        });
+    });
+
+    test('Arguments parsed for global modifier command', () => {
+        const defaultParser: DefaultParser = new DefaultParser();
+        const globalModifierCommand = getGlobalModifierCommand('modifierCommand', 'm');
+
+        defaultParser.setCommands([globalModifierCommand]);
+
+        let parseResult = defaultParser.parseCommandClause({
+            command: globalModifierCommand,
+            potentialArgs: ['--modifierCommand=foo']
+        });
+        expectParseResult(parseResult, {
+            command: globalModifierCommand,
+            commandArgs: {
+                value: 'foo'
+            },
+            unusedArgs: [],
+            invalidArgs: []
+        });
+
+        parseResult = defaultParser.parseCommandClause({
+            command: globalModifierCommand,
+            potentialArgs: ['-m', 'foo']
+        });
+        expectParseResult(parseResult, {
+            command: globalModifierCommand,
+            commandArgs: {
+                value: 'foo'
+            },
+            unusedArgs: [],
+            invalidArgs: []
+        });
+    });
+
+    test('Arguments parsed with trailing args', () => {
+        const defaultParser: DefaultParser = new DefaultParser();
+        const subCommand = getSubCommand();
+
+        defaultParser.setCommands([subCommand]);
+
+        const parseResult = defaultParser.parseCommandClause({
+            command: subCommand,
+            potentialArgs: ['bar', '--goo', 'g', 'hello', '--world']
+        });
+        expectParseResult(parseResult, {
+            command: subCommand,
             commandArgs: {
                 goo: 'g',
                 foo: 'bar'
@@ -397,21 +705,19 @@ describe('DefaultParser test', () => {
 
     test('All arguments provided in config', () => {
         const defaultParser: DefaultParser = new DefaultParser();
+        const subCommand = getSubCommand();
 
-        const command = getCommand();
-
-        defaultParser.setCommands([command]);
+        defaultParser.setCommands([subCommand]);
 
         const parseResult = defaultParser.parseCommandClause({
-            command,
+            command: subCommand,
             potentialArgs: []
         }, {
             goo: 'g',
             foo: 'bar'
         });
-
         expectParseResult(parseResult, {
-            command,
+            command: subCommand,
             commandArgs: {
                 goo: 'g',
                 foo: 'bar'
@@ -423,20 +729,34 @@ describe('DefaultParser test', () => {
 
     test('Some arguments provided in config', () => {
         const defaultParser: DefaultParser = new DefaultParser();
+        const subCommand = getSubCommand();
 
-        const command = getCommand();
+        defaultParser.setCommands([subCommand]);
 
-        defaultParser.setCommands([command]);
-
-        const parseResult = defaultParser.parseCommandClause({
-            command,
+        let parseResult = defaultParser.parseCommandClause({
+            command: subCommand,
             potentialArgs: ['--goo', 'g']
         }, {
             foo: 'bar'
         });
-
         expectParseResult(parseResult, {
-            command,
+            command: subCommand,
+            commandArgs: {
+                goo: 'g',
+                foo: 'bar'
+            },
+            unusedArgs: [],
+            invalidArgs: []
+        });
+
+        parseResult = defaultParser.parseCommandClause({
+            command: subCommand,
+            potentialArgs: ['bar']
+        }, {
+            goo: 'g'
+        });
+        expectParseResult(parseResult, {
+            command: subCommand,
             commandArgs: {
                 goo: 'g',
                 foo: 'bar'
@@ -448,21 +768,19 @@ describe('DefaultParser test', () => {
 
     test('Extra config provided', () => {
         const defaultParser: DefaultParser = new DefaultParser();
+        const subCommand = getSubCommand();
 
-        const command = getCommand();
-
-        defaultParser.setCommands([command]);
+        defaultParser.setCommands([subCommand]);
 
         const parseResult = defaultParser.parseCommandClause({
-            command,
+            command: subCommand,
             potentialArgs: ['--goo', 'g']
         }, {
             foo: 'bar',
             yee: 'ha'
         });
-
         expectParseResult(parseResult, {
-            command,
+            command: subCommand,
             commandArgs: {
                 goo: 'g',
                 foo: 'bar',

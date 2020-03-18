@@ -6,28 +6,26 @@ import ServiceFactory from './ServiceFactory';
 import CommandFactory from './CommandFactory';
 
 /**
- * Interface to be implemented by a [[CLI]] application.
+ * Interface to be implemented by a CLI application.
  */
 export default interface CLI {
 
     /**
-     * Get all [[CommandFactory]] instances in use by this [[CLI]].
-     *
-     * @return iterable of [[CommandFactory]] instances
+     * All [[CommandFactory]] instances known to this [[CLI]].
      */
-    getCommandFactories(): Iterable<CommandFactory>;
+    readonly commandFactories: CommandFactory[];
 
     /**
-     * Get all [[ServiceFactory]] instances in use by this [[CLI]].
-     *
-     * @return iterable of [[ServiceFactory]] instances
+     * All [[ServiceFactory]] instances known to this [[CLI]].
      */
-    getServiceFactories(): Iterable<ServiceFactory>;
+    readonly serviceFactories: ServiceFactory[];
 
     /**
      * Execute the CLI with the provided arguments.
      *
      * @param args the arguments to parse
+     *
+     * @return *0* for successful execution and *1* for failure
      */
-    execute(args: string[]): Promise<void>;
+    execute(args: string[]): Promise<number>;
 }

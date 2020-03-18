@@ -5,7 +5,8 @@
 import _ from 'lodash';
 import Context from '../api/Context';
 import Service from '../api/Service';
-import { CommandArgs } from '../api/Command';
+import { CommandArgs } from '..';
+import Command from '../api/Command';
 
 /**
  * Default implementation of a [[Context]].
@@ -14,23 +15,43 @@ export default class DefaultContext implements Context {
 
     private readonly servicesById: Map<string, Service> = new Map<string, Service>();
 
-    public readonly commandConfigs: Map<string, CommandArgs> = new Map();
+    readonly commands: Command[];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public readonly serviceConfigs: Map<string, any> = new Map();
+    public readonly cliConfig: any;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    public readonly serviceConfigs: Map<string, any>;
+
+    public readonly commandConfigs: Map<string, CommandArgs>;
 
     /**
-     * Add the specified [[Service]] instance to this [[Context]].
+     * Construct the context with the provided CLI configuration object and list of [[Service]] instances.
      *
-     * @param service the [[Service]] to add.
+     * @param cliConfig a CLI configuration object.
+     * @param commands the [[Command]] instances known to the CLI.
+     * @param services the [[Service]] instances to make available in the context.
+     * @param serviceConfigs [[Service]] configuration objects to make available in the context. This should be a map
+     * where the keys are [[Service.id]] values and the values are generic configuration objects.
+     * @param commandConfigs [[Command]] configuration objects to make available in the context. This should be a map
+     * where the keys are [[Command.name]] values and the values are in the form of [[CommandArgs]].
      *
-     * @throws *Error* if the specified [[Service]] has an ID duplicating an already added [[Service]]
+     * @throws *Error* if [[Service]] instances are provided with duplicate IDs.
      */
-    public addService(service: Service): void {
-        if (!_.isUndefined(this.servicesById.get(service.id))) {
-            throw new Error(`Service with ID: ${service.id} has already been added!`);
-        }
-        this.servicesById.set(service.id, service);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any,max-len
+    public constructor(cliConfig: any, services: Service[], commands: Command[], serviceConfigs: Map<string, any>, commandConfigs: Map<string, CommandArgs>) {
+
+        this.cliConfig = cliConfig;
+        this.commands = commands;
+        this.serviceConfigs = serviceConfigs;
+        this.commandConfigs = commandConfigs;
+
+        services.forEach((service) => {
+            if (!_.isUndefined(this.servicesById.get(service.id))) {
+                throw new Error(`Duplicate service ID: ${service.id} discovered!`);
+            }
+            this.servicesById.set(service.id, service);
+        });
     }
 
     /**

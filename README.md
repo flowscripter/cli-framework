@@ -1,4 +1,4 @@
-# cli-template
+# cli-framework
 [![license](https://img.shields.io/github/license/flowscripter/cli-framework.svg)](https://github.com/flowscripter/cli-framework/blob/master/LICENSE.md)
 [![dependencies](https://img.shields.io/david/flowscripter/cli-framework.svg)](https://david-dm.org/flowscripter/cli-framework)
 [![travis](https://api.travis-ci.com/flowscripter/cli-framework.svg)](https://travis-ci.com/flowscripter/cli-framework)
@@ -7,40 +7,41 @@
 
 > CLI framework using ES Modules.
 
-**NOTE: This project is still under active development!**
-
 ## Overview
 
-This project provides a Javascript framework for developing Command Line Interface (CLI) applications running in NodeJS.
+This project provides a Javascript framework for developing Command Line Interface (CLI) applications.
 
-#### Key Features 
+#### Key Features
 
-* Dynamic plugin based import of commands using [@flowscripter/esm-dynamic-plugins](https://github.com/flowscripter/esm-dynamic-plugins)
 * ES2015 module based
 * Written in Typescript
 * Minimal dependencies
+* Support for building CLIs with either:
+    * Global command arguments e.g. `executable --<global_command_name> [argument]`
+    * Sub-command based arguments e.g. `executable <sub_command_name> [sub_command_arguments]`
+    * Grouped sub-command based arguments e.g. `executable <group_command_name> <member_sub_command_name> [member_sub_command_arguments]`
+* Support for both optional and positional arguments e.g. `executable <sub_command_name> --<option_name>=<option_value> <positional_value>`
+* Support for multiple value options e.g. `executable <sub_command_name> --<option_name>=<option_value_1> --<option_name>=<option_value_2>`
+* Support for multiple value positionals ("varargs") e.g. `executable <sub_command_name> <positional_value_1> <positional_value_2>`
+* Dynamic plugin based import of commands using [@flowscripter/esm-dynamic-plugins](https://github.com/flowscripter/esm-dynamic-plugins)
+* Core (but optional) commands for help, logging level, version management and plugin management.
+* Core (but optional) services for colour output to stdout and stderr, user prompting and configuration management.
 * Support for persisted configuration
-* Built in commands for help, version management and plugin management.
-* Support for either:
-    * Simple Arguments e.g. `executable [global_arguments]`
-    * Command Based Arguments e.g. `executable [global_arguments] <command> [command_arguments]`
 
 #### Key Concepts
 
 The key concepts are:
 
-* A host application extends the *CLI* interface (a default CLI implementation is provided).
-* The *CLI* is responsible for: 
-    * maintaining a list of *CommandFactories* and ensuring the *Commands* they provide are available to a *Runner*
-    when it parses arguments to find a *Command* to execute. 
-    * maintaining a list of *ServiceFactories* and ensuring the *Services* they provide are available in the *Context*
-    when a *Command* is run.
+* A host application implements the *CLI* interface (a default NodeJS specific CLI implementation is provided).
+* The *CLI* is responsible for:
+    * maintaining a list of *CommandFactories* and ensuring the *Commands* they provide are available to a *Runner*.
     * providing invocation arguments to the *Runner* which parses them and determines which *Command* to run.
-* When a *Command* is run, it is provided with a *Context* which provides access to a number of *Services*.
-* The *PluginCommandFactory* is an instance of a *CommandFactory* providing the ability to dynamically
-load *CommandPlugins* which consist of one or more *Command* implementations.
-* The *PluginServiceFactory* is an instance of a *ServiceFactory* providing the ability to dynamically
-load *ServicesPlugins* which consist of one or more *Service* implementations.
+    * maintaining a list of *ServiceFactories* and ensuring the *Services* they provide are available in a *Context*.
+    * running the specified *Command* providing it with the parsed arguments and a *Context* providing access to a number of *Services*.
+* Dynamic plugins (enabled by [@flowscripter/esm-dynamic-plugins](https://github.com/flowscripter/esm-dynamic-plugins)
+which makes use ES2015 Dynamic Module Imports) are used by:
+    * *PluginCommandFactory* (an instance of a *CommandFactory*) which allows for the dynamic load and import of *CommandPlugins* containing one or more *Command* implementations.
+    * *PluginServiceFactory* (an instance of a *ServiceFactory*) which allows for the dynamic load and import of *ServicesPlugins* containing one or more *Service* implementations.
 
 The following high level class diagram illustrates these relationships:
 
@@ -48,226 +49,379 @@ The following high level class diagram illustrates these relationships:
 
 ## Commands
 
-All functionality for a CLI is implemented within a *Command*. The *Command* declares:
+All functionality for a CLI is implemented within one or more *Commands*. A *Command* declares:
 
-* a `name` which should be specified in the command line arguments to invoke it. The name must consist of
-alphanumeric non-whitespace ASCII characters or `_` and `-` characters. It also cannot start with `-`. 
-* a number of expected arguments (explained further below)
-* a function to run to execute the command
-* some basic configuration options which define its type and therefore how it is invoked
+* a name which is to be used in command line arguments to invoke it.
+* a function to run when the command is invoked.
 
-The types of command are: *Global*, *Global Qualifier*, *Default* and *Non-Global* (i.e. a normal *Command*) 
-
-#### Command
-
-A normal command is invoked as follows:
-
-    executable <command_name> [command_arguments]
-
-Some concrete examples:
-
-    myHelloWorldApp say hello
-    myNetworkApp connect --host=localhost
-     
-#### Default Command
-
-If a command is declared *default* it will be run if no other command is extracted from the command line:
-
-    executable [default_command_arguments]
-
-Some concrete examples (if the previous example commands were set as default):
-
-    myHelloWorldApp hello
-    myNetworkApp --host localhost
-
-NOTE: There can be only one default command provided to the CLI framework.
+The sub-types of command are: *GlobalCommand*, *GlobalModifierCommand*, *SubCommand* and *GroupCommand*
 
 #### Global Command
 
-A global command allows a command to be specified in the form of a global option:
+A *GlobalCommand* provides the ability to invoke functionality via a global argument and one optional value:
 
-    executable --<global_command_name> [global_command_arguments]
+    executable --<global_command_name>=[global_command_value]
 
-A concrete example:
+Concrete examples:
 
+    myNetworkApp --help=connect
+    myNetworkApp --connect
+
+A *GlobalCommand* also supports a short character alias which should always be an alphabetic ASCII character:
+
+    executable -<global_command_short_alias>=[global_command_value]
+
+Concrete examples:
+
+    myNetworkApp -h=connect
+    myNetworkApp -c
+
+###### Global Command Values
+
+A *GlobalCommand* also supports the provision of a value consisting of:
+
+* a type of either: `number`, `boolean` or `string` (the default).
+* an optional set of valid value choices.
+* an optional default value.
+* whether the value is mandatory.
+
+There are three ways in which global command values can be specified:
+
+    executable --<global_command_name>=<value>
+    executable --<global_command_name> <value>
+    executable -<global_command_short_alias> <value>
+
+Concrete examples:
+
+    myNetworkApp --help=connect
     myNetworkApp --help connect
+    myNetworkApp -h=connect
 
-**NOTE**: Global commands only support *positionals* (and not *options*). See "Global and Global Qualifier Command Arguments" further below.
+For boolean options, specifying the value as `true` is not required. All of the following set the value to `true`:
 
-#### Global Qualifier Command
+    executable --<global_command_name>=true
+    executable --<global_command_name> true
+    executable --<global_command_name>
+    executable -<global_command_short_alias>=true
+    executable -<global_command_short_alias> true
+    executable -<global_command_short_alias>
 
-A global qualifier command is also specified in the form of a global option. There can be more than one
-global qualifier command specified:
+#### Global Modifier Commands
 
-    executable --<global_qualifier_command_1_name> [global_qualifier_command_1_arguments] \
-               --<global_qualifier_command_2_name> [global_qualifier_command_2_arguments] \
-               <command_name> [command_arguments]
- 
-Each command will be executed before any other specified global, non-global (i.e.
-normal) or default command is executed. This behaviour allows them to modify the context in which later commands run.
+A *GlobalModifierCommand* is invoked in a similar manner to a *GlobalCommand*.
+
+Any number of *GlobalModifierCommands* can be specified as long as they are accompanied by a *GlobalCommand*,
+*GroupCommand* or *SubCommand*:
+
+    executable --<global_modifier_command_1_name> [global_modifier_command_1_arguments] \
+               --<global_modifier_command_2_name> [global_modifier_command_2_arguments] \
+               <sub_command_name> [sub_command_arguments]
 
 A concrete example:
 
-    myNetworkApp --loglevel debug download --host=localhost --all
+    myNetworkApp --loglevel debug --config=config.json serve
 
-**NOTE**: Global qualifier commands only support *positionals* (and not *options*). See "Global and Global Qualifier Command Arguments" further below.
- 
-## Arguments
+where:
 
-Arguments can take two forms: *Option* or *Positional*. 
+* `loglevel` is a global modifier command with a global command value of `debug`
+* `config` is a global modifier command with a global command value of `config.json`
+* `serve` is a sub-command.
+
+Each *GlobalModifierCommand* will be executed before the single specified *GlobalCommand*, *SubCommand*
+or *GroupCommand* is executed. This behaviour allows *GlobalModifierCommands* to modify
+the context in which later commands run.
+
+A *GlobalModifierCommand* defines a "run priority" which is used to determine the order of execution when multiple
+*GlobalModifierCommands* are specified.
+
+#### Sub-Command
+A *SubCommand* provides the ability to invoke functionality via specifying the command name followed by any number of
+option and positional arguments.
+
+A sub-command is invoked as follows:
+
+    executable <sub_command_name> [sub_command_arguments]
+
+A concrete example:
+
+    myNetworkApp serve --host=localhost
+
+###### Sub-Command Arguments
+
+Arguments for a *SubCommand* can take two forms: *Option* or *Positional*.
 
 Common to both are the following features:
 
-* a `name` which must consist of alphanumeric non-whitespace ASCII characters or `_` and `-` characters.
+* a name which must consist of alphanumeric non-whitespace ASCII characters or `_` and `-` characters.
 It cannot start with `-`.
-* a `type` of either: `number`, `boolean` or `string` (the default).
+* a type of either: `number`, `boolean` or `string` (the default).
 * an optional set of valid value choices.
 
 **Options**
 
 An *option* argument also provides for:
- 
+
 * a short character alias for the option which should always be an alphabetic ASCII character.
-* whether the option is mandatory
-* an optional default value
+* whether the option is mandatory.
+* an optional default value.
 * whether the option can be specified more than once e.g.:
 
-    `executable command --<name>=foo --<name>=bar`
 
-There are three ways in which options can be specified:
+    executable <sub_command_name> --<option_name_1>=foo --<option_name_1>=bar
 
-    --<option_name> <option_value>
-    --<option_name>=<option_value>
-    -<option_alias> <option_value>
+There are four ways in which options can be specified:
 
-For boolean options, specifying the value is not required. Both of the following set the value to `true`: 
+    executable <sub_command_name> --<option_name>=<option_value>
+    executable <sub_command_name> --<option_name> <option_value>
+    executable <sub_command_name> -<option_short_alias>=<option_value>
+    executable <sub_command_name> -<option_short_alias> <option_value>
 
-    --<boolean_option_name>
-    --<boolean_option_name> true
-    --<boolean_option_name>=true
-    -<boolean_option_alias>
-    -<boolean_option_alias> true
+For boolean options, specifying the value as `true` is not required. All of the following set the value to `true`:
+
+    executable <sub_command_name> --<boolean_option_name>=true
+    executable <sub_command_name> --<boolean_option_name> true
+    executable <sub_command_name> --<boolean_option_name>
+    executable <sub_command_name> -<boolean_option_short_alias>=true
+    executable <sub_command_name> -<boolean_option_short_alias> true
+    executable <sub_command_name> -<boolean_option_short_alias>
 
 **Positionals**
 
-A *positional* argument is specified by a value which appears at the correct position in the list of command 
-line arguments:
+A *positional* argument is specified by a value which appears at the correct position in the list of *SubCommand*
+arguments:
 
-     executable <command> <positional_1_value> <positional_2_value>
+     executable <sub_command_name> <positional_1_value> <positional_2_value>
 
-A *positional* argument also provides for optional "varargs" support which allows for one or more entries:
+A concrete example:
 
-     executable <command> --<option>=<value> <positional_1_value_1> <positional_1_value_2> <positional_1_value_3>
+    myHelloWorldApp say hello
 
-Only one "varargs" positional can be defined and it must be the last positional expected for the command.
- 
-If, and only if, a positional is specified as supporting "varargs", it can also declare whether it is optional. In this case
-appearance of a value for positional is not required:
+where:
 
-     executable <command>
+* `say` is a sub-command.
+* `hello` is the value for the first positional argument.
 
-## Global and Global Qualifier Command Arguments
+A *positional* argument also provides for "varargs" support (both optional and multiple) which allows for
+zero, one or more entries:
 
-Global commands and global qualifier commands only support *positionals* (and not *options*).
- 
-For such commands the first *positional* may be specified in the following alternative forms:
+**NOTE**: Only one "varargs" positional can be defined and it must be the last positional expected for the command.
 
-    executable --<global_command> <positional_1_value>
-    executable --<global_command>=<positional_1_value>
-    executable --<qualifier_command> <positional_1_value> <command>
-    executable --<qualifier_command>=<positional_1_value> <command>
+If "varargs" optional is set for `positional_1`, these are valid:
 
-To avoid confusing usage semantics it is recommended that global commands and global qualifier commands only 
-support one *positional*. Otherwise invocations such as the following are valid:
+     executable <sub_command_name>
+     executable <sub_command_name> <positional_1_value_1>
 
-    executable --<global_command>=<positional_1_value> <positional_2_value>
-    executable --<qualifier_command>=<positional_1_value> <positional_2_value> <command>
+If "varargs" multiple is set for `positional_1`, these are valid:
 
-## Example Project
+     executable <sub_command_name> <positional_1_value_1>
+     executable <sub_command_name> <positional_1_value_1> <positional_1_value_2>
 
-[ts-example-cli](https://github.com/flowscripter/ts-example-cli) is a demo CLI application based on
-this framework.
+If "varargs" optional AND multiple is set for `positional_1`, these are valid:
 
-The [Flowscripter CLI](https://github.com/flowscripter/cli) is a fully functional CLI application based on
-this framework.
+     executable <sub_command_name>
+     executable <sub_command_name> <positional_1_value_1>
+     executable <sub_command_name> <positional_1_value_1> <positional_1_value_2> <positional_1_value_3>
 
-## Parsing Logic
+#### Group Command
 
-The following activity diagram illustrates the basic command parsing and execution logic:
+A *GroupCommand* allows multiple member *SubCommands* to be grouped under a single named group. The name of the
+*GroupCommand* is specified before the desired member *SubCommand* in one of two ways:
 
-![Parse_Logic_Activity Diagram](images/parse_logic_activity_diagram.png "Parse Logic Activity Diagram")
+    executable <group_command_name> <member_sub_command_name> [member_sub_command_arguments]
+    executable <group_command_name>:<member_sub_command_name> [member_sub_command_arguments]
 
-The following parsing rules apply:
+Concrete examples:
 
-**Leading Arguments and Unused Trailing Arguments**
+    myNetworkApp utils ping --host=localhost
+    myNetworkApp utils:ping --host=localhost
 
-Any arguments which appear before an identified command, global command or global qualifier command are ignored and
-any trailing arguments which are not used by a command are treated as potential arguments for a default command i.e. the
-following are all equivalent:
+A *GroupCommand* also provides for a command to be invoked BEFORE the specified sub-command. However,
+a *GroupCommand* does not support any arguments itself (apart from the member *SubCommand* name and its arguments).
 
-`executable <default_command_argument> --<qualifier_command> <qualifier_command_argument>`
-`executable --<qualifier_command> <qualifier_command_argument> <default_command_argument>`
-`executable --<qualifier_command_1> <qualifier_command_1_argument> <default_command_argument> --<qualifier_command_2> <qualifier_command_2_argument>`
+## Runner
+
+Core CLI behaviour is provided by a *Runner* implementation which is responsible for parsing invocation arguments,
+determining which *Command* to run and then running it.
+
+#### Default Command
+
+The provided default implementation of *Runner* (*DefaultRunner*) supports specification of a default command which
+should be run if no command names are parsed on the command line. In this scenario, any arguments provided will be
+parsed as possible arguments for the default command.
+
+#### Logic Overview
+
+The following activity diagram illustrates the *DefaultRunner* logic:
+
+![Default Runner_Logic_Activity Diagram](images/default_runner_logic_activity_diagram.png "Default Runner Logic Activity Diagram")
+
+## Parser
+
+The *Runner* defers to a *Parser* implementation which performs the actual argument parsing.
+
+The following parsing rules apply for the provided *DefaultParser* implementation:
 
 **Arguments Must Follow Command**
- 
-All arguments for a command are expected to FOLLOW the command i.e. this is **NOT** valid: 
 
-`executable <command_argument> <command>`
+All arguments for a command are expected to FOLLOW the command i.e. this is **NOT** valid:
+
+    executable <sub_command_argument> <sub_command_name>
 
 **Arbitrary Option Order**
 
 The order of options for a particular command is not important i.e. these are equivalent:
 
-* `<command> --<option_1> <option_1_value> --<option_2> <option_2_value>`
-* `<command> --<option_2> <option_2_value> --<option_1> <option_1_value>`
+    executable <sub_command_name> --<option_1_name> <option_1_value> --<option_2_name> <option_2_value>
+    executable <sub_command_name> --<option_2_name> <option_2_value> --<option_1_name> <option_1_value>
 
-**Arbitrary Command Order** 
+**Arbitrary Command Order**
 
-The order of global qualifiers and global command/non-global command is not important i.e. these are equivalent:
+The order of commands is not important i.e. these are equivalent:
 
-* `executable <command> [command_arguments] --<qualifier_command_1> [qualifier_command_1_arguments] --<qualifier_command_2> [qualifier_command_2_arguments]`
-* `executable --<qualifier_command_1> [qualifier_command_1_arguments] <command> [command_arguments] --<qualifier_command_2> [qualifier_command_2_arguments]`
+    executable <sub_command_name> [sub_command_arguments] --<modifier_command_1> [modifier_command_1_arguments] \
+               --<modifier_command_2> [modifier_command_2_arguments]
+    executable --<modifier_command_1> [modifier_command_1_arguments] <sub_command_name> [sub_command_arguments] \
+               --<modifier_command_2> [modifier_command_2_arguments]
 
-**No Command Interleaving** 
+**No Command Interleaving**
 
 Arguments for commands cannot be interleaved with other commands i.e. this is **NOT** valid:
 
-`executable --<qualifier_command> <command> [command_arguments] [qualifier_command_arguments]`
+    executable --<modifier_command_name> <sub_command_name> [sub_command_arguments] [modifier_command_arguments]
 
-**Single Command** 
+**Single Command**
 
-Apart from global qualifier commands, there is expected to be only one command specified i.e. this will **NOT** work: 
+Apart from global modifier commands, there is expected to be only one command specified i.e. these are **NOT** valid:
 
-`executable <command_1> [command_1_arguments] <command_2> [command_2_arguments] `
+    executable <sub_command_1_name> [sub_command_1_arguments] <sub_command_2_name> [sub_command_2_arguments]
+    executable --<global_command_name> <sub_command_name> [sub_command_arguments]
 
-#### Parsing Examples
+**Group Command**
 
-**Global Command**
+A group command name must always be following immediately by a container sub-command name i.e. these are **NOT** valid:
 
-**Two Global Qualifier Commands and Global Command**
+    executable <member_sub_command_name> <group_command_name>
+    executable <group_command_name> <global_command_name> <member_sub_command_name>
 
-**Non-Global Command**
+**Leading Arguments and Unused Trailing Arguments**
 
-**Two Global Qualifier Commands and Non-Global Command**
+Any leading arguments which appear BEFORE an identified command name are retained. Any trailing arguments which appear
+after an identified name and are not consumed when parsing the command arguments are also retained.
 
-**Two Global Qualifier Commands, Global Command and Ignored Non-Global Command**
+Once a command has been identified and parsed any retained arguments are considered unused and a warning is output.
 
-**Non-Global Command and Ignored Leading Arguments**
+If a command is NOT identified any retained arguments are considered potential arguments for a default command if it
+has been configured. This behaviour means the following are all equivalent:
 
-**Non-Global Command and Ignored Trailing Arguments**
+    executable <default_command_argument> --<modifier_command_name> <modifier_command_argument>
+    executable --<modifier_command_name> <modifier_command_argument> <default_command_argument>
+    executable --<modifier_command_1_name> <modifier_command_1_argument> <default_command_argument> \
+               --<modifier_command_2_name> <modifier_command_2_argument>
 
-**Default Command**
+## Core Support
+The following core services and commands are provided in the project and used within the provided `BaseCLI` and `NodeCLI`.
 
-**Global Qualifier Command and Default Command**
+#### Core Services
+Core service interfaces are provided together with a default implementation for printing output to the user, requesting input
+from the user and reading/writing configuration.
 
-## API
+###### Printer Service
+Two printer services are registered in the context under the IDs:
 
-[API documentation](https://flowscripter.github.io/cli-framework)
+* `STDOUT_PRINTER_SERVICE`
+* `STDERR_PRINTER_SERVICE`
+
+Both of these provide the ability to:
+
+* output text at debug, info, warn and error levels together with a threshold filter
+* add optional success, failure, alert or information icons
+* enable or disable colour output and also print bold text
+* show and hide a spinner
+
+###### Prompter Service
+TODO
+
+###### Configuration Service
+The configuration service is registered in the context under the ID `CONFIGURATION_SERVICE`.
+
+This service provides the ability to:
+
+* read and write configuration data from a YAML file in the default location of `$HOME/.<context.cliConfig.name>.yaml`
+* get and set config for commands and services
+
+#### Core Commands
+Core commands are provided to manage the output of the CLI, the location of configuration and to provide help to the user.
+
+The dependencies these commands have on core services are outlined below.
+
+###### Log Level Command
+The `LogLevel` command overrides the default level threshold (`INFO`) of the printer services.
+
+**NOTE**: This requires two `Printer` services in the context registered with the IDs `STDOUT_PRINTER_SERVICE` and
+`STDERR_PRINTER_SERVICE`.
+
+###### No Colour Command
+The `NoColor` command overrides the auto-detected colour state of the printer services.
+
+**NOTE**: This requires two `Printer` services in the context registered with the IDs `STDOUT_PRINTER_SERVICE` and
+`STDERR_PRINTER_SERVICE`.
+
+###### Config Command
+The `Config` command overrides the default location (`$HOME/.<context.cliConfig.name>.yaml`) of the YAML configuration file.
+
+**NOTE**: This requires a `Printer` service in the context registered with the ID `STDERR_PRINTER_SERVICE` and
+a `Configuration` service registered with the ID `CONFIGURATION_SERVICE`.
+
+###### Version Command
+The `VersionCommand` simply outputs the CLI application version to stdout.
+
+**NOTE**: This requires a `Printer` service in the context registered with the ID `STDOUT_PRINTER_SERVICE`.
+
+###### Usage Command
+The `UsageCommand` provides a very simple help output. It is configured as the default command for the
+`BaseCLI` and `NodeCLI`.
+
+**NOTE**: This requires a `Printer` service in the context registered with the ID `STDOUT_PRINTER_SERVICE` and it
+also requires provision of a `HelpCommand`.
+
+###### Help Command
+The `HelpCommand` outputs either generic help for the CLI (listing all commands available) or specific help for
+a command if it was specified as an argument.
+
+**NOTE**: This requires a `Printer` service in the context registered with the ID `STDOUT_PRINTER_SERVICE`.
+
+## Plugin Support
+TODO
+
+#### Plugin Registry Service
+TODO
+
+#### Plugin Command
+TODO
+
+## Node CLI
+The `BaseCLI` implementation ensures that the core commands and services are available to the CLI. It expects to be
+provided a configuration object containing the CLI application's name, version and description together with streams to
+use for `stdout` and `stderr`.
+
+The `NodeCLI` implementation is a simple extension to the `BaseCLI` which provides the name, version and description from
+the projects `package.json` and uses the NodeJS provided `process.stdout` and `process.stderr` streams.
+
+## Example Projects
+
+[ts-example-cli](https://github.com/flowscripter/ts-example-cli) is a demo CLI Typescript application based on
+this framework.
+
+[js-example-cli](https://github.com/flowscripter/js-example-cli) is a demo CLI Javascript application based on
+this framework.
+
+## Code Documentation
+
+[Typescript documentation](https://flowscripter.github.io/cli-framework)
 
 ## Development
 
-Firstly: 
+Firstly:
 
 ```
 npm install
@@ -296,41 +450,42 @@ The following diagram provides an overview of the main classes:
 
 ## Further Details
 
-Further details on project configuration files and Javascript version support can be found in 
+Further details on project configuration files and Javascript version support can be found in
 the [template for this project](https://github.com/flowscripter/ts-template/blob/master/README.md#overview).
 
 ## Alternatives
 
-There are two popular alternatives available. Both are well documented and feature rich: 
+There are two popular alternatives available. Both are well documented and feature rich and you are encouraged to explore them:
 
-* [oclif](https://oclif.io) 
+* [oclif](https://oclif.io)
 * [Gluegun](https://infinitered.github.io/gluegun)
 
-The core functionality of a CLI framework boils down to:
- 
-1. **a plugin mechanism**: Neither of the above alternatives provided a dynamic, abstracted plugin import mechanism 
-based on ES2015 modules:  
+The essence of a CLI framework implementation consists of:
+
+1. **A plugin mechanism**: Neither of the above alternatives provided a dynamic, abstracted plugin import mechanism
+based on ES2015 modules:
     * `oclif` relies on available plugins being declared in `package.json`.
     * `Gluegun` supports dynamic loading of plugins based on a required folder structure.
-1. **parsing input/printing output**: to achieve this functionality, both of the above alternatives 
+1. **Parsing input/printing output**: to achieve this functionality, both of the above alternatives
 rely heavily on other CLI support packages under the hood e.g. [yargs-parser](https://github.com/yargs/yargs-parser) or
 [colors.js](https://github.com/Marak/colors.js) etc.
 
-    * This makes sense, but both seem to suffer from feature creep as they move towards being a 'product' in their own
-    right and both come with a growing list of dependencies. This project aims for a very lightweight, abstracted service model
-    so that almost all features are optional and customisable. It also aims to keep the core framework clear of 
-    ANY behavioural logic e.g. reading from configs, logging, help etc.   
-    
-    * This project had some pretty specific requirements for argument parsing to accommodate the ideas of global 
-    qualifier commands. [yargs-parser](https://github.com/yargs/yargs-parser) was a bit over-powered and 
-    yet still didn't quite fit the bill, despite some efforts. A lot of time was also spent with
-     [command-line-args](https://github.com/75lb/command-line-args) but the need to hack in support for positional args caused endless pain.    
+    * This is sensible, but both seem to suffer from feature creep as they move towards being a 'product' in their own
+    right and both come with a growing list of dependencies. This project aims for a lightweight, abstracted service model
+    so that almost all features are optional and customisable. It also aims to keep the core runtime clear of
+    ANY behavioural logic e.g. reading from configs, logging, help etc.
+
+    * This project had some pretty specific requirements for argument parsing to accommodate the ideas of global
+    modifier commands. [yargs-parser](https://github.com/yargs/yargs-parser) was a bit over-powered and
+    yet still didn't quite fit the bill, despite some serious trials. A lot of time was also spent with
+    [command-line-args](https://github.com/75lb/command-line-args) but the need to hack in support for positional
+    args caused endless pain.
 
 Additional reasons for the existence of this project include:
- 
-* despite the wonders of transpilers and bundlers, both alternatives mentioned above proved quite hard to get
+
+* Despite the wonders of transpilers and bundlers, both alternatives mentioned above proved quite hard to get
  working in a native ES2015 application.
-* there was no native ES2015 CLI framework - until now
+* There was no native ES2015 CLI framework - until now...
 
 ## License
 

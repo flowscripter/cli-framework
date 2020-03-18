@@ -2,13 +2,16 @@
  * @module @flowscripter/cli-framework
  */
 
+// eslint-disable-next-line max-classes-per-file
 import _ from 'lodash';
 import { Writable } from 'stream';
 import chalk from 'chalk';
 import ora from 'ora';
 import Service from '../../api/Service';
+import Context from '../../api/Context';
 
-export const PRINTER_SERVICE = '@flowscripter/cli-framework/printer-service';
+export const STDOUT_PRINTER_SERVICE = '@flowscripter/cli-framework/printer-service#stdout';
+export const STDERR_PRINTER_SERVICE = '@flowscripter/cli-framework/printer-service#stderr';
 
 /**
  * Enum of message importance level
@@ -39,6 +42,16 @@ export default interface Printer {
      * Disable or enable color output for messages
      */
     colorEnabled: boolean;
+
+    /**
+     * The Writable used for output. Can be used for directly outputting binary data etc.
+     */
+    writable: Writable;
+
+    /**
+     * Return the provided message so that it appears bold when printed.
+     */
+    bold(message: string): string;
 
     /**
      * Print a [[DEBUG]] level message.
@@ -121,20 +134,32 @@ const icons = {
 };
 
 /**
- * Core implementation of [[Printer]] exposed as a [[Service]].
+ * Abstract implementation of [[Printer]] exposed as a [[Service]].
  */
-export class PrinterService implements Service, Printer {
-
-    readonly id = PRINTER_SERVICE;
+abstract class PrinterService implements Service, Printer {
 
     private threshold = levels[Level.INFO];
 
     private spinner: ora.Ora = ora();
 
-    private readonly writable: Writable;
+    readonly writable: Writable;
 
-    public constructor(writable: Writable) {
+    readonly id: string;
+
+    readonly initPriority: number;
+
+    /**
+     * Create a [[Printer]] service for using the provided Writable and
+     * registering with the provided [[Service]] ID.
+     *
+     * @param writable the Writable to use for output.
+     * @param id the ID to use for service registration.
+     * @param initPriority to determine the relative order in which multiple [[Service]] instances are initialised.
+     */
+    protected constructor(writable: Writable, id: string, initPriority: number) {
         this.writable = writable;
+        this.id = id;
+        this.initPriority = initPriority;
     }
 
     private log(level: number, message: string, icon?: Icon): void {
@@ -154,9 +179,33 @@ export class PrinterService implements Service, Printer {
     set colorEnabled(enabled: boolean) {
         if (enabled) {
             chalk.level = chalk.Level.Ansi256;
+            icons[Icon.SUCCESS] = green('✔');
+            icons[Icon.FAILURE] = red('ⅹ');
+            icons[Icon.ALERT] = orange('⚠');
+            icons[Icon.INFORMATION] = blue('ℹ');
         } else {
             chalk.level = chalk.Level.None;
+            icons[Icon.SUCCESS] = '✔';
+            icons[Icon.FAILURE] = 'ⅹ';
+            icons[Icon.ALERT] = '⚠';
+            icons[Icon.INFORMATION] = 'ℹ';
         }
+    }
+
+    /**
+     * @inheritdoc
+     */
+    // eslint-disable-next-line class-methods-use-this
+    get colorEnabled(): boolean {
+        return chalk.level !== chalk.Level.None;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    // eslint-disable-next-line class-methods-use-this
+    public bold(message: string): string {
+        return chalk.bold(message);
     }
 
     /**
@@ -222,8 +271,8 @@ export class PrinterService implements Service, Printer {
      * * *colorEnabled: boolean | string*
      * * *level: Level | string*
      */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public init(config?: any): void {
+    public init(context: Context): void {
+        const config = context.serviceConfigs.get(this.id);
         if (_.isEmpty(config)) {
             return;
         }
@@ -240,5 +289,37 @@ export class PrinterService implements Service, Printer {
                 this.threshold = level;
             }
         }
+    }
+}
+
+/**
+ * Concrete stdout implementation of [[Printer]] exposed as a [[Service]].
+ */
+export class StdoutPrinterService extends PrinterService {
+
+    /**
+     * Create a [[Printer]] service for stdout
+     *
+     * @param stdoutWritable the Writable to use for stdout output
+     * @param initPriority to determine the relative order in which multiple [[Service]] instances are initialised.
+     */
+    public constructor(stdoutWritable: Writable, initPriority: number) {
+        super(stdoutWritable, STDOUT_PRINTER_SERVICE, initPriority);
+    }
+}
+
+/**
+ * Concrete stderr implementation of [[Printer]] exposed as a [[Service]].
+ */
+export class StderrPrinterService extends PrinterService {
+
+    /**
+     * Create a [[Printer]] service for stderr
+     *
+     * @param stderrWritable the Writable to use for stderr output
+     * @param initPriority to determine the relative order in which multiple [[Service]] instances are initialised.
+     */
+    public constructor(stderrWritable: Writable, initPriority: number) {
+        super(stderrWritable, STDERR_PRINTER_SERVICE, initPriority);
     }
 }

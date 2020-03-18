@@ -1,0 +1,107 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import _ from 'lodash';
+import * as os from 'os';
+import * as yaml from 'js-yaml';
+import mockFs from 'mock-fs';
+import ConfigCommand from '../../../src/core/command/ConfigCommand';
+import { StderrPrinterService } from '../../../src/core/service/PrinterService';
+import DefaultContext from '../../../src/runtime/DefaultContext';
+import { CommandArgs } from '../../../src';
+import { ConfigurationService } from '../../../src/core/service/ConfigurationService';
+
+describe('ConfigCommand test', () => {
+
+    function getConfigMap(): Map<string, any> {
+        const serviceConfigs = new Map<string, any>();
+        serviceConfigs.set('serviceA', { foo: 'bar' });
+
+        const commandConfigs = new Map<string, CommandArgs>();
+        commandConfigs.set('command1', { goo: 'gar' });
+
+        const config = new Map<string, any>();
+        config.set('serviceConfigs', serviceConfigs);
+        config.set('commandConfigs', commandConfigs);
+        return config;
+    }
+
+    function getAssociativeArrayFromMap(map: Map<string, any>): string {
+        const associativeArray: any = {};
+        map.forEach((value, key) => {
+            if (_.isMap(value)) {
+                associativeArray[key] = getAssociativeArrayFromMap(value);
+            } else {
+                associativeArray[key] = value;
+            }
+        });
+        return associativeArray;
+    }
+
+    afterAll(() => {
+        mockFs.restore();
+    });
+
+    test('ConfigCommand is instantiable', () => {
+        expect(new ConfigCommand(100)).toBeInstanceOf(ConfigCommand);
+    });
+
+    test('Error on config file is a directory', async () => {
+
+        mockFs({
+            '/foo.bar': {
+                fileA: 'hello'
+            }
+        });
+
+        const stderrService = new StderrPrinterService(process.stderr, 100);
+        stderrService.colorEnabled = false;
+
+        const context = new DefaultContext({}, [stderrService], [], new Map(), new Map());
+        const configCommand = new ConfigCommand(100);
+
+        await expect(configCommand.run({ config: '/foo.bar' }, context)).rejects.toThrowError();
+    });
+
+    test('Error on config file is not readable', async () => {
+
+        mockFs({
+            '/foo.bar': mockFs.file({
+                content: 'foo',
+                mode: 0o0
+            })
+        });
+
+        const stderrService = new StderrPrinterService(process.stderr, 100);
+        stderrService.colorEnabled = false;
+
+        const context = new DefaultContext({}, [stderrService], [], new Map(), new Map());
+        const configCommand = new ConfigCommand(100);
+
+        await expect(configCommand.run({ config: '/foo.bar' }, context)).rejects.toThrowError();
+    });
+
+    test('Custom config location is set', async () => {
+
+        mockFs({
+            [`${os.homedir()}/.cli.yaml`]:
+                yaml.safeDump({}),
+            '/foo.bar':
+                yaml.safeDump(getAssociativeArrayFromMap(getConfigMap()))
+        });
+
+        const stderrService = new StderrPrinterService(process.stderr, 100);
+        stderrService.colorEnabled = false;
+        const configurationService = new ConfigurationService(100);
+
+        const context = new DefaultContext({ name: 'cli' }, [stderrService, configurationService], [],
+            new Map(), new Map());
+        configurationService.init(context);
+
+        expect(configurationService.getConfig().serviceConfigs.size).toEqual(0);
+
+        const configCommand = new ConfigCommand(100);
+        await configCommand.run({ config: '/foo.bar' }, context);
+
+        expect(configurationService.configurationLocation).toEqual('/foo.bar');
+        expect(configurationService.getConfig().serviceConfigs.size).toEqual(1);
+    });
+});

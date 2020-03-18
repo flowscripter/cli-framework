@@ -2,30 +2,33 @@
  * @module @flowscripter/cli-framework
  */
 
-import Argument from './Argument';
+import SubCommandArgument from './SubCommandArgument';
 
 /**
- * Interface for positional arguments for a [[Command]].
+ * Interface for positional [[SubCommand]] arguments.
  *
- * This will be used for invocation in the form of `executable <command_name> <positional_value>`
+ * This will be used for invocation in the form of `executable <sub_command_name> <positional_value>`
  */
-export default interface Positional extends Argument {
+export default interface Positional extends SubCommandArgument {
 
     /**
-     * If this is `true` the option can be specified multiple times and all values will be returned in an array
-     * matching the order provided.
+     * If this is `true` the argument can specified one or multiple times and all values will be returned in
+     * an array matching the order provided.
      *
-     * Note that if [[Argument.isOptional]] is `false`, at least one entry for the vararg must be specified.
+     * Note that if [[Positional.isVarArgOptional]] is `true`, the argument can specified zero, one or multiple times.
      *
-     * **NOTE**: There must be only one positional with this set and it must appear as the last entry in
-     * [[Command.positionals]]. As an example `executable command --other=1 foo bar`
+     * **NOTE**: There can be only one positional with this set and it must be the last the last item if there
+     * are multiple positionals defined.
      */
-    readonly isVarArg?: boolean;
+    readonly isVarArgMultiple?: boolean;
 
     /**
-     * Should the "varargs" positional be optional.
+     * If this is `true` the argument can be specified zero or once i.e. it does not need to be specified.
      *
-     * **NOTE**: This value is ignored if [[isVarArg]] is `false`.
+     * Note that if [[Positional.isVarArgMultiple]] is `true`, the argument can specified zero, one or multiple times.
+     *
+     * **NOTE**: There can be only one positional with this set and it must be the last the last item if there
+     * are multiple positionals defined.
      */
     readonly isVarArgOptional?: boolean;
 }

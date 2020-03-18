@@ -2,13 +2,15 @@
  * @module @flowscripter/cli-framework
  */
 
+import _ from 'lodash';
 import debug from 'debug';
 import Runner from '../api/Runner';
-import Command, { CommandArgs } from '../api/Command';
 import Context from '../api/Context';
-import Parser, { CommandClause, ParseResult, ScanResult } from './parser/Parser';
-import DefaultParser from './parser/DefaultParser';
+import Parser, { CommandClause, ParseResult, ScanResult } from '../api/Parser';
+import { isGlobalCommand, isGlobalModifierCommand, isSubCommand } from '../api/CommandTypeGuards';
+import Command from '../api/Command';
 import validateCommand from './CommandValidation';
+import GlobalModifierCommand from '../api/GlobalModifierCommand';
 
 /**
  * Default implementation of a [[Runner]].
@@ -19,126 +21,56 @@ export default class DefaultRunner implements Runner {
 
     private readonly parser: Parser;
 
-    private readonly commands: Command[] = [];
-
-    private defaultCommand: Command | undefined;
-
-    private commandsByNamesAndAliases: Map<string, Command> = new Map();
-
-    private optionNamesAndAliases: string[] = [];
+    private nonGlobalCommandsByName: Map<string, Command> = new Map();
 
     /**
-     * Constructor configures the instance using the optionally specified [[Parser]] instance.
+     * Constructor configures the instance using the specified [[Parser]] instance and optional default [[Command]].
      *
-     * @param parser optional [[PluginRepository]] implementation. Defaults to using [[DefaultParser]].
-     * available in the [[Context]] provided when invoking [[run]]
+     * @param parser [[Parser]] implementation.
      */
-    public constructor(parser?: Parser) {
-
-        this.parser = parser || new DefaultParser();
+    public constructor(parser: Parser) {
+        this.parser = parser;
     }
 
     /**
-     * @inheritdoc
+     * Validate specified command against all others validated so far.
      *
-     * @throws *Error* if a [[Command]] is added where:
-     * * the [[Argument]] definitions for the [[Command]] are not valid
-     * * [[Command.name]] or [[Command.aliases]] matches those of an existing command.
-     * * [[Command.isDefault]] is `true` and there is an existing default.
-     * * [[Command.isGlobal]] is `true` and [[Command.name]] or [[Command.aliases]] matches an existing command's
-     * [[Option.name]].
-     * * one of the command's [[Option.name]] matches an existing global [[Command.name]] or [[Command.aliases]]
-     * * [[Command.isGlobal]] is `true` and [[Command.isGlobalQualifier]] is `false` and there is already a similarly
-     * configured command.
+     * @throws *Error* if the [[Command]] is not a [[GlobalCommand]] and its name duplicates an already validated
+     * [[Command]] name.
      */
-    public addCommand(command: Command): void {
+    private validateWithOtherCommands(command: Command): void {
 
-        validateCommand(command);
-
-        // check if isDefault and default already set
-        if (command.isDefault && this.defaultCommand) {
-            throw new Error(`Command: ${command.name} is default and there is already an existing default command: ${
-                this.defaultCommand.name}`);
-        }
-
-        // check for name or alias duplicate
-        if (this.commandsByNamesAndAliases.has(command.name)) {
-            throw new Error(`Command name: ${command.name} duplicates the name or alias of an existing command`);
-        }
-        if (command.aliases) {
-            command.aliases.forEach((alias) => {
-                if (this.commandsByNamesAndAliases.has(alias)) {
-                    throw new Error(`Command alias: ${alias} duplicates the name or alias of an existing command`);
-                }
-            });
-            command.aliases.forEach((alias) => this.commandsByNamesAndAliases.set(alias, command));
-        }
-
-        // check if global/qualifier command name or aliases duplicates existing option name or shortAlias
-        if (command.isGlobal) {
-            let duplicate = false;
-
-            if (command.aliases) {
-                command.aliases.forEach((alias) => {
-                    if (this.optionNamesAndAliases.includes(alias)) {
-                        duplicate = true;
-                    }
-                });
-            }
-            if (duplicate || this.optionNamesAndAliases.includes(command.name)) {
-                throw new Error(`Global or global qualifier command name: ${command.name
-                } or aliases duplicates the name or alias of an existing command's options name or short alias`);
+        // check for non-global command name duplicate
+        if (!isGlobalCommand(command)) {
+            if (this.nonGlobalCommandsByName.has(command.name)) {
+                throw new Error(`Command name: ${command.name} duplicates the name of an existing command`);
             }
         }
-        this.commands.push(command);
 
-        // retain reference to default command
-        if (command.isDefault) {
-            this.defaultCommand = command;
-        }
-
-        // store command by name and aliases for future validation against new commands
-        this.commandsByNamesAndAliases.set(command.name, command);
-        if (command.aliases) {
-            command.aliases.forEach((alias) => this.commandsByNamesAndAliases.set(alias, command));
-        }
-
-        // store option names and aliases for future validation against new commands
-        if (command.options) {
-            command.options.forEach((option) => {
-                this.optionNamesAndAliases.push(option.name);
-                if (option.shortAlias) {
-                    this.optionNamesAndAliases.push(option.shortAlias);
-                }
-            });
-        }
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private getConfigForCommand(commandName: string, context: Context): CommandArgs | undefined {
-        const config = context.commandConfigs.get(commandName);
-        if (config) {
-            this.log(`Found config: ${JSON.stringify(config)} for command: ${commandName}`);
-        } else {
-            this.log(`No config found for command: ${commandName}`);
-        }
-        return config;
+        // store command by name for future validation against new commands
+        this.nonGlobalCommandsByName.set(command.name, command);
     }
 
     /**
-     * Attempt to discover and parse a non-global [[Command]] clause
+     * Attempt to successfully parse a non-modifier [[Command]] clause from the potential
+     * non-modifier and default clauses provided.
      *
-     * @throws *Error* if:
-     * * there is a parsing error
+     * @param nonModifierClauses potential non-modifier [[CommandClause]] instances.
+     * @param potentialDefaultClauses potential default [[CommandClause]] instances.
+     * @param overallUnusedArgs current list of unused args. This will be appended to during this parsing operation.
+     * @param context the [[Context]] for the CLI invocation.
+     * @param defaultCommand optional [[Command]] implementation.
+     * @return a [[ParseResult]] for a successfully parsed [[CommandClause]], a *string* if a parse error occurred
+     * or *undefined* if no clause was parsed.
+     * @throws *Error* if there is a parsing error
      */
-    private getNonGlobalParseResult(nonQualifierClauses: CommandClause[],
-        potentialDefaultClauses: CommandClause[], overallUnusedArgs: string[], context: Context):
-        ParseResult | undefined {
+    private getNonModifierParseResult(nonModifierClauses: CommandClause[], potentialDefaultClauses: CommandClause[],
+        overallUnusedArgs: string[], context: Context, defaultCommand?: Command): ParseResult | string | undefined {
 
         let parseResult;
 
-        // look for a default if we don't have a non-qualifier command
-        if (nonQualifierClauses.length === 0) {
+        // look for a default if we don't have a non-modifier command
+        if (nonModifierClauses.length === 0) {
             this.log('No command specified, looking for a potential default in potential clauses');
             for (let i = 0; i < potentialDefaultClauses.length; i += 1) {
                 const potentialCommandClause = potentialDefaultClauses[i];
@@ -146,8 +78,9 @@ export default class DefaultRunner implements Runner {
                 if (parseResult) {
                     overallUnusedArgs.push(...potentialCommandClause.potentialArgs);
                 } else {
-                    const config = this.getConfigForCommand(potentialCommandClause.command.name, context);
+                    const config = context.commandConfigs.get(potentialCommandClause.command.name);
                     const potentialDefaultParseResult = this.parser.parseCommandClause(potentialCommandClause, config);
+
                     // ignore if there are parse errors
                     if (potentialDefaultParseResult.invalidArgs.length > 0) {
                         overallUnusedArgs.push(...potentialCommandClause.potentialArgs);
@@ -156,15 +89,16 @@ export default class DefaultRunner implements Runner {
                     }
                 }
             }
-            if (this.defaultCommand) {
+            if (defaultCommand) {
                 this.log('No default command discovered, attempting to parse with config only');
                 if (parseResult === undefined) {
                     const potentialCommandClause: CommandClause = {
-                        command: this.defaultCommand,
+                        command: defaultCommand,
                         potentialArgs: []
                     };
-                    const config = this.getConfigForCommand(potentialCommandClause.command.name, context);
+                    const config = context.commandConfigs.get(potentialCommandClause.command.name);
                     const potentialDefaultParseResult = this.parser.parseCommandClause(potentialCommandClause, config);
+
                     // ignore if there are parse errors
                     if (potentialDefaultParseResult.invalidArgs.length > 0) {
                         overallUnusedArgs.push(...potentialCommandClause.potentialArgs);
@@ -174,13 +108,14 @@ export default class DefaultRunner implements Runner {
                 }
             }
         } else {
-            const commandClause = nonQualifierClauses[0];
-            const config = this.getConfigForCommand(commandClause.command.name, context);
+            const commandClause = nonModifierClauses[0];
+            const config = context.commandConfigs.get(commandClause.command.name);
             parseResult = this.parser.parseCommandClause(commandClause, config);
+
             // fail on a parse error
             if (parseResult.invalidArgs.length > 0) {
-                throw new Error(`There were parsing errors for command: ${parseResult.command.name} `
-                    + `and args: ${parseResult.invalidArgs.map((arg) => arg.name).join(', ')}`);
+                return `There were parsing errors for command: ${parseResult.command.name} `
+                    + `and args: ${parseResult.invalidArgs.map((arg) => arg.name).join(', ')}`;
             }
             overallUnusedArgs.push(...parseResult.unusedArgs);
         }
@@ -191,121 +126,163 @@ export default class DefaultRunner implements Runner {
      * @inheritdoc
      *
      * @throws *Error* if:
-     * * more than one [[Command]] is specified
-     * * no [[Command]] is specified and no default is specified or parsed
-     * * there is a parsing error
-     * * there are unused arguments
+     *
+     * * the provided [[Command]] instances are not valid
+     * * a default command is specified and it is not a [[SubCommand]] or [[GlobalCommand]]
+     * * there is an error caused by the CLI framework implementation
      */
-    public async run(args: string[], context: Context): Promise<void> {
+    public async run(args: string[], context: Context, commands: Command[], defaultCommand?: Command):
+        Promise<string | undefined> {
 
-        // setup parser
-        this.parser.setCommands(this.commands);
+        if (defaultCommand && !isGlobalCommand(defaultCommand) && !isSubCommand(defaultCommand)) {
+            throw new Error(`Default command: ${defaultCommand.name} is not a global command or sub-command`);
+        }
+
+        let failureMessage;
+
+        // validate each command itself and against each other
+        this.nonGlobalCommandsByName = new Map<string, Command>();
+
+        commands.forEach((command) => {
+            validateCommand(command);
+            this.validateWithOtherCommands(command);
+        });
+
+        // validate default command if specified
+        if (defaultCommand) {
+            validateCommand(defaultCommand);
+        }
+
+        // provide the commands to the parser
+        this.parser.setCommands(commands);
 
         // scan for command clauses
         const scanResult: ScanResult = this.parser.scanForCommandClauses(args);
 
         this.log(`clauses: ${scanResult.commandClauses.length}, unused args: ${scanResult.unusedLeadingArgs}`);
 
-        // extracted clauses
-        const qualifierClauses: CommandClause[] = [];
-        const nonQualifierClauses: CommandClause[] = [];
-        const potentialDefaultClauses: CommandClause[] = [];
+        // categorise the clauses
+        const modifierClauses: CommandClause[] = [];
+        const nonModifierClauses: CommandClause[] = [];
 
         scanResult.commandClauses.forEach((commandClause) => {
-            if (commandClause.command.isGlobal && commandClause.command.isGlobalQualifier) {
-                qualifierClauses.push(commandClause);
+            if (isGlobalCommand(commandClause.command)) {
+                commandClause.potentialArgs.unshift(`--${commandClause.command.name}`);
+                nonModifierClauses.push(commandClause);
+            } else if (isGlobalModifierCommand(commandClause.command)) {
+                commandClause.potentialArgs.unshift(`--${commandClause.command.name}`);
+                modifierClauses.push(commandClause);
             } else {
-                nonQualifierClauses.push(commandClause);
+                nonModifierClauses.push(commandClause);
             }
         });
 
-        // check now for more than one non-qualifier command
-        if (nonQualifierClauses.length > 1) {
-            throw new Error('More than one command specified!');
+        // check if more than one non-modifier command has been specified
+        if (nonModifierClauses.length > 1) {
+            return 'More than one command specified: '
+                + `${nonModifierClauses.map((clause) => clause.command.name).join(', ')}`;
         }
+
+        // sort the global modifier clauses in order of run priority
+        modifierClauses.sort((a, b): number => {
+            const commandA = a.command as GlobalModifierCommand;
+            const commandB = b.command as GlobalModifierCommand;
+            return (commandA.runPriority < commandB.runPriority) ? 1 : -1;
+        });
 
         // store an overall list of unused args
         const overallUnusedArgs: string[] = [];
 
-        // if no command found yet, and a default is specified, store as potential default clause
-        if ((nonQualifierClauses.length === 0) && (this.defaultCommand) && (scanResult.unusedLeadingArgs.length > 0)) {
+        // if no command found yet, and a default is specified, create a potential default clause using args
+        // which weren't used in clauses so far
+        const potentialDefaultClauses: CommandClause[] = [];
+        if (defaultCommand) {
             potentialDefaultClauses.push({
-                command: this.defaultCommand,
+                command: defaultCommand,
                 potentialArgs: scanResult.unusedLeadingArgs
             });
         } else {
             overallUnusedArgs.push(...scanResult.unusedLeadingArgs);
         }
 
-        // parse global qualifiers args
-        const parseResults: ParseResult[] = [];
-        for (let i = 0; i < qualifierClauses.length; i += 1) {
+        // parse global modifiers args
+        for (let i = 0; i < modifierClauses.length; i += 1) {
 
-            const currentClause = qualifierClauses[i];
-            const commandName = currentClause.command.name;
-            const config = this.getConfigForCommand(commandName, context);
-            const parseResult = this.parser.parseCommandClause(currentClause, config);
+            const modifierClause = modifierClauses[i];
+
+            // get config for command in current clause and use when parsing clause
+            const config = context.commandConfigs.get(modifierClause.command.name);
+            const parseResult = this.parser.parseCommandClause(modifierClause, config);
 
             // fast fail on a parse error
             if (parseResult.invalidArgs.length > 0) {
-                throw new Error(`Parse error for global qualifier command: ${parseResult.command.name} and args: `
-                    + `${parseResult.invalidArgs.map((arg) => arg.name).join(', ')}`);
+                return `Parse error for global modifier command: ${parseResult.command.name} and args: `
+                    + `${parseResult.invalidArgs.map((arg) => arg.name).join(', ')}`;
             }
             const { unusedArgs } = parseResult;
 
             // if no command found yet, and a default is specified, store as potential default clause
-            if ((nonQualifierClauses.length === 0) && (this.defaultCommand) && (unusedArgs.length > 0)) {
+            if ((nonModifierClauses.length === 0) && defaultCommand) {
                 potentialDefaultClauses.push({
-                    command: this.defaultCommand,
+                    command: defaultCommand,
                     potentialArgs: unusedArgs
                 });
             } else {
                 overallUnusedArgs.push(...unusedArgs);
             }
 
-            parseResults.push(parseResult);
+            // run the successfully parsed global modifier
+            const { command, commandArgs } = parseResult;
+            const message = `global modifier command: ${command.name} with args: `
+                + `${Object.keys(commandArgs).map((arg) => `${arg}=${commandArgs[arg]}`).join(', ')}`;
+            this.log(`Running ${message}`);
+            try {
+                // eslint-disable-next-line no-await-in-loop
+                await command.run(commandArgs, context);
+            } catch (err) {
+                return `Error running ${message}: ${err.message}`;
+            }
         }
 
-        const parseResult = this.getNonGlobalParseResult(nonQualifierClauses, potentialDefaultClauses,
-            overallUnusedArgs, context);
+        // perform final determination of non-modifier clause to run
+        const parseResult = this.getNonModifierParseResult(nonModifierClauses, potentialDefaultClauses,
+            overallUnusedArgs, context, defaultCommand);
 
         if (!parseResult) {
-            throw new Error('No command specified and no default discovered!');
+            return 'No command specified and no default discovered!';
         }
-
+        if (_.isString(parseResult)) {
+            return parseResult;
+        }
         if (parseResult.invalidArgs.length > 0) {
-            throw new Error(`Parse error for command: ${parseResult.command.name} and args: `
-                + `${parseResult.invalidArgs.map((arg) => arg.name).join(', ')}`);
+            return `Parse error for command: ${parseResult.command.name} and args: `
+                + `${parseResult.invalidArgs.map((arg) => arg.name).join(', ')}`;
         }
 
         // error on unused args
+        overallUnusedArgs.push(...parseResult.unusedArgs);
         if (overallUnusedArgs.length > 0) {
-            throw new Error(`Unused args: ${overallUnusedArgs.join(' ')}`);
+            return `Unused args: ${overallUnusedArgs.join(' ')}`;
         }
 
-        // run the global qualifiers
-        const promises: Promise<void>[] = [];
+        const { groupCommand, command, commandArgs } = parseResult;
 
-        parseResults.forEach((currentParseResult) => {
-            const { command, commandArgs } = currentParseResult;
-            const message = `global qualifier command: ${command.name} with args: `
+        let message;
+        try {
+            if (groupCommand) {
+                message = `command: ${groupCommand.name}`;
+                this.log(`Running ${message}`);
+                await groupCommand.run({}, context);
+            }
+            message = `command: ${command.name} with args: `
                 + `${Object.keys(commandArgs).map((arg) => `${arg}=${commandArgs[arg]}`).join(', ')}`;
             this.log(`Running ${message}`);
-            promises.push(command.run(commandArgs, context).catch((err) => {
-                throw new Error(`Error running ${message}: ${err.message}`);
-            }));
-        });
-        await Promise.all(promises);
-
-        const { command, commandArgs } = parseResult;
-
-        const message = `command: ${command.name} with args: `
-                + `${Object.keys(commandArgs).map((arg) => `${arg}=${commandArgs[arg]}`).join(', ')}`;
-        this.log(`Running ${message}`);
-        try {
             await command.run(commandArgs, context);
         } catch (err) {
-            throw new Error(`Error running ${message}: ${err.message}`);
+            failureMessage = `Error running ${message}: ${err.message}`;
+            this.log(failureMessage);
         }
+
+        return failureMessage;
     }
 }

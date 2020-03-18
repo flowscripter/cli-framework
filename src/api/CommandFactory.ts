@@ -5,7 +5,7 @@
 import Command from './Command';
 
 /**
- * Interface to be implemented by a [[CommandFactory]] allowing a [[CLI]] to load [[Command]] implementations.
+ * Interface used by a [[CLI]] to load [[Command]] implementations.
  */
 export default interface CommandFactory {
 
