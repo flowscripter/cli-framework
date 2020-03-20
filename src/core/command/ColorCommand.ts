@@ -6,11 +6,11 @@ import GlobalModifierCommand from '../../api/GlobalModifierCommand';
 /**
  * @module @flowscripter/cli-framework
  */
-export default class NoColorCommand implements GlobalModifierCommand {
+export default class ColorCommand implements GlobalModifierCommand {
 
-    readonly name = 'nocolor';
+    readonly name = 'color';
 
-    readonly description = 'Force disable colour output';
+    readonly description = 'Force enable colour output';
 
     readonly runPriority: number;
 
@@ -24,7 +24,7 @@ export default class NoColorCommand implements GlobalModifierCommand {
     /**
      * @inheritdoc
      *
-     * Disables color output. Expects implementations of [[Printer]] registered with the [[STDOUT_PRINTER_SERVICE]] and
+     * Enables color output. Expects implementations of [[Printer]] registered with the [[STDOUT_PRINTER_SERVICE]] and
      * [[STDERR_PRINTER_SERVICE]] IDs in the provided [[Context]].
      */
     // eslint-disable-next-line class-methods-use-this
@@ -38,7 +38,7 @@ export default class NoColorCommand implements GlobalModifierCommand {
             throw new Error('STDERR_PRINTER_SERVICE not available in context');
         }
 
-        stdoutPrinter.colorEnabled = false;
-        stderrPrinter.colorEnabled = false;
+        stdoutPrinter.colorEnabled = true;
+        stderrPrinter.colorEnabled = true;
     }
 }

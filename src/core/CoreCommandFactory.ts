@@ -5,6 +5,8 @@
 import CommandFactory from '../api/CommandFactory';
 import Command from '../api/Command';
 import VersionCommand from './command/VersionCommand';
+import NoColorCommand from './command/NoColorCommand';
+import ColorCommand from './command/ColorCommand';
 import UsageCommand from './command/UsageCommand';
 import { HelpGlobalCommand, HelpSubCommand } from './command/HelpCommand';
 import LogLevelCommand from './command/LogLevelCommand';
@@ -46,7 +48,9 @@ export default class CoreCommandFactory implements CommandFactory {
             this.helpGlobalCommand,
             this.usageCommand,
             new LogLevelCommand(100),
-            new ConfigCommand(90)
+            new ConfigCommand(90),
+            new NoColorCommand(80),
+            new ColorCommand(70)
         ];
     }
 }
