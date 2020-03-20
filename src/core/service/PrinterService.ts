@@ -5,9 +5,7 @@
 // eslint-disable-next-line max-classes-per-file
 import _ from 'lodash';
 import { Writable } from 'stream';
-import kleur, {
-    green, red, blue, grey, bold, yellow
-} from 'kleur';
+import kleur from 'kleur';
 import ora from 'ora';
 import Service from '../../api/Service';
 import Context from '../../api/Context';
@@ -123,10 +121,10 @@ const levels = {
 };
 
 const icons = {
-    [Icon.SUCCESS]: green('✔'),
-    [Icon.FAILURE]: red('ⅹ'),
-    [Icon.ALERT]: yellow('⚠'),
-    [Icon.INFORMATION]: blue('ℹ')
+    [Icon.SUCCESS]: kleur.green('✔'),
+    [Icon.FAILURE]: kleur.red('ⅹ'),
+    [Icon.ALERT]: kleur.yellow('⚠'),
+    [Icon.INFORMATION]: kleur.blue('ℹ')
 };
 
 /**
@@ -174,10 +172,10 @@ abstract class PrinterService implements Service, Printer {
     set colorEnabled(enabled: boolean) {
         kleur.enabled = enabled;
         if (enabled) {
-            icons[Icon.SUCCESS] = green('✔');
-            icons[Icon.FAILURE] = red('ⅹ');
-            icons[Icon.ALERT] = yellow('⚠');
-            icons[Icon.INFORMATION] = blue('ℹ');
+            icons[Icon.SUCCESS] = kleur.green('✔');
+            icons[Icon.FAILURE] = kleur.red('ⅹ');
+            icons[Icon.ALERT] = kleur.yellow('⚠');
+            icons[Icon.INFORMATION] = kleur.blue('ℹ');
         } else {
             icons[Icon.SUCCESS] = '✔';
             icons[Icon.FAILURE] = 'ⅹ';
@@ -199,14 +197,14 @@ abstract class PrinterService implements Service, Printer {
      */
     // eslint-disable-next-line class-methods-use-this
     public bold(message: string): string {
-        return bold(message);
+        return kleur.bold(message);
     }
 
     /**
      * @inheritdoc
      */
     public debug(message: string, icon?: Icon): void {
-        this.log(levels[Level.DEBUG], grey(message), icon);
+        this.log(levels[Level.DEBUG], kleur.grey(message), icon);
     }
 
     /**
@@ -220,14 +218,14 @@ abstract class PrinterService implements Service, Printer {
      * @inheritdoc
      */
     public warn(message: string, icon?: Icon): void {
-        this.log(levels[Level.WARN], yellow(message), icon);
+        this.log(levels[Level.WARN], kleur.yellow(message), icon);
     }
 
     /**
      * @inheritdoc
      */
     public error(message: string, icon?: Icon): void {
-        this.log(levels[Level.ERROR], red(message), icon);
+        this.log(levels[Level.ERROR], kleur.red(message), icon);
     }
 
     /**
