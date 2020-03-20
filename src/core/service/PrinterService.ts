@@ -5,7 +5,9 @@
 // eslint-disable-next-line max-classes-per-file
 import _ from 'lodash';
 import { Writable } from 'stream';
-import chalk from 'chalk';
+import kleur, {
+    green, red, blue, grey, bold, yellow
+} from 'kleur';
 import ora from 'ora';
 import Service from '../../api/Service';
 import Context from '../../api/Context';
@@ -113,12 +115,6 @@ export default interface Printer {
     setLevel(level: Level): void;
 }
 
-const green = chalk.keyword('green');
-const grey = chalk.keyword('grey');
-const blue = chalk.keyword('blue');
-const orange = chalk.keyword('orange');
-const red = chalk.keyword('red');
-
 const levels = {
     [Level.DEBUG]: 0,
     [Level.INFO]: 1,
@@ -129,7 +125,7 @@ const levels = {
 const icons = {
     [Icon.SUCCESS]: green('✔'),
     [Icon.FAILURE]: red('ⅹ'),
-    [Icon.ALERT]: orange('⚠'),
+    [Icon.ALERT]: yellow('⚠'),
     [Icon.INFORMATION]: blue('ℹ')
 };
 
@@ -149,8 +145,7 @@ abstract class PrinterService implements Service, Printer {
     readonly initPriority: number;
 
     /**
-     * Create a [[Printer]] service for using the provided Writable and
-     * registering with the provided [[Service]] ID.
+     * Create a [[Printer]] service using the provided Writable and registering with the provided [[Service]] ID.
      *
      * @param writable the Writable to use for output.
      * @param id the ID to use for service registration.
@@ -177,14 +172,13 @@ abstract class PrinterService implements Service, Printer {
      */
     // eslint-disable-next-line class-methods-use-this
     set colorEnabled(enabled: boolean) {
+        kleur.enabled = enabled;
         if (enabled) {
-            chalk.level = chalk.Level.Ansi256;
             icons[Icon.SUCCESS] = green('✔');
             icons[Icon.FAILURE] = red('ⅹ');
-            icons[Icon.ALERT] = orange('⚠');
+            icons[Icon.ALERT] = yellow('⚠');
             icons[Icon.INFORMATION] = blue('ℹ');
         } else {
-            chalk.level = chalk.Level.None;
             icons[Icon.SUCCESS] = '✔';
             icons[Icon.FAILURE] = 'ⅹ';
             icons[Icon.ALERT] = '⚠';
@@ -197,7 +191,7 @@ abstract class PrinterService implements Service, Printer {
      */
     // eslint-disable-next-line class-methods-use-this
     get colorEnabled(): boolean {
-        return chalk.level !== chalk.Level.None;
+        return kleur.enabled;
     }
 
     /**
@@ -205,7 +199,7 @@ abstract class PrinterService implements Service, Printer {
      */
     // eslint-disable-next-line class-methods-use-this
     public bold(message: string): string {
-        return chalk.bold(message);
+        return bold(message);
     }
 
     /**
@@ -226,7 +220,7 @@ abstract class PrinterService implements Service, Printer {
      * @inheritdoc
      */
     public warn(message: string, icon?: Icon): void {
-        this.log(levels[Level.WARN], orange(message), icon);
+        this.log(levels[Level.WARN], yellow(message), icon);
     }
 
     /**

@@ -331,7 +331,7 @@ Two printer services are registered in the context under the IDs:
 * `STDOUT_PRINTER_SERVICE`
 * `STDERR_PRINTER_SERVICE`
 
-Both of these provide the ability to:
+Both of these provide the ability for commands to:
 
 * output text at debug, info, warn and error levels together with a threshold filter
 * add optional success, failure, alert or information icons
@@ -339,7 +339,10 @@ Both of these provide the ability to:
 * show and hide a spinner
 
 ###### Prompter Service
-TODO
+The prompter service is registered in the context under the ID `PROMPTER_SERVICE`.
+
+This provides the ability for commands to prompt for user input of a number, boolean, string, password or to select
+from a list of choices.
 
 ###### Configuration Service
 The configuration service is registered in the context under the ID `CONFIGURATION_SERVICE`.
@@ -360,10 +363,10 @@ The `LogLevel` command overrides the default level threshold (`INFO`) of the pri
 **NOTE**: This requires two `Printer` services in the context registered with the IDs `STDOUT_PRINTER_SERVICE` and
 `STDERR_PRINTER_SERVICE`.
 
-###### No Colour Command
-The `NoColor` command overrides the auto-detected colour state of the printer services.
+###### No Color and Color Commands
+The `NoColor` and `Color` commands override the auto-detected colour state of the printer services.
 
-**NOTE**: This requires two `Printer` services in the context registered with the IDs `STDOUT_PRINTER_SERVICE` and
+**NOTE**: These require two `Printer` services in the context registered with the IDs `STDOUT_PRINTER_SERVICE` and
 `STDERR_PRINTER_SERVICE`.
 
 ###### Config Command

@@ -51,6 +51,8 @@ export default class BaseCLI implements CLI {
      * implementations.
      * * `version` a string value for the CLI version which will be provided to a [[Version]] [[Command]]
      * implementation.
+     * * *stdin* a Readable stream which will be provided to a [[Prompter]] [[Service]]
+     * implementation.
      * * *stdout* a Writable stream which will be provided to a stdout [[Printer]] [[Service]]
      * implementation.
      * * *stderr* a Writable stream which will be provided to a stderr [[Printer]] [[Service]]
@@ -73,11 +75,14 @@ export default class BaseCLI implements CLI {
         if (_.isUndefined(cliConfig.version) || !_.isString(cliConfig.version)) {
             throw new Error('Provided cliConfig is missing property: "version: string"');
         }
+        if (_.isUndefined(cliConfig.stdin) || !_.isFunction(cliConfig.stdin.read)) {
+            throw new Error('Provided cliConfig is missing property: "stdin: Readable"');
+        }
         if (_.isUndefined(cliConfig.stdout) || !_.isFunction(cliConfig.stdout.write)) {
-            throw new Error('Provided cliConfig is missing property: "stdout: writable"');
+            throw new Error('Provided cliConfig is missing property: "stdout: Writable"');
         }
         if (_.isUndefined(cliConfig.stderr) || !_.isFunction(cliConfig.stderr.write)) {
-            throw new Error('Provided cliConfig is missing property: "stderr: writable"');
+            throw new Error('Provided cliConfig is missing property: "stderr: Writable"');
         }
         if (!_.isUndefined(cliConfig.serviceConfigs) && !_.isMap(cliConfig.serviceConfigs)) {
             throw new Error('cliConfig.commandConfigs should be a Map');
@@ -88,7 +93,7 @@ export default class BaseCLI implements CLI {
 
         this.cliConfig = cliConfig;
 
-        this.coreServiceFactory = new CoreServiceFactory(cliConfig.stdout, cliConfig.stderr);
+        this.coreServiceFactory = new CoreServiceFactory(cliConfig.stdin, cliConfig.stdout, cliConfig.stderr);
         this.coreCommandFactory = new CoreCommandFactory(cliConfig.name, cliConfig.description, cliConfig.version);
 
         this.addServiceFactory(this.coreServiceFactory);

@@ -2,7 +2,7 @@
  * @module @flowscripter/cli-framework
  */
 
-import { Writable } from 'stream';
+import { Readable, Writable } from 'stream';
 import ServiceFactory from '../api/ServiceFactory';
 import Service from '../api/Service';
 import { StdoutPrinterService, StderrPrinterService } from './service/PrinterService';
@@ -14,6 +14,8 @@ import { ConfigurationService } from './service/ConfigurationService';
  */
 export default class CoreServiceFactory implements ServiceFactory {
 
+    private readonly readable: Readable;
+
     private readonly stdoutWritable: Writable;
 
     private readonly stderrWritable: Writable;
@@ -21,10 +23,12 @@ export default class CoreServiceFactory implements ServiceFactory {
     public readonly stderrPrinterService: StderrPrinterService;
 
     /**
-     * @param stdoutWritable a writable provided to the [[StdoutPrinterService]] implementation
-     * @param stderrWritable a writable provided to the [[StderrPrinterService]] implementation
+     * @param readable a Readable provided to the [[PrompterService]] implementation
+     * @param stdoutWritable a Writable provided to the [[StdoutPrinterService]] implementation
+     * @param stderrWritable a Writable provided to the [[StderrPrinterService]] implementation
      */
-    public constructor(stdoutWritable: Writable, stderrWritable: Writable) {
+    public constructor(readable: Readable, stdoutWritable: Writable, stderrWritable: Writable) {
+        this.readable = readable;
         this.stdoutWritable = stdoutWritable;
         this.stderrWritable = stderrWritable;
         this.stderrPrinterService = new StderrPrinterService(this.stderrWritable, 80);
@@ -37,7 +41,7 @@ export default class CoreServiceFactory implements ServiceFactory {
         return [
             new StdoutPrinterService(this.stdoutWritable, 80),
             this.stderrPrinterService,
-            new PrompterService(70),
+            new PrompterService(this.readable, this.stdoutWritable, 70),
             new ConfigurationService(90)
         ];
     }
