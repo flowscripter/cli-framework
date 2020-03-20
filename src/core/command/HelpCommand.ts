@@ -230,6 +230,7 @@ class CommonHelpCommand {
         return levenCommandArray
             .sort((a, b) => b[0] - a[0])
             .slice(0, 2)
+            .filter((value) => value[0] < 3)
             .map((value) => value[1]);
     }
 
