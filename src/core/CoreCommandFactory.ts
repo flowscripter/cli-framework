@@ -5,8 +5,7 @@
 import CommandFactory from '../api/CommandFactory';
 import Command from '../api/Command';
 import VersionCommand from './command/VersionCommand';
-import NoColorCommand from './command/NoColorCommand';
-import ColorCommand from './command/ColorCommand';
+import { ColorCommand, NoColorCommand } from './command/ColorCommand';
 import UsageCommand from './command/UsageCommand';
 import { HelpGlobalCommand, HelpSubCommand } from './command/HelpCommand';
 import LogLevelCommand from './command/LogLevelCommand';
