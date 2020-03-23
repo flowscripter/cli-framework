@@ -97,4 +97,18 @@ describe('HelpCommand test', () => {
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('make it foo bar'));
         expect(mockStdout).toHaveBeenCalledWith(expect.not.stringContaining('Usage:'));
     });
+
+    test('HelpSubCommand with mistyped command specified proposes matches', async () => {
+        const help = new HelpSubCommand('foo', 'make it foo bar', '1.2.3');
+        const commandA = new SubCommandA();
+        const stdoutService = new StdoutPrinterService(process.stdout, 100);
+        stdoutService.colorEnabled = false;
+        const context = new DefaultContext({}, [stdoutService], [help, commandA], new Map(), new Map());
+
+        await help.run({ command: 'command_b' }, context);
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Possible matches: command_a'));
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Unknown command: command_b'));
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('make it foo bar'));
+        expect(mockStdout).toHaveBeenCalledWith(expect.not.stringContaining('Usage:'));
+    });
 });

@@ -23,6 +23,7 @@ describe('BaseCLI test', () => {
             name: 'cli',
             description: 'good',
             version: '1.2.3',
+            stdin: process.stdin,
             stdout: process.stdout,
             stderr: process.stderr,
         };
@@ -34,6 +35,7 @@ describe('BaseCLI test', () => {
             name: 'cli',
             description: 'good',
             version: '1.2.3',
+            stdin: process.stdin,
             stdout: process.stdout,
             stderr: process.stderr,
         };
@@ -51,6 +53,7 @@ describe('BaseCLI test', () => {
             name: 'cli',
             description: 'good',
             version: '1.2.3',
+            stdin: process.stdin,
             stdout: process.stdout,
             stderr: process.stderr,
         };
@@ -68,6 +71,7 @@ describe('BaseCLI test', () => {
             name: 'cli',
             description: 'good',
             version: '1.2.3',
+            stdin: process.stdin,
             stdout: process.stdout,
             stderr: process.stderr
         };
@@ -85,6 +89,7 @@ describe('BaseCLI test', () => {
             name: 'cli',
             description: 'good',
             version: '1.2.3',
+            stdin: process.stdin,
             stdout: process.stdout,
             stderr: process.stderr,
         };
@@ -109,6 +114,7 @@ describe('BaseCLI test', () => {
             name: 'cli',
             description: 'good',
             version: '1.2.3',
+            stdin: process.stdin,
             stdout: process.stdout,
             stderr: process.stderr,
             commandConfigs
@@ -135,6 +141,7 @@ describe('BaseCLI test', () => {
             name: 'cli',
             description: 'good',
             version: '1.2.3',
+            stdin: process.stdin,
             stdout: process.stdout,
             stderr: process.stderr,
             serviceConfigs

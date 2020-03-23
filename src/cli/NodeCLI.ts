@@ -23,6 +23,7 @@ export default class NodeCLI extends BaseCLI {
             name,
             description,
             version,
+            stdin: process.stdin,
             stdout: process.stdout,
             stderr: process.stderr
         });
