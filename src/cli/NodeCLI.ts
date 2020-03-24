@@ -4,9 +4,11 @@
  * @module @flowscripter/cli-framework
  */
 
+import fs from 'fs';
 import debug from 'debug';
 import BaseCLI from './BaseCLI';
-import { name, description, version } from '../../package.json';
+
+const packageInfo = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 
 /**
  * Node command line process implementation of a [[CLI]].
@@ -20,9 +22,9 @@ export default class NodeCLI extends BaseCLI {
      */
     public constructor() {
         super({
-            name,
-            description,
-            version,
+            name: packageInfo.name,
+            description: packageInfo.description,
+            version: packageInfo.version,
             stdin: process.stdin,
             stdout: process.stdout,
             stderr: process.stderr

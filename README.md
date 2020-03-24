@@ -408,7 +408,7 @@ provided a configuration object containing the CLI application's name, version a
 use for `stdout` and `stderr`.
 
 The `NodeCLI` implementation is a simple extension to the `BaseCLI` which provides the name, version and description from
-the projects `package.json` and uses the NodeJS provided `process.stdout` and `process.stderr` streams.
+the current project's `package.json` and uses the NodeJS provided `process.stdout` and `process.stderr` streams.
 
 ## Example Projects
 
