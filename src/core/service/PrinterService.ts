@@ -122,7 +122,7 @@ const levels = {
 
 const icons = {
     [Icon.SUCCESS]: kleur.green('✔'),
-    [Icon.FAILURE]: kleur.red('ⅹ'),
+    [Icon.FAILURE]: kleur.red('✖'),
     [Icon.ALERT]: kleur.yellow('⚠'),
     [Icon.INFORMATION]: kleur.blue('ℹ')
 };
