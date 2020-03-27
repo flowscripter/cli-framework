@@ -1,4 +1,4 @@
-import { mockProcessExit, mockProcessStdout } from 'jest-mock-process';
+import { mockProcessExit, mockProcessStderr, mockProcessStdout } from 'jest-mock-process';
 import NodeCLI from '../../src/cli/NodeCLI';
 import Command, { CommandArgs } from '../../src/api/Command';
 import Context from '../../src/api/Context';
@@ -6,15 +6,18 @@ import { Printer, STDOUT_PRINTER_SERVICE } from '../../src';
 import SubCommand from '../../src/api/SubCommand';
 
 const mockStdout = mockProcessStdout();
+const mockStderr = mockProcessStderr();
 
 describe('NodeCLI test', () => {
 
     beforeEach(() => {
         mockStdout.mockReset();
+        mockStderr.mockReset();
     });
 
     afterAll(() => {
         mockStdout.mockRestore();
+        mockStderr.mockRestore();
     });
 
     test('NodeCLI is instantiable', () => {

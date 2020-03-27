@@ -1,3 +1,4 @@
+import { mockProcessStdout, mockProcessStderr } from 'jest-mock-process';
 import DefaultRunner from '../../src/runtime/DefaultRunner';
 import Option from '../../src/api/Option';
 import Positional from '../../src/api/Positional';
@@ -8,6 +9,9 @@ import GlobalCommand from '../../src/api/GlobalCommand';
 import GlobalCommandArgument from '../../src/api/GlobalCommandArgument';
 import GlobalModifierCommand from '../../src/api/GlobalModifierCommand';
 import GroupCommand from '../../src/api/GroupCommand';
+
+const mockStdout = mockProcessStdout();
+const mockStderr = mockProcessStderr();
 
 function getSubCommand<S_ID>(name: string, options: Option[], positionals: Positional[]): SubCommand {
     return {
@@ -55,6 +59,16 @@ function getGroupCommand<S_ID>(name: string, memberSubCommands: SubCommand[]): G
 }
 
 describe('DefaultRunner test', () => {
+
+    beforeEach(() => {
+        mockStdout.mockReset();
+        mockStderr.mockReset();
+    });
+
+    afterAll(() => {
+        mockStdout.mockRestore();
+        mockStderr.mockRestore();
+    });
 
     test('DefaultRunner is instantiable', () => {
         expect(new DefaultRunner(new DefaultParser())).toBeInstanceOf(DefaultRunner);
@@ -345,7 +359,26 @@ describe('DefaultRunner test', () => {
         const error = await runner.run(['command', '-bad'], context, [subCommand]);
         expect(error).toBeDefined();
         if (error) {
-            expect(error.includes('Unused args')).toBeTruthy();
+            expect(error.includes('Unused arg: -bad')).toBeTruthy();
+        }
+        expect(hasRun).toBe(false);
+    });
+
+    test('Parse error in global run scenario', async () => {
+
+        let hasRun = false;
+
+        const globalCommand = getGlobalCommand('global', 'g');
+
+        globalCommand.run = async (): Promise<void> => { hasRun = true; };
+
+        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const runner = new DefaultRunner(new DefaultParser());
+
+        const error = await runner.run(['--bad'], context, [], globalCommand);
+        expect(error).toBeDefined();
+        if (error) {
+            expect(error.includes('Unused arg: --bad')).toBeTruthy();
         }
         expect(hasRun).toBe(false);
     });
@@ -381,7 +414,7 @@ describe('DefaultRunner test', () => {
         const error = await runner.run(['command1', '--foo', 'bar', 'command2'], context, [subCommand1, subCommand2]);
         expect(error).toBeDefined();
         if (error) {
-            expect(error.includes('More than one command')).toBeTruthy();
+            expect(error.includes('Unused arg: command2')).toBeTruthy();
         }
     });
 

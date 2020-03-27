@@ -84,6 +84,96 @@ describe('BaseCLI test', () => {
         expect(result).toEqual(0);
     });
 
+    test('Global help command is run', async () => {
+        const cliConfig = {
+            name: 'cli',
+            description: 'good',
+            version: '1.2.3',
+            stdin: process.stdin,
+            stdout: process.stdout,
+            stderr: process.stderr
+        };
+        const cli = new BaseCLI(cliConfig);
+
+        cli.addCommandFactory(new CommandFactoryA());
+
+        const result = await cli.execute(['--help']);
+
+        expect(result).toEqual(0);
+    });
+
+    test('Global help command with argument is run', async () => {
+        const cliConfig = {
+            name: 'cli',
+            description: 'good',
+            version: '1.2.3',
+            stdin: process.stdin,
+            stdout: process.stdout,
+            stderr: process.stderr
+        };
+        const cli = new BaseCLI(cliConfig);
+
+        cli.addCommandFactory(new CommandFactoryA());
+
+        const result = await cli.execute(['--help=command_a']);
+
+        expect(result).toEqual(0);
+    });
+
+    test('Non-global help command is run', async () => {
+        const cliConfig = {
+            name: 'cli',
+            description: 'good',
+            version: '1.2.3',
+            stdin: process.stdin,
+            stdout: process.stdout,
+            stderr: process.stderr
+        };
+        const cli = new BaseCLI(cliConfig);
+
+        cli.addCommandFactory(new CommandFactoryA());
+
+        const result = await cli.execute(['help']);
+
+        expect(result).toEqual(0);
+    });
+
+    test('Non-global help command with argument matching command name is run', async () => {
+        const cliConfig = {
+            name: 'cli',
+            description: 'good',
+            version: '1.2.3',
+            stdin: process.stdin,
+            stdout: process.stdout,
+            stderr: process.stderr
+        };
+        const cli = new BaseCLI(cliConfig);
+
+        cli.addCommandFactory(new CommandFactoryA());
+
+        const result = await cli.execute(['help', 'command_a']);
+
+        expect(result).toEqual(0);
+    });
+
+    test('Global modifier and non-global help command with argument is run', async () => {
+        const cliConfig = {
+            name: 'cli',
+            description: 'good',
+            version: '1.2.3',
+            stdin: process.stdin,
+            stdout: process.stdout,
+            stderr: process.stderr
+        };
+        const cli = new BaseCLI(cliConfig);
+
+        cli.addCommandFactory(new CommandFactoryA());
+
+        const result = await cli.execute(['--color', 'help', 'command_a']);
+
+        expect(result).toEqual(0);
+    });
+
     test('Execute failure returns 1', async () => {
         const cliConfig = {
             name: 'cli',
@@ -98,6 +188,24 @@ describe('BaseCLI test', () => {
         cli.addCommandFactory(new CommandFactoryA());
 
         const result = await cli.execute(['blah']);
+
+        expect(result).toEqual(1);
+    });
+
+    test('Execute fails for unknown global argument', async () => {
+        const cliConfig = {
+            name: 'cli',
+            description: 'good',
+            version: '1.2.3',
+            stdin: process.stdin,
+            stdout: process.stdout,
+            stderr: process.stderr,
+        };
+        const cli = new BaseCLI(cliConfig);
+
+        cli.addCommandFactory(new CommandFactoryA());
+
+        const result = await cli.execute(['--nnn', 'command_a', '--foo=hello']);
 
         expect(result).toEqual(1);
     });

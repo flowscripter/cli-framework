@@ -55,7 +55,7 @@ export default class DefaultRunner implements Runner {
      * Attempt to successfully parse a non-modifier [[Command]] clause from the potential
      * non-modifier and default clauses provided.
      *
-     * @param nonModifierClauses potential non-modifier [[CommandClause]] instances.
+     * @param nonModifierClause potential non-modifier [[CommandClause]] instances.
      * @param potentialDefaultClauses potential default [[CommandClause]] instances.
      * @param overallUnusedArgs current list of unused args. This will be appended to during this parsing operation.
      * @param context the [[Context]] for the CLI invocation.
@@ -64,13 +64,14 @@ export default class DefaultRunner implements Runner {
      * or *undefined* if no clause was parsed.
      * @throws *Error* if there is a parsing error
      */
-    private getNonModifierParseResult(nonModifierClauses: CommandClause[], potentialDefaultClauses: CommandClause[],
-        overallUnusedArgs: string[], context: Context, defaultCommand?: Command): ParseResult | string | undefined {
+    private getNonModifierParseResult(nonModifierClause: CommandClause | undefined, potentialDefaultClauses:
+        CommandClause[], overallUnusedArgs: string[], context: Context, defaultCommand?: Command): ParseResult
+        | string | undefined {
 
         let parseResult;
 
         // look for a default if we don't have a non-modifier command
-        if (nonModifierClauses.length === 0) {
+        if (_.isUndefined(nonModifierClause)) {
             this.log('No command specified, looking for a potential default in potential clauses');
             for (let i = 0; i < potentialDefaultClauses.length; i += 1) {
                 const potentialCommandClause = potentialDefaultClauses[i];
@@ -108,16 +109,19 @@ export default class DefaultRunner implements Runner {
                 }
             }
         } else {
-            const commandClause = nonModifierClauses[0];
-            const config = context.commandConfigs.get(commandClause.command.name);
-            parseResult = this.parser.parseCommandClause(commandClause, config);
+            const config = context.commandConfigs.get(nonModifierClause.command.name);
+            parseResult = this.parser.parseCommandClause(nonModifierClause, config);
 
             // fail on a parse error
             if (parseResult.invalidArgs.length > 0) {
                 return `There were parsing errors for command: ${parseResult.command.name} `
                     + `and args: ${parseResult.invalidArgs.map((arg) => arg.name).join(', ')}`;
             }
-            overallUnusedArgs.push(...parseResult.unusedArgs);
+            // shift all potential default clause args to unused args
+            for (let i = 0; i < potentialDefaultClauses.length; i += 1) {
+                const potentialCommandClause = potentialDefaultClauses[i];
+                overallUnusedArgs.push(...potentialCommandClause.potentialArgs);
+            }
         }
         return parseResult;
     }
@@ -166,11 +170,7 @@ export default class DefaultRunner implements Runner {
         const nonModifierClauses: CommandClause[] = [];
 
         scanResult.commandClauses.forEach((commandClause) => {
-            if (isGlobalCommand(commandClause.command)) {
-                commandClause.potentialArgs.unshift(`--${commandClause.command.name}`);
-                nonModifierClauses.push(commandClause);
-            } else if (isGlobalModifierCommand(commandClause.command)) {
-                commandClause.potentialArgs.unshift(`--${commandClause.command.name}`);
+            if (isGlobalModifierCommand(commandClause.command)) {
                 modifierClauses.push(commandClause);
             } else {
                 nonModifierClauses.push(commandClause);
@@ -182,6 +182,7 @@ export default class DefaultRunner implements Runner {
             return 'More than one command specified: '
                 + `${nonModifierClauses.map((clause) => clause.command.name).join(', ')}`;
         }
+        const nonModifierClause = nonModifierClauses[0];
 
         // sort the global modifier clauses in order of run priority
         modifierClauses.sort((a, b): number => {
@@ -245,7 +246,7 @@ export default class DefaultRunner implements Runner {
         }
 
         // perform final determination of non-modifier clause to run
-        const parseResult = this.getNonModifierParseResult(nonModifierClauses, potentialDefaultClauses,
+        const parseResult = this.getNonModifierParseResult(nonModifierClause, potentialDefaultClauses,
             overallUnusedArgs, context, defaultCommand);
 
         if (!parseResult) {
@@ -261,7 +262,10 @@ export default class DefaultRunner implements Runner {
 
         // error on unused args
         overallUnusedArgs.push(...parseResult.unusedArgs);
-        if (overallUnusedArgs.length > 0) {
+        if (overallUnusedArgs.length === 1) {
+            return `Unused arg: ${overallUnusedArgs[0]}`;
+        }
+        if (overallUnusedArgs.length > 1) {
             return `Unused args: ${overallUnusedArgs.join(' ')}`;
         }
 
