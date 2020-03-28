@@ -96,9 +96,9 @@ export default class DefaultParser implements Parser {
         });
     }
 
-    private scanForNextCommandArg(potentialArgs: string[]): LocalScanResult {
+    private scanForNextCommandArg(potentialArgs: string[], greedy: boolean): LocalScanResult {
 
-        this.log(`Scanning for next command: ${potentialArgs.join(' ')}`);
+        this.log(`${greedy ? 'Greedy' : 'Lazy'} scanning for next command: ${potentialArgs.join(' ')}`);
 
         let pendingArgs = [...potentialArgs];
         const unusedLeadingArgs: string[] = [];
@@ -107,9 +107,10 @@ export default class DefaultParser implements Parser {
             const arg = pendingArgs[0];
             pendingArgs = pendingArgs.slice(1);
 
-            if (!arg.startsWith('-')) {
+            if (!arg.startsWith('-') && !greedy) {
                 // could be <group_command_name>:<member_sub_command_name> or
-                // <group_command_name> <member_sub_command_name>
+                // <group_command_name> <member_sub_command_name> or
+                // <sub_command_name>
                 let potentialGroupCommandName = arg;
 
                 let potentialMemberCommandName;
@@ -165,19 +166,22 @@ export default class DefaultParser implements Parser {
                     }
                 }
             } else if (arg.startsWith('--')) {
+                // could be <global_modifier_command_name> or <global_command_name>
                 const potentialGlobalCommandName = arg.slice(2);
 
                 const command = this.globalCommandsByName.get(potentialGlobalCommandName);
                 if (command) {
-                    this.log(`Found global command name: ${potentialGlobalCommandName}`);
-
-                    return {
-                        commandClause: {
-                            command,
-                            potentialArgs: pendingArgs
-                        },
-                        unusedLeadingArgs
-                    };
+                    if (!greedy || isGlobalModifierCommand(command)) {
+                        this.log(`Found global command name: ${potentialGlobalCommandName}`);
+                        return {
+                            commandClause: {
+                                command,
+                                potentialArgs: pendingArgs
+                            },
+                            unusedLeadingArgs
+                        };
+                    }
+                    this.log(`Skipping global command name: ${potentialGlobalCommandName} as mot greedy`);
                 }
             }
             unusedLeadingArgs.push(arg);
@@ -266,7 +270,8 @@ export default class DefaultParser implements Parser {
         // scan the set of arguments for the first command
         let localScanResult: LocalScanResult;
 
-        localScanResult = this.scanForNextCommandArg(potentialArgs);
+        // start by looking for any command type in the arguments i.e. greedy = false
+        localScanResult = this.scanForNextCommandArg(potentialArgs, false);
 
         // keep a note of any leading unused arguments
         scanResult.unusedLeadingArgs = localScanResult.unusedLeadingArgs;
@@ -282,7 +287,9 @@ export default class DefaultParser implements Parser {
             while (lastCommandClause.potentialArgs.length > 0) {
 
                 // scan for next command
-                localScanResult = this.scanForNextCommandArg(lastCommandClause.potentialArgs);
+                // look for any command type in the arguments unless current command is non-modifier
+                const greedy = !isGlobalModifierCommand(lastCommandClause.command);
+                localScanResult = this.scanForNextCommandArg(lastCommandClause.potentialArgs, greedy);
 
                 // args that weren't used in the current scan are provided to the previous command
                 lastCommandClause.potentialArgs = localScanResult.unusedLeadingArgs;

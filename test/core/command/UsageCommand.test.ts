@@ -36,6 +36,7 @@ describe('UsageCommand test', () => {
         const usageCommand = new UsageCommand('foo', 'bar', getGlobalCommand());
 
         await usageCommand.run({}, context);
-        expect(mockStdout).toHaveBeenCalledWith('bar');
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('bar'));
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('try running'));
     });
 });

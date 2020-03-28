@@ -153,7 +153,7 @@ export default class BaseCLI implements CLI {
         const failureResult = await runner.run(args, context, commands, this.coreCommandFactory.usageCommand);
         if (!_.isUndefined(failureResult)) {
             // output any unused args, parsing error or run error on stderr
-            this.coreServiceFactory.stderrPrinterService.error(failureResult, Icon.FAILURE);
+            this.coreServiceFactory.stderrPrinterService.error(`${failureResult}\n`, Icon.FAILURE);
 
             // display usage information
             await this.coreCommandFactory.usageCommand.run({}, context);

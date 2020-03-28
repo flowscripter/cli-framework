@@ -3,13 +3,27 @@ import _ from 'lodash';
 import * as os from 'os';
 import * as yaml from 'js-yaml';
 import mockFs from 'mock-fs';
+import { mockProcessStderr, mockProcessStdout } from 'jest-mock-process';
 import ConfigCommand from '../../../src/core/command/ConfigCommand';
 import { StderrPrinterService } from '../../../src/core/service/PrinterService';
 import DefaultContext from '../../../src/runtime/DefaultContext';
 import { CommandArgs } from '../../../src';
 import { ConfigurationService } from '../../../src/core/service/ConfigurationService';
 
+const mockStdout = mockProcessStdout();
+const mockStderr = mockProcessStderr();
+
 describe('ConfigCommand test', () => {
+
+    beforeEach(() => {
+        mockStdout.mockReset();
+        mockStderr.mockReset();
+    });
+
+    afterAll(() => {
+        mockStdout.mockRestore();
+        mockStderr.mockRestore();
+    });
 
     function getConfigMap(): Map<string, any> {
         const serviceConfigs = new Map<string, any>();
