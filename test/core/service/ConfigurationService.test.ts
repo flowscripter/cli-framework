@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import _ from 'lodash';
+import { mockProcessStdout, mockProcessStderr } from 'jest-mock-process';
 import mockFs from 'mock-fs';
 import * as yaml from 'js-yaml';
 import * as os from 'os';
@@ -8,7 +9,20 @@ import { CommandArgs } from '../../../src';
 import Context from '../../../src/api/Context';
 import DefaultContext from '../../../src/runtime/DefaultContext';
 
+const mockStdout = mockProcessStdout();
+const mockStderr = mockProcessStderr();
+
 describe('ConfigurationService test', () => {
+
+    beforeEach(() => {
+        mockStdout.mockReset();
+        mockStderr.mockReset();
+    });
+
+    afterAll(() => {
+        mockStdout.mockRestore();
+        mockStderr.mockRestore();
+    });
 
     function getConfigMap(): Map<string, any> {
         const serviceConfigs = new Map<string, any>();
