@@ -1,5 +1,5 @@
 # cli-framework
-[![license](https://img.shields.io/github/license/flowscripter/cli-framework.svg)](https://github.com/flowscripter/cli-framework/blob/master/LICENSE.md)
+[![license](https://img.shields.io/github/license/flowscripter/cli-framework.svg)](https://github.com/flowscripter/cli-framework/blob/master/LICENSE)
 [![dependencies](https://img.shields.io/david/flowscripter/cli-framework.svg)](https://david-dm.org/flowscripter/cli-framework)
 [![travis](https://api.travis-ci.com/flowscripter/cli-framework.svg)](https://travis-ci.com/flowscripter/cli-framework)
 [![coverage](https://sonarcloud.io/api/project_badges/measure?project=flowscripter_cli-framework&metric=coverage)](https://sonarcloud.io/dashboard?id=flowscripter_cli-framework)
