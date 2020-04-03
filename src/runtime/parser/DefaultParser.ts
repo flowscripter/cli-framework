@@ -217,7 +217,7 @@ export default class DefaultParser implements Parser {
                 // look for <global_command_name>=<value>
                 let nextArg;
                 if (potentialGlobalCommandName.includes('=')) {
-                    [potentialGlobalCommandName, nextArg] = potentialGlobalCommandName.split('=');
+                    [potentialGlobalCommandName, nextArg] = potentialGlobalCommandName.split(/=(.*)/);
                 }
 
                 // check if this is a global command name
@@ -241,7 +241,7 @@ export default class DefaultParser implements Parser {
                 // look for <global_command_short_alias>=<value>
                 let nextArg;
                 if (potentialGlobalCommandShortAlias.includes('=')) {
-                    [potentialGlobalCommandShortAlias, nextArg] = potentialGlobalCommandShortAlias.split('=');
+                    [potentialGlobalCommandShortAlias, nextArg] = potentialGlobalCommandShortAlias.split(/=(.*)/);
                 }
 
                 // check if this is a global command short alias

@@ -136,6 +136,51 @@ describe('DefaultParser test', () => {
         expectScanResult(scanResult, expected);
     });
 
+    test('Global command normalising tricky 1', () => {
+        const defaultParser: DefaultParser = new DefaultParser();
+        const globalCommand = getGlobalCommand();
+
+        defaultParser.setCommands([globalCommand]);
+
+        const expected = {
+            commandClauses: [{
+                command: globalCommand,
+                potentialArgs: ['g=2', 'bar=2']
+            }],
+            unusedLeadingArgs: []
+        };
+
+        let scanResult = defaultParser.scanForCommandClauses(['--globalCommand', 'g=2', 'bar=2']);
+        expectScanResult(scanResult, expected);
+
+        scanResult = defaultParser.scanForCommandClauses(['--globalCommand=g=2', 'bar=2']);
+        expectScanResult(scanResult, expected);
+
+        scanResult = defaultParser.scanForCommandClauses(['-g', 'g=2', 'bar=2']);
+        expectScanResult(scanResult, expected);
+
+        scanResult = defaultParser.scanForCommandClauses(['-g=g=2', 'bar=2']);
+        expectScanResult(scanResult, expected);
+    });
+
+    test('Global command normalising tricky 2', () => {
+        const defaultParser: DefaultParser = new DefaultParser();
+        const globalCommand = getGlobalCommand();
+
+        defaultParser.setCommands([globalCommand]);
+
+        const expected = {
+            commandClauses: [{
+                command: globalCommand,
+                potentialArgs: ['g=']
+            }],
+            unusedLeadingArgs: []
+        };
+
+        const scanResult = defaultParser.scanForCommandClauses(['--globalCommand', 'g=']);
+        expectScanResult(scanResult, expected);
+    });
+
     test('Global modifier command scanned', () => {
         const defaultParser: DefaultParser = new DefaultParser();
         const modifierCommand = getGlobalModifierCommand('modifier', 'm');

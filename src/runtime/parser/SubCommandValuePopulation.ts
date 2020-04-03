@@ -221,7 +221,7 @@ function parsePotentialOption(potentialArg: string, optionsByName: Map<string, O
     if (potentialArg.startsWith('--')) {
         newParseContext.name = potentialArg.slice(2);
         if (newParseContext.name.includes('=')) {
-            [newParseContext.name, newParseContext.value] = newParseContext.name.split('=');
+            [newParseContext.name, newParseContext.value] = newParseContext.name.split(/=(.*)/);
             newParseContext.state = ParseState.OptionNameAndValueFound;
         }
         // map to option
@@ -229,7 +229,7 @@ function parsePotentialOption(potentialArg: string, optionsByName: Map<string, O
     } else {
         newParseContext.name = potentialArg.slice(1);
         if (newParseContext.name.includes('=')) {
-            [newParseContext.name, newParseContext.value] = newParseContext.name.split('=');
+            [newParseContext.name, newParseContext.value] = newParseContext.name.split(/=(.*)/);
             newParseContext.state = ParseState.OptionNameAndValueFound;
         }
         // map to option
