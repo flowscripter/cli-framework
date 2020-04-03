@@ -37,6 +37,6 @@ describe('UsageCommand test', () => {
 
         await usageCommand.run({}, context);
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('bar'));
-        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('try running'));
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Try running'));
     });
 });

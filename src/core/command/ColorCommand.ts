@@ -49,7 +49,7 @@ export class ColorCommand extends BaseColorCommand implements GlobalModifierComm
 
     readonly name = 'color';
 
-    readonly description = 'Force enable colour output';
+    readonly description = 'Enable colour output';
 
     /**
      * @inheritdoc
@@ -66,7 +66,7 @@ export class NoColorCommand extends BaseColorCommand implements GlobalModifierCo
 
     readonly name = 'nocolor';
 
-    readonly description = 'Force disable colour output';
+    readonly description = 'Disable colour output';
 
     /**
      * @inheritdoc

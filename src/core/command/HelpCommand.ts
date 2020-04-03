@@ -36,7 +36,7 @@ interface HelpSection {
     readonly entries: HelpEntry[];
 }
 
-const SYNTAX_INDENT_WIDTH = 6;
+const SYNTAX_INDENT_WIDTH = 2;
 
 const SYNTAX_COLUMN_WIDTH = 24;
 
@@ -78,32 +78,32 @@ class CommonHelpCommand {
     ): string {
         let syntax = this.appName;
         if (globalModifierCommands.length > 0) {
-            syntax += ' [global options [arguments]]';
+            syntax += ' [<global_option> [<arg>]]';
+        }
+        if (globalModifierCommands.length > 1) {
+            syntax += '...';
         }
         const commandClauses = [];
         if (globalCommands.length > 0) {
-            commandClauses.push('global command');
+            commandClauses.push('<global_command>');
         }
         if ((groupCommands.length > 0) || (subCommands.length > 0)) {
-            commandClauses.push('command');
+            commandClauses.push('<command>');
         }
         if (commandClauses.length > 0) {
-            syntax += ` [${commandClauses.join('|')} [arguments]]`;
+            syntax += ` [${commandClauses.join('|')} [<arg> [<value>]]...]`;
         }
         return syntax;
     }
 
     private static getGlobalCommandArgumentSyntax(argument: GlobalCommandArgument): string {
         let argumentSyntax;
-        if (!_.isUndefined(argument.validValues) && !_.isEmpty(argument.validValues)) {
-            argumentSyntax = argument.validValues.join('|');
-        } else if (argument.type === ArgumentValueTypeName.Boolean) {
+        if (argument.type === ArgumentValueTypeName.Boolean) {
             argumentSyntax = 'true|false';
         } else {
             argumentSyntax = `<${argument.name}>`;
         }
-        if (argument.isOptional || argument.type === ArgumentValueTypeName.Boolean
-            || !_.isUndefined(argument.defaultValue)) {
+        if (argument.isOptional || argument.type === ArgumentValueTypeName.Boolean) {
             argumentSyntax = ` [${argumentSyntax}]`;
         } else {
             argumentSyntax = ` ${argumentSyntax}`;
@@ -113,11 +113,19 @@ class CommonHelpCommand {
 
     private static getGlobalArgumentSyntaxAndDescription(globalCommand: GlobalCommand): [string, string] {
         const { argument } = globalCommand;
+        let argumentDescription = globalCommand.description || '';
         if (_.isUndefined(argument)) {
-            return ['', ''];
+            return ['', argumentDescription];
         }
         const argumentSyntax = CommonHelpCommand.getGlobalCommandArgumentSyntax(argument);
-        let argumentDescription = globalCommand.description || '';
+
+        if (!_.isUndefined(argument.validValues) && !_.isEmpty(argument.validValues)) {
+            if (argumentDescription.length === 0) {
+                argumentDescription = `(valid values: ${argument.validValues.join(',')})`;
+            } else {
+                argumentDescription = `${argumentDescription} (valid values: ${argument.validValues.join(',')})`;
+            }
+        }
 
         if (!_.isUndefined(argument.defaultValue)) {
             if (argumentDescription.length === 0) {
@@ -239,8 +247,7 @@ class CommonHelpCommand {
 
         subCommand.options.forEach((option) => {
             let optionSyntax = `--${option.name}=<value>`;
-            if (option.isOptional || option.type === ArgumentValueTypeName.Boolean
-                || !_.isUndefined(option.defaultValue)) {
+            if (option.isOptional || option.type === ArgumentValueTypeName.Boolean) {
                 optionSyntax = ` [${optionSyntax}]`;
             } else {
                 optionSyntax = ` ${optionSyntax}`;
@@ -273,15 +280,18 @@ class CommonHelpCommand {
             description: option.description,
             notes
         };
+        if (!_.isUndefined(option.validValues) && !_.isEmpty(option.validValues)) {
+            notes.push(`(valid values: ${option.validValues.join(',')})`);
+        }
         if (!_.isUndefined(option.defaultValue)) {
-            notes.push(`Default: ${_.isArray(option.defaultValue) ? `${option.defaultValue.join(',')}`
-                : `${option.defaultValue}`}`);
+            notes.push(`(default: ${_.isArray(option.defaultValue) ? `${option.defaultValue.join(',')}`
+                : `${option.defaultValue}`})`);
         }
         if (option.isOptional) {
-            notes.push('Optional');
+            notes.push('(optional)');
         }
         if (option.isArray) {
-            notes.push('Multiple entries supported');
+            notes.push('(multiple entries supported)');
         }
         return helpEntry;
     }
@@ -293,11 +303,14 @@ class CommonHelpCommand {
             description: positional.description,
             notes
         };
+        if (!_.isUndefined(positional.validValues) && !_.isEmpty(positional.validValues)) {
+            notes.push(`(valid values: ${positional.validValues.join(',')})`);
+        }
         if (positional.isVarArgOptional) {
-            notes.push('Optional');
+            notes.push('(optional)');
         }
         if (positional.isVarArgMultiple) {
-            notes.push('Multiple entries supported');
+            notes.push('(multiple entries supported)');
         }
         return helpEntry;
     }
@@ -313,7 +326,7 @@ class CommonHelpCommand {
         helpSections.push({
             title: 'Usage:',
             entries: [{
-                syntax: `${this.appName} ${name} ${this.getArgumentsSyntax(subCommand)}`
+                syntax: `${this.appName} ${name}${this.getArgumentsSyntax(subCommand)}`
             }]
         });
         if (!_.isEmpty(subCommand.options) || !_.isEmpty(subCommand.positionals)) {
@@ -342,7 +355,7 @@ class CommonHelpCommand {
                     });
                 }
                 usageSection.entries.push({
-                    syntax: `$ ${this.appName} ${usageExample.exampleArguments}`
+                    syntax: `$ ${this.appName} ${subCommand.name} ${usageExample.exampleArguments}`
                 });
                 if (!_.isUndefined(usageExample.output)) {
                     usageExample.output.forEach((output) => {
@@ -351,6 +364,9 @@ class CommonHelpCommand {
                         });
                     });
                 }
+                usageSection.entries.push({
+                    syntax: ''
+                });
             });
         }
         return helpSections;
@@ -371,7 +387,7 @@ class CommonHelpCommand {
         }
         if (globalCommands.length > 0) {
             helpSections.push(CommonHelpCommand.getGlobalCommandsHelpSection(
-                'Global commands:', globalModifierCommands
+                'Global commands:', globalCommands
             ));
         }
         groupCommands.forEach((groupCommand) => {
@@ -436,8 +452,9 @@ class CommonHelpCommand {
     }
 
     private printSections(printer: Printer, sections: HelpSection[]): void {
+        printer.info('\n');
         sections.forEach((section) => {
-            printer.info(`${section.title}\n`);
+            printer.info(`${section.title}\n\n`);
             section.entries.forEach((entry) => {
                 let notesIndent = SYNTAX_INDENT_WIDTH + SYNTAX_COLUMN_WIDTH + SYNTAX_INDENT_WIDTH;
                 if (entry.description) {
@@ -446,19 +463,22 @@ class CommonHelpCommand {
                         paddingCount = SYNTAX_MIN_PADDING_WIDTH;
                     }
                     const padding = ' '.repeat(paddingCount);
-                    printer.info(this.helpEntryIndent + entry.syntax + padding + entry.description);
-                    notesIndent = SYNTAX_INDENT_WIDTH + entry.syntax.length + paddingCount + SYNTAX_INDENT_WIDTH;
+                    printer.info(`${this.helpEntryIndent + entry.syntax + padding + entry.description}`);
+                    notesIndent = SYNTAX_INDENT_WIDTH + entry.syntax.length + paddingCount;
                 } else {
-                    printer.info(this.helpEntryIndent + entry.syntax);
+                    printer.info(`${this.helpEntryIndent + entry.syntax}`);
                 }
                 if (entry.notes) {
                     const notesPadding = ' '.repeat(notesIndent);
                     entry.notes.forEach((note) => {
-                        printer.info(notesPadding + note);
+                        printer.info(`\n${notesPadding + note}`);
                     });
                 }
+                printer.info('\n');
             });
-            printer.info('\n');
+            if (section.entries.length > 0) {
+                printer.info('\n');
+            }
         });
     }
 
@@ -536,12 +556,12 @@ class CommonHelpCommand {
 
         if (_.isUndefined(subCommand)) {
 
-            printer.error(`Unknown command: ${commandName}`, Icon.FAILURE);
+            printer.error(`Unknown command: ${commandName}\n\n`, Icon.FAILURE);
 
             // look for other possible matches
             const possibleCommandNames = this.findPossibleCommandNames(commandName, groupCommands, subCommands);
             if (!_.isEmpty(possibleCommandNames)) {
-                printer.info(`Possible matches: ${possibleCommandNames.join(', ')}`, Icon.INFORMATION);
+                printer.info(`Possible matches: ${possibleCommandNames.join(', ')}\n\n`, Icon.INFORMATION);
             }
             this.printGenericHelp(context);
             return;
@@ -591,7 +611,8 @@ export class HelpSubCommand extends CommonHelpCommand implements SubCommand {
     public readonly positionals: ReadonlyArray<Positional> = [
         {
             name: 'command',
-            isVarArgOptional: true
+            isVarArgOptional: true,
+            description: 'Display help for the specific <command>'
         }
     ];
 

@@ -352,6 +352,8 @@ This service provides the ability to:
 * read and write configuration data from a YAML file in the default location of `$HOME/.<context.cliConfig.name>.yaml`
 * get and set config for commands and services
 
+Note that in the default location, the `name` used will be stripped of all non-alphanumeric characters (except `_` and `-`).
+
 #### Core Commands
 Core commands are provided to manage the output of the CLI, the location of configuration and to provide help to the user.
 
