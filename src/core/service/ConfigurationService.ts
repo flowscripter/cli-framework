@@ -121,7 +121,8 @@ export class ConfigurationService implements Service, Configuration {
      * If there is an entry in the provided [[Context]] at *context.serviceConfigs[<this.id>].configurationLocation*
      * this will be set as the value of [[configurationLocation]] and used as the path from which to load the
      * configuration. If this entry does not exist, a default location of *$HOME/.<context.cliConfig.name>.yaml* will
-     * be set and used.
+     * be set and used. Note that in the default location, the *name* used will be stripped of all non-alphanumeric
+     * characters (except *_* and *-*).
      *
      * The loaded and parsed configuration will be used to replace the *serviceConfigs* and [[commandConfigs]]
      * properties on the provided [[Context]]. This implies that any existing configuration on these properties
@@ -138,7 +139,7 @@ export class ConfigurationService implements Service, Configuration {
         if (_.isUndefined(context.cliConfig) || _.isUndefined(context.cliConfig.name)) {
             throw new Error('context.cliConfig.name has not been set!');
         }
-        this.defaultConfigFilePath = `${os.homedir()}/.${context.cliConfig.name}.yaml`;
+        this.defaultConfigFilePath = `${os.homedir()}/.${context.cliConfig.name.replace(/\W/g, '')}.yaml`;
 
         // determine actual config file path
         const configServiceConfig = context.serviceConfigs.get(this.id);

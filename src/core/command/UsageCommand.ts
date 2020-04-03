@@ -1,6 +1,6 @@
 import { CommandArgs } from '../../api/Command';
 import Context from '../../api/Context';
-import Printer, { Icon, STDOUT_PRINTER_SERVICE } from '../service/PrinterService';
+import Printer, { STDOUT_PRINTER_SERVICE } from '../service/PrinterService';
 import GlobalCommand from '../../api/GlobalCommand';
 
 /**
@@ -41,6 +41,6 @@ export default class UsageCommand implements GlobalCommand {
             throw new Error('STDOUT_PRINTER_SERVICE not available in context');
         }
         printer.info(`\n${this.cliDescription}\n\n`);
-        printer.info(`try running:  \`${this.cliName} --${this.helpCommand.name}\`\n\n`, Icon.INFORMATION);
+        printer.info(`Try running:\n\n  ${this.cliName} --${this.helpCommand.name}\n\n`);
     }
 }

@@ -54,12 +54,82 @@ describe('NodeCLI test', () => {
         expect(mockExit).toHaveBeenCalledWith(0);
     });
 
+    test('Basic execution works with custom config', async () => {
+        process.argv = ['node', 'node.js', 'greeter', 'hello', 'world'];
+
+        const mockExit = mockProcessExit();
+        const cli = new NodeCLI({
+            name: 'foo1',
+            version: 'foo3'
+        });
+
+        await cli.execute();
+
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('CLI framework using ES Modules.'));
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('foo1 --help'));
+        expect(mockExit).toHaveBeenCalledWith(1);
+    });
+
     test('Basic execution with no command exits with 0', async () => {
 
         process.argv = ['node', 'node.js'];
 
         const mockExit = mockProcessExit();
         const cli = new NodeCLI();
+
+        await cli.execute();
+        expect(mockExit).toHaveBeenCalledWith(0);
+    });
+
+    test('Basic execution with global help', async () => {
+
+        process.argv = ['node', 'node.js', '--help'];
+
+        const mockExit = mockProcessExit();
+        const cli = new NodeCLI();
+
+        await cli.execute();
+        expect(mockExit).toHaveBeenCalledWith(0);
+    });
+
+
+    test('Basic execution with sub-command help and help subject', async () => {
+
+        process.argv = ['node', 'node.js', 'help', 'greeter'];
+
+        const mockExit = mockProcessExit();
+        const cli = new NodeCLI();
+
+        const subCommand: SubCommand = {
+            name: 'greeter',
+            options: [],
+            positionals: [{
+                name: 'message',
+                description: 'message to output',
+                isVarArgMultiple: true
+            }],
+            usageExamples: [
+                {
+                    exampleArguments: 'hello world',
+                    description: 'The classic',
+                    output: ['hello world']
+                },
+                {
+                    exampleArguments: 'yo, wassup?!',
+                    description: 'Something more modern',
+                    output: ['yo, wassup?!']
+                }
+            ],
+            run: async (commandArgs: CommandArgs, context: Context): Promise<void> => {
+                const printer = context.getService(STDOUT_PRINTER_SERVICE) as unknown as Printer;
+                const message = commandArgs.message as string[];
+                printer.info(message.join(' '));
+            }
+        };
+
+        cli.addCommandFactory({
+            getCommands: (): Iterable<Command> => [subCommand]
+        });
 
         await cli.execute();
         expect(mockExit).toHaveBeenCalledWith(0);
