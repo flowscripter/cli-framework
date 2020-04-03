@@ -39,7 +39,6 @@ export default class CoreCommandFactory implements CommandFactory {
     /**
      * @inheritdoc
      */
-    // eslint-disable-next-line class-methods-use-this
     public getCommands(): Iterable<Command> {
         return [
             this.versionCommand,
