@@ -276,7 +276,7 @@ class CommonHelpCommand {
     private static getOptionHelpEntry(option: Option): HelpEntry {
         const notes: string[] = [];
         const helpEntry: HelpEntry = {
-            syntax: `--${option.name}${_.isUndefined(option.shortAlias) ? `, -${option.shortAlias}` : ''}`,
+            syntax: `--${option.name}${!_.isUndefined(option.shortAlias) ? `, -${option.shortAlias}` : ''}`,
             description: option.description,
             notes
         };
