@@ -28,7 +28,8 @@ module.exports = {
         'ts-jest': {
             babelConfig: {
                 plugins: ['transform-es2015-modules-commonjs']
-            }
+            },
+            isolatedModules: true
         }
     }
 };
