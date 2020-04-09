@@ -36,7 +36,7 @@ export default class ConfigCommand implements GlobalModifierCommand {
      * context for the [[Configuration]] service and then invoking [[Configuration.getConfig]]. The return config
      * is then used to update the [[Context]].
      *
-     * Expects implementation of a [[Printer]] service registered with the [[STDERR_PRINTER_SERVICE]] ID in the
+     * Expects an implementation of [[Printer]] service registered with the [[STDERR_PRINTER_SERVICE]] ID in the
      * provided [[Context]].
      */
     // eslint-disable-next-line class-methods-use-this

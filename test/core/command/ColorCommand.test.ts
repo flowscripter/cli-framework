@@ -23,9 +23,12 @@ describe('ColorCommand test', () => {
     });
 
     test('Forcing color works', async () => {
-        const stdoutService = new StdoutPrinterService(process.stdout, 90);
-        const stderrService = new StderrPrinterService(process.stderr, 90);
-        const context = new DefaultContext({}, [stdoutService, stderrService], [], new Map(), new Map());
+        const stdoutService = new StdoutPrinterService(90);
+        const stderrService = new StderrPrinterService(90);
+        const context = new DefaultContext({
+            stdout: process.stdout,
+            stderr: process.stderr
+        }, [stdoutService, stderrService], [], new Map(), new Map());
         const colorCommand = new ColorCommand(100);
 
         stdoutService.colorEnabled = false;
@@ -42,9 +45,12 @@ describe('ColorCommand test', () => {
     });
 
     test('Forcing no color works', async () => {
-        const stdoutService = new StdoutPrinterService(process.stdout, 90);
-        const stderrService = new StderrPrinterService(process.stderr, 90);
-        const context = new DefaultContext({}, [stdoutService, stderrService], [], new Map(), new Map());
+        const stdoutService = new StdoutPrinterService(90);
+        const stderrService = new StderrPrinterService(90);
+        const context = new DefaultContext({
+            stdout: process.stdout,
+            stderr: process.stderr
+        }, [stdoutService, stderrService], [], new Map(), new Map());
         const noColorCommand = new NoColorCommand(100);
 
         stdoutService.colorEnabled = true;

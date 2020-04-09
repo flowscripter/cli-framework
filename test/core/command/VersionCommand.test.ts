@@ -16,13 +16,17 @@ describe('VersionCommand test', () => {
     });
 
     test('VersionCommand is instantiable', () => {
-        expect(new VersionCommand('1.0.0')).toBeInstanceOf(VersionCommand);
+        expect(new VersionCommand()).toBeInstanceOf(VersionCommand);
     });
 
     test('VersionCommand works', async () => {
-        const service = new StdoutPrinterService(process.stdout, 100);
-        const context = new DefaultContext({}, [service], [], new Map(), new Map());
-        const versionCommand = new VersionCommand('1.2.3');
+        const service = new StdoutPrinterService(100);
+        const context = new DefaultContext({
+            stdout: process.stdout,
+            version: '1.2.3'
+        }, [service], [], new Map(), new Map());
+        service.init(context);
+        const versionCommand = new VersionCommand();
 
         await versionCommand.run({}, context);
         expect(mockStdout).toHaveBeenLastCalledWith('1.2.3');

@@ -66,10 +66,12 @@ describe('ConfigCommand test', () => {
             }
         });
 
-        const stderrService = new StderrPrinterService(process.stderr, 100);
+        const stderrService = new StderrPrinterService(100);
         stderrService.colorEnabled = false;
 
-        const context = new DefaultContext({}, [stderrService], [], new Map(), new Map());
+        const context = new DefaultContext({
+            stderr: process.stderr
+        }, [stderrService], [], new Map(), new Map());
         const configCommand = new ConfigCommand(100);
 
         await expect(configCommand.run({ config: '/foo.bar' }, context)).rejects.toThrowError();
@@ -84,10 +86,12 @@ describe('ConfigCommand test', () => {
             })
         });
 
-        const stderrService = new StderrPrinterService(process.stderr, 100);
+        const stderrService = new StderrPrinterService(100);
         stderrService.colorEnabled = false;
 
-        const context = new DefaultContext({}, [stderrService], [], new Map(), new Map());
+        const context = new DefaultContext({
+            stderr: process.stderr
+        }, [stderrService], [], new Map(), new Map());
         const configCommand = new ConfigCommand(100);
 
         await expect(configCommand.run({ config: '/foo.bar' }, context)).rejects.toThrowError();
@@ -102,12 +106,15 @@ describe('ConfigCommand test', () => {
                 yaml.safeDump(getAssociativeArrayFromMap(getConfigMap()))
         });
 
-        const stderrService = new StderrPrinterService(process.stderr, 100);
+        const stderrService = new StderrPrinterService(100);
         stderrService.colorEnabled = false;
         const configurationService = new ConfigurationService(100);
 
-        const context = new DefaultContext({ name: 'cli' }, [stderrService, configurationService], [],
-            new Map(), new Map());
+        const context = new DefaultContext({
+            name: 'cli',
+            stderr: process.stderr
+        }, [stderrService, configurationService], [],
+        new Map(), new Map());
         configurationService.init(context);
 
         expect(configurationService.getConfig().serviceConfigs.size).toEqual(0);

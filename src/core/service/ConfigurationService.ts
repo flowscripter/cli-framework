@@ -129,15 +129,15 @@ export class ConfigurationService implements Service, Configuration {
      * in the [[Context]] will be removed.
      *
      * @throws *Error* if:
-     * * a non-default location is specified and it does not exist, cannot be read or cannot be parsed
+     * * a non-default config file location is specified and it does not exist, cannot be read or cannot be parsed
      * * the default location is used and it exists and can be read but cannot be parsed
      * * *context.cliConfig.name* is not defined
      */
     public init(context: Context): void {
 
-        // determine default config file pathh
-        if (_.isUndefined(context.cliConfig) || _.isUndefined(context.cliConfig.name)) {
-            throw new Error('context.cliConfig.name has not been set!');
+        // determine default config file path
+        if (_.isUndefined(context.cliConfig) || !_.isString(context.cliConfig.name)) {
+            throw new Error('Provided context is missing property: "cliConfig.name: string"');
         }
         this.defaultConfigFilePath = `${os.homedir()}/.${context.cliConfig.name.replace(/\W/g, '')}.yaml`;
 

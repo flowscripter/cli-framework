@@ -27,13 +27,18 @@ describe('UsageCommand test', () => {
     });
 
     test('UsageCommand is instantiable', () => {
-        expect(new UsageCommand('foo', 'bar', getGlobalCommand())).toBeInstanceOf(UsageCommand);
+        expect(new UsageCommand(getGlobalCommand())).toBeInstanceOf(UsageCommand);
     });
 
     test('UsageCommand works', async () => {
-        const service = new StdoutPrinterService(process.stdout, 100);
-        const context = new DefaultContext({}, [service], [], new Map(), new Map());
-        const usageCommand = new UsageCommand('foo', 'bar', getGlobalCommand());
+        const service = new StdoutPrinterService(100);
+        const context = new DefaultContext({
+            stdout: process.stdout,
+            name: 'foo',
+            description: 'bar'
+        }, [service], [], new Map(), new Map());
+        service.init(context);
+        const usageCommand = new UsageCommand(getGlobalCommand());
 
         await usageCommand.run({}, context);
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('bar'));
