@@ -1,5 +1,5 @@
 /**
- * @module @flowscripter/cli-framework
+ * @module @flowscripter/cli-framework-api
  */
 
 export type ArgumentSingleValueType = number | string | boolean;

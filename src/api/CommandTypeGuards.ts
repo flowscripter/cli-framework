@@ -1,5 +1,5 @@
 /**
- * @module @flowscripter/cli-framework
+ * @module @flowscripter/cli-framework-api
  */
 
 import SubCommand from './SubCommand';
