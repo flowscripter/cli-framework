@@ -2,7 +2,7 @@
  * @module @flowscripter/cli-framework
  */
 
-/* eslint-disable no-continue */
+/* eslint-disable no-continue,no-param-reassign */
 
 import _ from 'lodash';
 import debug from 'debug';
@@ -195,15 +195,10 @@ function* flushParseContext(parseContext: ParseContext): Iterable<ParseEvent> {
 }
 
 function resetParseContext(parseContext: ParseContext): void {
-    // eslint-disable-next-line no-param-reassign
     parseContext.state = ParseState.Empty;
-    // eslint-disable-next-line no-param-reassign
     delete parseContext.option;
-    // eslint-disable-next-line no-param-reassign
     delete parseContext.positional;
-    // eslint-disable-next-line no-param-reassign
     delete parseContext.name;
-    // eslint-disable-next-line no-param-reassign
     delete parseContext.value;
 }
 
