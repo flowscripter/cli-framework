@@ -118,11 +118,11 @@ export class ConfigurationService implements Service, Configuration {
      * * *commandConfigs* a [[Command]] configuration map where the keys are [[Command.name]] values and the values are
      * in the form of [[CommandArgs]].
      *
-     * If there is an entry in the provided [[Context]] at *context.serviceConfigs[<this.id>].configurationLocation*
+     * If there is an entry in the provided [[Context]] at `context.serviceConfigs[<this.id>].configurationLocation`
      * this will be set as the value of [[configurationLocation]] and used as the path from which to load the
-     * configuration. If this entry does not exist, a default location of *$HOME/.<context.cliConfig.name>.yaml* will
+     * configuration. If this entry does not exist, a default location of `$HOME/.<context.cliConfig.name>.yaml` will
      * be set and used. Note that in the default location, the *name* used will be stripped of all non-alphanumeric
-     * characters (except *_* and *-*).
+     * characters (except `_` and `-`).
      *
      * The loaded and parsed configuration will be used to replace the *serviceConfigs* and [[commandConfigs]]
      * properties on the provided [[Context]]. This implies that any existing configuration on these properties
