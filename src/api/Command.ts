@@ -35,5 +35,5 @@ export default interface Command {
      * @param commandArgs the arguments for the command.
      * @param context the [[Context]] in which to run.
      */
-    run(commandArgs: CommandArgs, context: Context): Promise<void>;
+    run(commandArgs: CommandArgs, context: Context): Promise<void> | void;
 }

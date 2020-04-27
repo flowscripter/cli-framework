@@ -26,5 +26,5 @@ export default interface Service {
      * @param context the [[Context]] in which to initialise. Note that other services should not be accessed
      * from the provided [[Context]] as they may not yet be initialised.
      */
-    init(context: Context): Promise<void>;
+    init(context: Context): Promise<void> | void;
 }
