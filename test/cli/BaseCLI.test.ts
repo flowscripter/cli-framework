@@ -251,13 +251,12 @@ describe('BaseCLI test', () => {
             version: '1.2.3',
             stdin: process.stdin,
             stdout: process.stdout,
-            stderr: process.stderr,
-            serviceConfigs
+            stderr: process.stderr
         };
 
         const serviceFactoryA = new ServiceFactoryA();
 
-        const cli = new BaseCLI(cliConfig);
+        const cli = new BaseCLI(cliConfig, serviceConfigs);
 
         cli.addServiceFactory(serviceFactoryA);
 

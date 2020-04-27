@@ -6,9 +6,10 @@ import mockFs from 'mock-fs';
 import { mockProcessStderr, mockProcessStdout } from 'jest-mock-process';
 import ConfigCommand from '../../../src/core/command/ConfigCommand';
 import { StderrPrinterService } from '../../../src/core/service/PrinterService';
-import DefaultContext from '../../../src/runtime/DefaultContext';
 import { CommandArgs } from '../../../src';
 import { ConfigurationService } from '../../../src/core/service/ConfigurationService';
+import { getContext } from '../../fixtures/Context';
+import { getCliConfig } from '../../fixtures/CliConfig';
 
 const mockStdout = mockProcessStdout();
 const mockStderr = mockProcessStderr();
@@ -68,10 +69,9 @@ describe('ConfigCommand test', () => {
 
         const stderrService = new StderrPrinterService(100);
         stderrService.colorEnabled = false;
+        const context = getContext(getCliConfig(), [stderrService], []);
+        stderrService.init(context);
 
-        const context = new DefaultContext({
-            stderr: process.stderr
-        }, [stderrService], [], new Map(), new Map());
         const configCommand = new ConfigCommand(100);
 
         await expect(configCommand.run({ config: '/foo.bar' }, context)).rejects.toThrowError();
@@ -89,9 +89,8 @@ describe('ConfigCommand test', () => {
         const stderrService = new StderrPrinterService(100);
         stderrService.colorEnabled = false;
 
-        const context = new DefaultContext({
-            stderr: process.stderr
-        }, [stderrService], [], new Map(), new Map());
+        const context = getContext(getCliConfig(), [stderrService], []);
+        stderrService.init(context);
         const configCommand = new ConfigCommand(100);
 
         await expect(configCommand.run({ config: '/foo.bar' }, context)).rejects.toThrowError();
@@ -109,13 +108,9 @@ describe('ConfigCommand test', () => {
         const stderrService = new StderrPrinterService(100);
         stderrService.colorEnabled = false;
         const configurationService = new ConfigurationService(100);
-
-        const context = new DefaultContext({
-            name: 'cli',
-            stderr: process.stderr
-        }, [stderrService, configurationService], [],
-        new Map(), new Map());
+        const context = getContext(getCliConfig(), [stderrService, configurationService], []);
         configurationService.init(context);
+        stderrService.init(context);
 
         expect(configurationService.getConfig().serviceConfigs.size).toEqual(0);
 

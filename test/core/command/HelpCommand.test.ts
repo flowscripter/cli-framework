@@ -1,8 +1,9 @@
 import { mockProcessStdout } from 'jest-mock-process';
 import { HelpGlobalCommand, HelpSubCommand } from '../../../src/core/command/HelpCommand';
-import DefaultContext from '../../../src/runtime/DefaultContext';
 import { StdoutPrinterService } from '../../../src/core/service/PrinterService';
 import { SubCommandA } from '../../fixtures/CommandFactoryA';
+import { getContext } from '../../fixtures/Context';
+import { getCliConfig } from '../../fixtures/CliConfig';
 
 const mockStdout = mockProcessStdout();
 
@@ -28,12 +29,7 @@ describe('HelpCommand test', () => {
         const help = new HelpGlobalCommand();
         const stdoutService = new StdoutPrinterService(100);
         stdoutService.colorEnabled = false;
-        const context = new DefaultContext({
-            name: 'foo',
-            description: 'foo bar',
-            version: '1.2.3',
-            stdout: process.stdout
-        }, [stdoutService], [help], new Map(), new Map());
+        const context = getContext(getCliConfig(), [stdoutService], [help]);
         stdoutService.init(context);
 
         await help.run({}, context);
@@ -45,12 +41,7 @@ describe('HelpCommand test', () => {
         const help = new HelpSubCommand();
         const stdoutService = new StdoutPrinterService(100);
         stdoutService.colorEnabled = false;
-        const context = new DefaultContext({
-            name: 'foo',
-            description: 'foo bar',
-            version: '1.2.3',
-            stdout: process.stdout
-        }, [stdoutService], [help], new Map(), new Map());
+        const context = getContext(getCliConfig(), [stdoutService], [help]);
         stdoutService.init(context);
 
         await help.run({}, context);
@@ -63,12 +54,7 @@ describe('HelpCommand test', () => {
         const commandA = new SubCommandA();
         const stdoutService = new StdoutPrinterService(100);
         stdoutService.colorEnabled = false;
-        const context = new DefaultContext({
-            name: 'foo',
-            description: 'foo bar',
-            version: '1.2.3',
-            stdout: process.stdout
-        }, [stdoutService], [help, commandA], new Map(), new Map());
+        const context = getContext(getCliConfig(), [stdoutService], [help, commandA]);
         stdoutService.init(context);
 
         await help.run({ command: 'command_a' }, context);
@@ -83,12 +69,7 @@ describe('HelpCommand test', () => {
         const commandA = new SubCommandA();
         const stdoutService = new StdoutPrinterService(100);
         stdoutService.colorEnabled = false;
-        const context = new DefaultContext({
-            name: 'foo',
-            description: 'foo bar',
-            version: '1.2.3',
-            stdout: process.stdout
-        }, [stdoutService], [help, commandA], new Map(), new Map());
+        const context = getContext(getCliConfig(), [stdoutService], [help, commandA]);
         stdoutService.init(context);
 
         await help.run({ command: 'command_a' }, context);
@@ -102,12 +83,7 @@ describe('HelpCommand test', () => {
         const help = new HelpGlobalCommand();
         const stdoutService = new StdoutPrinterService(100);
         stdoutService.colorEnabled = false;
-        const context = new DefaultContext({
-            name: 'foo',
-            description: 'foo bar',
-            version: '1.2.3',
-            stdout: process.stdout
-        }, [stdoutService], [help], new Map(), new Map());
+        const context = getContext(getCliConfig(), [stdoutService], [help]);
         stdoutService.init(context);
 
         await help.run({ command: 'hello' }, context);
@@ -120,12 +96,7 @@ describe('HelpCommand test', () => {
         const help = new HelpSubCommand();
         const stdoutService = new StdoutPrinterService(100);
         stdoutService.colorEnabled = false;
-        const context = new DefaultContext({
-            name: 'foo',
-            description: 'foo bar',
-            version: '1.2.3',
-            stdout: process.stdout
-        }, [stdoutService], [help], new Map(), new Map());
+        const context = getContext(getCliConfig(), [stdoutService], [help]);
         stdoutService.init(context);
 
         await help.run({ command: 'hello' }, context);
@@ -139,12 +110,7 @@ describe('HelpCommand test', () => {
         const commandA = new SubCommandA();
         const stdoutService = new StdoutPrinterService(100);
         stdoutService.colorEnabled = false;
-        const context = new DefaultContext({
-            name: 'foo',
-            description: 'foo bar',
-            version: '1.2.3',
-            stdout: process.stdout
-        }, [stdoutService], [help, commandA], new Map(), new Map());
+        const context = getContext(getCliConfig(), [stdoutService], [help, commandA]);
         stdoutService.init(context);
 
         await help.run({ command: 'command_b' }, context);

@@ -57,10 +57,13 @@
         "@types/js-yaml": "3.12.3",
         "@types/lodash": "4.14.149",
         "@types/mock-fs": "4.10.0",
+        "@types/node": "13.11.1",
+        "@types/pacote": "11.1.0",
         "@types/prompts": "2.0.5",
         "@typescript-eslint/eslint-plugin": "2.26.0",
         "@typescript-eslint/parser": "2.26.0",
-        "babel-plugin-transform-es2015-modules-commonjs": "^6.26.2",
+        "babel-plugin-transform-dynamic-import": "2.1.0",
+        "babel-plugin-transform-es2015-modules-commonjs": "6.26.2",
         "eslint": "6.8.0",
         "eslint-plugin-import": "2.20.2",
         "eslint-plugin-jest": "23.8.2",
@@ -95,6 +98,7 @@
         "leven": "3.1.0",
         "lodash": "4.17.15",
         "ora": "4.0.3",
+        "pacote": "11.1.4",
         "prompts": "2.3.2"
     }
 }

@@ -37,8 +37,8 @@ export default class UsageCommand implements GlobalCommand {
             throw new Error('Provided context is missing property: "cliConfig.description: string"');
         }
 
-        const printer = context.getService(STDOUT_PRINTER_SERVICE) as unknown as Printer;
-        if (printer == null) {
+        const printer = context.serviceRegistry.getServiceById(STDOUT_PRINTER_SERVICE) as unknown as Printer;
+        if (!printer) {
             throw new Error('STDOUT_PRINTER_SERVICE not available in context');
         }
         printer.info(`\n${context.cliConfig.description}\n\n`);

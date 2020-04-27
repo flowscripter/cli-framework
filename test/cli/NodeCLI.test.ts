@@ -34,7 +34,7 @@ describe('NodeCLI test', () => {
                 isVarArgMultiple: true
             }],
             run: async (commandArgs: CommandArgs, context: Context): Promise<void> => {
-                const printer = context.getService(STDOUT_PRINTER_SERVICE) as unknown as Printer;
+                const printer = context.serviceRegistry.getServiceById(STDOUT_PRINTER_SERVICE) as unknown as Printer;
                 const message = commandArgs.message as string[];
                 printer.info(message.join(' '));
             }
@@ -60,12 +60,16 @@ describe('NodeCLI test', () => {
         const mockExit = mockProcessExit();
         const cli = new NodeCLI({
             name: 'foo1',
-            version: 'foo3'
+            version: 'foo3',
+            description: 'custom description',
+            stderr: process.stderr,
+            stdout: process.stdout,
+            stdin: process.stdin
         });
 
         await cli.execute();
 
-        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('CLI framework using ES Modules.'));
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('custom description'));
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('foo1 --help'));
         expect(mockExit).toHaveBeenCalledWith(1);
     });
@@ -121,7 +125,7 @@ describe('NodeCLI test', () => {
                 }
             ],
             run: async (commandArgs: CommandArgs, context: Context): Promise<void> => {
-                const printer = context.getService(STDOUT_PRINTER_SERVICE) as unknown as Printer;
+                const printer = context.serviceRegistry.getServiceById(STDOUT_PRINTER_SERVICE) as unknown as Printer;
                 const message = commandArgs.message as string[];
                 printer.info(message.join(' '));
             }

@@ -4,9 +4,17 @@
  * @module @flowscripter/cli-framework
  */
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import _ from 'lodash';
+import { NodePluginManager } from '@flowscripter/esm-dynamic-plugins';
+import path from 'path';
+import os from 'os';
 import fs from 'fs';
 import debug from 'debug';
 import BaseCLI from './BaseCLI';
+import { CliConfig } from '../api/Context';
+import { CommandArgs } from '..';
 
 const packageInfo = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 
@@ -18,34 +26,41 @@ export default class NodeCLI extends BaseCLI {
     protected readonly log: debug.Debugger = debug('NodeCLI');
 
     /**
-     * Constructor taking an optional config. If not provided name, description and version will be read from the
-     * *package.json* file, *stdout* and *stderr* will be used for output and *stdin* for input.
+     * Constructor taking an optional config.
      *
-     * @param cliConfig an optional CLI configuration object which will be made available in the [[Context]].
-     * It should have the following required properties defined:
-     * * `name` a string value for the CLI name which will be provided to [[Help]] and [[Usage]] [[Command]]
-     * implementations.
-     * * `description` a string value for a CLI description which will be provided to [[Help]] and [[Usage]] [[Command]]
-     * implementations.
-     * * `version` a string value for the CLI version which will be provided to a [[Version]] [[Command]]
-     * implementation.
-     * * *stdin* a Readable stream which will be provided to a [[Prompter]] [[Service]]
-     * implementation.
-     * * *stdout* a Writable stream which will be provided to a stdout [[Printer]] [[Service]]
-     * implementation.
-     * * *stderr* a Writable stream which will be provided to a stderr [[Printer]] [[Service]]
-     * implementation.
+     * If the optional [[CliConfig]] is not provided an internal config will be created with the following properties:
+     *
+     * * `name`: taken from the `package.json` file.
+     * * `description`: taken from the `package.json` file.
+     * * `version`: taken from the `package.json` file.
+     * * `stdin`: `process.stdin`.
+     * * `stdout`: `process.stdout`.
+     * * `stderr`: `process.stderr`.
+     * ** `pluginManagerConfig.pluginManager`: the NodePluginManager implementation class from esm-dynamic-plugins.
+     * ** `pluginManagerConfig.pluginLocation`: `<process.cwd()>/node_modules`
+     * ** `pluginManagerConfig.remoteRegistryLocation`: `https://registry.npmjs.org/`
+     * ** `pluginManagerConfig.cacheLocation`: `<home_dir>/.npm`
+     *
+     * @param cliConfig an optional [[CliConfig]] object which will be made available in the [[Context]].
+     * @param serviceConfigs optional service configurations to be made available in the [[Context]].
+     * @param commandConfigs optional command configurations to be made available in the [[Context]].
      */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    public constructor(cliConfig?: any) {
-        super({
-            name: cliConfig ? cliConfig.name || packageInfo.name : packageInfo.name,
-            description: cliConfig ? cliConfig.description || packageInfo.description : packageInfo.description,
-            version: cliConfig ? cliConfig.version || packageInfo.version : packageInfo.version,
-            stdin: cliConfig ? cliConfig.stdin || process.stdin : process.stdin,
-            stdout: cliConfig ? cliConfig.stdout || process.stdout : process.stdout,
-            stderr: cliConfig ? cliConfig.stderr || process.stderr : process.stderr
-        });
+    public constructor(cliConfig?: CliConfig, serviceConfigs?: Map<string, any>,
+        commandConfigs?: Map<string, CommandArgs>) {
+        super(!_.isUndefined(cliConfig) ? cliConfig : {
+            name: packageInfo.name,
+            description: packageInfo.description,
+            version: packageInfo.version,
+            stdin: process.stdin,
+            stdout: process.stdout,
+            stderr: process.stderr,
+            pluginManagerConfig: {
+                pluginManager: NodePluginManager,
+                pluginLocation: path.join(process.cwd(), 'node_modules'),
+                remoteRegistryLocation: 'https://registry.npmjs.org/',
+                cacheLocation: path.join(os.homedir(), '.npm')
+            }
+        }, serviceConfigs, commandConfigs);
     }
 
     /**

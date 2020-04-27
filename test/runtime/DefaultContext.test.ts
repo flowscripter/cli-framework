@@ -1,56 +1,20 @@
 import DefaultContext from '../../src/runtime/DefaultContext';
-import Service from '../../src/api/Service';
 import { CommandArgs } from '../../src';
-
-const SERVICE_ID = 'service';
+import DefaultCommandRegistry from '../../src/runtime/DefaultCommandRegistry';
+import DefaultServiceRegistry from '../../src/runtime/DefaultServiceRegistry';
 
 describe('DefaultContext test', () => {
 
     test('DefaultContext is instantiable', () => {
-        expect(new DefaultContext({}, [], [], new Map(), new Map())).toBeInstanceOf(DefaultContext);
+        expect(new DefaultContext({}, new DefaultServiceRegistry(), new DefaultCommandRegistry(),
+            new Map(), new Map())).toBeInstanceOf(DefaultContext);
     });
 
     test('CLI config is populated', () => {
-        const context = new DefaultContext({ name: 'foo' }, [], [], new Map(), new Map());
+        const context = new DefaultContext({ name: 'foo' }, new DefaultServiceRegistry(),
+            new DefaultCommandRegistry(), new Map(), new Map());
 
         expect(context.cliConfig.name).toEqual('foo');
-    });
-
-    test('Service is registered and available from one factory', () => {
-        let context = new DefaultContext({}, [], [], new Map(), new Map());
-        expect(context.getService(SERVICE_ID)).toBeNull();
-
-        const services: Service[] = [
-            {
-                id: SERVICE_ID,
-                initPriority: 100,
-                init: (): void => {
-                    // empty
-                }
-            }];
-
-        context = new DefaultContext({}, services, [], new Map(), new Map());
-        expect(context.getService(SERVICE_ID)).not.toBeNull();
-    });
-
-    test('Cannot add duplicate service', () => {
-
-        const services: Service[] = [
-            {
-                id: SERVICE_ID,
-                initPriority: 100,
-                init: (): void => {
-                    // empty
-                }
-            }, {
-                id: SERVICE_ID,
-                initPriority: 110,
-                init: (): void => {
-                    // empty
-                }
-            }];
-
-        expect(() => new DefaultContext({}, services, [], new Map(), new Map())).toThrow();
     });
 
     test('Service configs is populated', () => {
@@ -59,7 +23,8 @@ describe('DefaultContext test', () => {
 
         serviceConfigs.set('foo', 'bar');
 
-        const context = new DefaultContext({}, [], [], serviceConfigs, new Map());
+        const context = new DefaultContext({ name: 'foo' }, new DefaultServiceRegistry(),
+            new DefaultCommandRegistry(), serviceConfigs, new Map());
 
         expect(context.serviceConfigs.get('foo')).toEqual('bar');
     });
@@ -69,7 +34,8 @@ describe('DefaultContext test', () => {
 
         commandConfigs.set('foo', { bar: 1 });
 
-        const context = new DefaultContext({}, [], [], new Map(), commandConfigs);
+        const context = new DefaultContext({ name: 'foo' }, new DefaultServiceRegistry(),
+            new DefaultCommandRegistry(), new Map(), commandConfigs);
 
         const config = context.commandConfigs.get('foo');
         expect(config).toBeDefined();

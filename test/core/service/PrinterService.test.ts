@@ -1,7 +1,7 @@
 import { mockProcessStdout } from 'jest-mock-process';
 
 import { Level, StdoutPrinterService } from '../../../src/core/service/PrinterService';
-import DefaultContext from '../../../src/runtime/DefaultContext';
+import { getContext } from '../../fixtures/Context';
 
 const mockStdout = mockProcessStdout();
 
@@ -22,9 +22,9 @@ describe('PrinterService test', () => {
     test('Bold works (testing with color disabled)', () => {
         const ps = new StdoutPrinterService(100);
         ps.colorEnabled = false;
-        const context = new DefaultContext({
+        const context = getContext({
             stdout: process.stdout
-        }, [ps], [], new Map(), new Map());
+        }, [ps], []);
         ps.init(context);
 
         ps.info(`hello ${ps.bold('world')}`);
@@ -36,9 +36,9 @@ describe('PrinterService test', () => {
     test('Writable accessible', () => {
         const ps = new StdoutPrinterService(100);
         ps.colorEnabled = false;
-        const context = new DefaultContext({
+        const context = getContext({
             stdout: process.stdout
-        }, [ps], [], new Map(), new Map());
+        }, [ps], []);
         ps.init(context);
 
         ps.writable.write('hello world');
@@ -50,9 +50,9 @@ describe('PrinterService test', () => {
     test('Level filtering works', () => {
         const ps = new StdoutPrinterService(100);
         ps.colorEnabled = false;
-        const context = new DefaultContext({
+        const context = getContext({
             stdout: process.stdout
-        }, [ps], [], new Map(), new Map());
+        }, [ps], []);
         ps.init(context);
 
         ps.info('hello info 1');

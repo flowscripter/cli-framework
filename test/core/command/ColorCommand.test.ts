@@ -1,7 +1,8 @@
 import { mockProcessStderr, mockProcessStdout } from 'jest-mock-process';
 import { StdoutPrinterService, StderrPrinterService } from '../../../src/core/service/PrinterService';
-import DefaultContext from '../../../src/runtime/DefaultContext';
 import { ColorCommand, NoColorCommand } from '../../../src/core/command/ColorCommand';
+import { getContext } from '../../fixtures/Context';
+import { getCliConfig } from '../../fixtures/CliConfig';
 
 const mockStdout = mockProcessStdout();
 const mockStderr = mockProcessStderr();
@@ -25,10 +26,7 @@ describe('ColorCommand test', () => {
     test('Forcing color works', async () => {
         const stdoutService = new StdoutPrinterService(90);
         const stderrService = new StderrPrinterService(90);
-        const context = new DefaultContext({
-            stdout: process.stdout,
-            stderr: process.stderr
-        }, [stdoutService, stderrService], [], new Map(), new Map());
+        const context = getContext(getCliConfig(), [stdoutService, stderrService], []);
         const colorCommand = new ColorCommand(100);
 
         stdoutService.colorEnabled = false;
@@ -47,10 +45,7 @@ describe('ColorCommand test', () => {
     test('Forcing no color works', async () => {
         const stdoutService = new StdoutPrinterService(90);
         const stderrService = new StderrPrinterService(90);
-        const context = new DefaultContext({
-            stdout: process.stdout,
-            stderr: process.stderr
-        }, [stdoutService, stderrService], [], new Map(), new Map());
+        const context = getContext(getCliConfig(), [stdoutService, stderrService], []);
         const noColorCommand = new NoColorCommand(100);
 
         stdoutService.colorEnabled = true;

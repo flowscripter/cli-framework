@@ -1,7 +1,8 @@
 import { mockProcessStderr, mockProcessStdout } from 'jest-mock-process';
 import LogLevelCommand from '../../../src/core/command/LogLevelCommand';
 import { StdoutPrinterService, StderrPrinterService } from '../../../src/core/service/PrinterService';
-import DefaultContext from '../../../src/runtime/DefaultContext';
+import { getContext } from '../../fixtures/Context';
+import { getCliConfig } from '../../fixtures/CliConfig';
 
 const mockStdout = mockProcessStdout();
 const mockStderr = mockProcessStderr();
@@ -24,13 +25,8 @@ describe('LogLevelCommand test', () => {
 
     test('Stdout and stderr filtering works', async () => {
         const stdoutService = new StdoutPrinterService(90);
-
         const stderrService = new StderrPrinterService(90);
-
-        const context = new DefaultContext({
-            stdout: process.stdout,
-            stderr: process.stderr
-        }, [stdoutService, stderrService], [], new Map(), new Map());
+        const context = getContext(getCliConfig(), [stdoutService, stderrService], []);
 
         stdoutService.init(context);
         stderrService.init(context);

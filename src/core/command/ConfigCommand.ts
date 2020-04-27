@@ -41,8 +41,8 @@ export default class ConfigCommand implements GlobalModifierCommand {
      */
     // eslint-disable-next-line class-methods-use-this
     public async run(commandArgs: CommandArgs, context: Context): Promise<void> {
-        const printer = context.getService(STDERR_PRINTER_SERVICE) as unknown as Printer;
-        if (printer == null) {
+        const printer = context.serviceRegistry.getServiceById(STDERR_PRINTER_SERVICE) as unknown as Printer;
+        if (!printer) {
             throw new Error('STDERR_PRINTER_SERVICE not available in context');
         }
 
@@ -74,8 +74,8 @@ export default class ConfigCommand implements GlobalModifierCommand {
         }
 
         // set the new location for the configuration service
-        const configuration = context.getService(CONFIGURATION_SERVICE) as unknown as Configuration;
-        if (configuration == null) {
+        const configuration = context.serviceRegistry.getServiceById(CONFIGURATION_SERVICE) as unknown as Configuration;
+        if (!configuration) {
             throw new Error('CONFIGURATION_SERVICE not available in context');
         }
         configuration.configurationLocation = configLocation;

@@ -5,6 +5,7 @@ import GlobalCommand from '../../../src/api/GlobalCommand';
 import { ArgumentValueTypeName } from '../../../src/api/ArgumentValueType';
 import GroupCommand from '../../../src/api/GroupCommand';
 import GlobalModifierCommand from '../../../src/api/GlobalModifierCommand';
+import { getCommandRegistry } from '../../fixtures/CommandRegistry';
 
 function expectScanResult(result: ScanResult, expected: ScanResult) {
 
@@ -80,8 +81,10 @@ describe('DefaultParser test', () => {
         expect(new DefaultParser()).toBeInstanceOf(DefaultParser);
     });
 
-    test('Sub-command not scanned if not added', () => {
+    test('Command not scanned if not added', () => {
         const defaultParser: DefaultParser = new DefaultParser();
+
+        defaultParser.setCommandRegistry(getCommandRegistry([]));
 
         let scanResult = defaultParser.scanForCommandClauses(['command', 'foo', '--goo', 'g']);
         expectScanResult(scanResult, {
@@ -100,7 +103,7 @@ describe('DefaultParser test', () => {
         const defaultParser: DefaultParser = new DefaultParser();
         const groupCommand = getGroupCommand('group', [getSubCommand()]);
 
-        defaultParser.setCommands([groupCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([groupCommand]));
 
         const scanResult = defaultParser.scanForCommandClauses(['command', 'foo', '--goo', 'g']);
         expectScanResult(scanResult, {
@@ -113,7 +116,7 @@ describe('DefaultParser test', () => {
         const defaultParser: DefaultParser = new DefaultParser();
         const globalCommand = getGlobalCommand();
 
-        defaultParser.setCommands([globalCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([globalCommand]));
 
         const expected = {
             commandClauses: [{
@@ -140,7 +143,7 @@ describe('DefaultParser test', () => {
         const defaultParser: DefaultParser = new DefaultParser();
         const globalCommand = getGlobalCommand();
 
-        defaultParser.setCommands([globalCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([globalCommand]));
 
         const expected = {
             commandClauses: [{
@@ -167,7 +170,7 @@ describe('DefaultParser test', () => {
         const defaultParser: DefaultParser = new DefaultParser();
         const globalCommand = getGlobalCommand();
 
-        defaultParser.setCommands([globalCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([globalCommand]));
 
         const expected = {
             commandClauses: [{
@@ -185,7 +188,7 @@ describe('DefaultParser test', () => {
         const defaultParser: DefaultParser = new DefaultParser();
         const modifierCommand = getGlobalModifierCommand('modifier', 'm');
 
-        defaultParser.setCommands([modifierCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([modifierCommand]));
 
         const expected = {
             commandClauses: [{
@@ -213,7 +216,7 @@ describe('DefaultParser test', () => {
         const modifierCommand1 = getGlobalModifierCommand('modifier1', '1');
         const modifierCommand2 = getGlobalModifierCommand('modifier2', '2');
 
-        defaultParser.setCommands([modifierCommand1, modifierCommand2]);
+        defaultParser.setCommandRegistry(getCommandRegistry([modifierCommand1, modifierCommand2]));
 
         const expected = {
             commandClauses: [{
@@ -255,7 +258,7 @@ describe('DefaultParser test', () => {
         const defaultParser: DefaultParser = new DefaultParser();
         const subCommand = getSubCommand();
 
-        defaultParser.setCommands([subCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([subCommand]));
 
         const scanResult = defaultParser.scanForCommandClauses(['command', 'bar', '--goo', 'g']);
         expectScanResult(scanResult, {
@@ -271,7 +274,7 @@ describe('DefaultParser test', () => {
         const defaultParser: DefaultParser = new DefaultParser();
         const subCommand = getSubCommand();
 
-        defaultParser.setCommands([subCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([subCommand]));
 
         const scanResult = defaultParser.scanForCommandClauses(['command', 'bar', '--goo', 'g', 'command', 'bar']);
         expectScanResult(scanResult, {
@@ -288,7 +291,7 @@ describe('DefaultParser test', () => {
         const subCommand = getSubCommand();
         const groupCommand = getGroupCommand('group', [subCommand]);
 
-        defaultParser.setCommands([groupCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([groupCommand]));
 
         const expected = {
             commandClauses: [{
@@ -312,7 +315,7 @@ describe('DefaultParser test', () => {
         const groupCommand1 = getGroupCommand('group1', [subCommand]);
         const groupCommand2 = getGroupCommand('group2', [subCommand]);
 
-        defaultParser.setCommands([groupCommand1, groupCommand2]);
+        defaultParser.setCommandRegistry(getCommandRegistry([groupCommand1, groupCommand2]));
 
         let scanResult = defaultParser.scanForCommandClauses([
             'group1', 'command', 'bar', '--goo', 'g',
@@ -347,7 +350,7 @@ describe('DefaultParser test', () => {
         const globalCommand = getGlobalCommand();
         const subCommand = getSubCommand();
 
-        defaultParser.setCommands([modifierCommand, globalCommand, subCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([modifierCommand, globalCommand, subCommand]));
 
         const scanResult = defaultParser.scanForCommandClauses([
             'command', 'bar', '--goo', 'g'
@@ -367,7 +370,7 @@ describe('DefaultParser test', () => {
         const modifierCommand2 = getGlobalModifierCommand('modifier2', '2');
         const globalCommand = getGlobalCommand();
 
-        defaultParser.setCommands([modifierCommand1, modifierCommand2, globalCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([modifierCommand1, modifierCommand2, globalCommand]));
 
         let scanResult = defaultParser.scanForCommandClauses([
             '--modifier1', 'g', 'bar',
@@ -433,7 +436,7 @@ describe('DefaultParser test', () => {
         const modifierCommand2 = getGlobalModifierCommand('modifier2', '2');
         const globalCommand = getGlobalCommand();
 
-        defaultParser.setCommands([modifierCommand1, modifierCommand2, globalCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([modifierCommand1, modifierCommand2, globalCommand]));
 
         const scanResult = defaultParser.scanForCommandClauses([
             '--modifier1', 'g', 'bar',
@@ -463,7 +466,7 @@ describe('DefaultParser test', () => {
         const subCommand = getSubCommand();
         const groupCommand = getGroupCommand('group', [subCommand]);
 
-        defaultParser.setCommands([modifierCommand1, modifierCommand2, groupCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([modifierCommand1, modifierCommand2, groupCommand]));
 
         const scanResult = defaultParser.scanForCommandClauses([
             '--modifier1', 'g', 'bar',
@@ -492,7 +495,7 @@ describe('DefaultParser test', () => {
         const modifierCommand = getGlobalModifierCommand('modifier', '1');
         const subCommand = getSubCommand();
 
-        defaultParser.setCommands([modifierCommand, subCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([modifierCommand, subCommand]));
 
         const scanResult = defaultParser.scanForCommandClauses([
             '--modifier', 'g', 'bar',
@@ -518,7 +521,8 @@ describe('DefaultParser test', () => {
         const globalCommand = getGlobalCommand();
         const subCommand = getSubCommand();
 
-        defaultParser.setCommands([modifierCommand1, modifierCommand2, globalCommand, subCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([modifierCommand1, modifierCommand2, globalCommand,
+            subCommand]));
 
         let scanResult = defaultParser.scanForCommandClauses([
             'command', 'bar', '--goo', 'g',
@@ -574,7 +578,8 @@ describe('DefaultParser test', () => {
         const subCommand = getSubCommand();
         const groupCommand = getGroupCommand('group', [subCommand]);
 
-        defaultParser.setCommands([modifierCommand1, modifierCommand2, groupCommand, subCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([modifierCommand1, modifierCommand2, groupCommand,
+            subCommand]));
 
         const scanResult = defaultParser.scanForCommandClauses([
             'command', 'bar', '--goo', 'g',
@@ -607,7 +612,7 @@ describe('DefaultParser test', () => {
         const globalCommand = getGlobalCommand();
         const subCommand = getSubCommand();
 
-        defaultParser.setCommands([modifierCommand, globalCommand, subCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([modifierCommand, globalCommand, subCommand]));
 
         let scanResult = defaultParser.scanForCommandClauses([
             'hello', '--world',
@@ -646,7 +651,7 @@ describe('DefaultParser test', () => {
         const defaultParser: DefaultParser = new DefaultParser();
         const subCommand = getSubCommand();
 
-        defaultParser.setCommands([subCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([subCommand]));
 
         let parseResult = defaultParser.parseCommandClause({
             command: subCommand,
@@ -681,7 +686,7 @@ describe('DefaultParser test', () => {
         const defaultParser: DefaultParser = new DefaultParser();
         const globalCommand = getGlobalCommand();
 
-        defaultParser.setCommands([globalCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([globalCommand]));
 
         const parseResult = defaultParser.parseCommandClause({
             command: globalCommand,
@@ -701,7 +706,7 @@ describe('DefaultParser test', () => {
         const defaultParser: DefaultParser = new DefaultParser();
         const globalModifierCommand = getGlobalModifierCommand('modifierCommand', 'm');
 
-        defaultParser.setCommands([globalModifierCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([globalModifierCommand]));
 
         const parseResult = defaultParser.parseCommandClause({
             command: globalModifierCommand,
@@ -721,7 +726,7 @@ describe('DefaultParser test', () => {
         const defaultParser: DefaultParser = new DefaultParser();
         const subCommand = getSubCommand();
 
-        defaultParser.setCommands([subCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([subCommand]));
 
         const parseResult = defaultParser.parseCommandClause({
             command: subCommand,
@@ -742,7 +747,7 @@ describe('DefaultParser test', () => {
         const defaultParser: DefaultParser = new DefaultParser();
         const subCommand = getSubCommand();
 
-        defaultParser.setCommands([subCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([subCommand]));
 
         const parseResult = defaultParser.parseCommandClause({
             command: subCommand,
@@ -766,7 +771,7 @@ describe('DefaultParser test', () => {
         const defaultParser: DefaultParser = new DefaultParser();
         const subCommand = getSubCommand();
 
-        defaultParser.setCommands([subCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([subCommand]));
 
         let parseResult = defaultParser.parseCommandClause({
             command: subCommand,
@@ -805,7 +810,7 @@ describe('DefaultParser test', () => {
         const defaultParser: DefaultParser = new DefaultParser();
         const subCommand = getSubCommand();
 
-        defaultParser.setCommands([subCommand]);
+        defaultParser.setCommandRegistry(getCommandRegistry([subCommand]));
 
         const parseResult = defaultParser.parseCommandClause({
             command: subCommand,
