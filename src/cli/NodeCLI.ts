@@ -9,7 +9,6 @@
 import _ from 'lodash';
 import { NodePluginManager } from '@flowscripter/esm-dynamic-plugins';
 import path from 'path';
-import os from 'os';
 import fs from 'fs';
 import debug from 'debug';
 import BaseCLI from './BaseCLI';
@@ -56,9 +55,7 @@ export default class NodeCLI extends BaseCLI {
             stderr: process.stderr,
             pluginManagerConfig: {
                 pluginManager: NodePluginManager,
-                pluginLocation: path.join(process.cwd(), 'node_modules'),
-                remoteRegistryLocation: 'https://registry.npmjs.org/',
-                cacheLocation: path.join(os.homedir(), '.npm')
+                pluginLocation: path.join(process.cwd(), 'node_modules')
             }
         }, serviceConfigs, commandConfigs);
     }
