@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-empty-function */
 
+import { mockProcessStdout, mockProcessStderr } from 'jest-mock-process';
 import { NodePluginManager } from '@flowscripter/esm-dynamic-plugins';
 import { AddCommand, RemoveCommand } from '../../../src/plugin/command/AddRemoveCommand';
 import { getContext } from '../../fixtures/Context';
@@ -24,6 +25,9 @@ const mockedGetDependencies = getDependencies as jest.Mock<Promise<string[]>>;
 const mockedGetInstalledDependencies = getInstalledDependencies as jest.Mock<Promise<string[]>>;
 const mockedInstallPackage = installPackage as jest.Mock<Promise<void>>;
 const mockedUninstallPackage = uninstallPackage as jest.Mock<Promise<void>>;
+
+const mockStdout = mockProcessStdout();
+const mockStderr = mockProcessStderr();
 
 describe('AddRemoveCommand test', () => {
 
@@ -101,6 +105,11 @@ describe('AddRemoveCommand test', () => {
         mockedUninstallPackage.mockImplementation(async (): Promise<void> => {});
     });
 
+    afterAll(() => {
+        mockStdout.mockRestore();
+        mockStderr.mockRestore();
+    });
+
     function clearMocks(): void {
         mockedGetAllInstalledPackages.mockClear();
         mockedGetInstalledTopLevelPackages.mockClear();
@@ -111,6 +120,8 @@ describe('AddRemoveCommand test', () => {
     }
 
     beforeEach(() => {
+        mockStdout.mockReset();
+        mockStderr.mockReset();
         clearMocks();
     });
 
