@@ -7,8 +7,8 @@
 import _ from 'lodash';
 import debug from 'debug';
 import Command, { CommandArgs } from '../../api/Command';
-import populateSubCommandValues from './SubCommandValuePopulation';
-import populateGlobalCommandValue from './GlobalCommandValuePopulation';
+import populateSubCommandValues from './populateSubCommandValues';
+import populateGlobalCommandValue from './populateGlobalCommandValue';
 import {
     validateGlobalCommandArgumentValue,
     validateOptionValue,
