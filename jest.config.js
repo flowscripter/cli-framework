@@ -27,7 +27,10 @@ module.exports = {
     globals: {
         'ts-jest': {
             babelConfig: {
-                plugins: ['transform-es2015-modules-commonjs']
+                plugins: [
+                    'transform-es2015-modules-commonjs',
+                    'transform-dynamic-import'
+                ]
             },
             isolatedModules: true
         }
