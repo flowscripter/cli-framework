@@ -5,8 +5,11 @@ import GlobalCommandArgument from '../../src/api/GlobalCommandArgument';
 import SubCommand from '../../src/api/SubCommand';
 import GlobalCommand from '../../src/api/GlobalCommand';
 import GroupCommand from '../../src/api/GroupCommand';
-// eslint-disable-next-line max-len
-import validateCommand, { validateGlobalCommand, validateSubCommand, validateGroupCommand } from '../../src/runtime/CommandValidation';
+import validateCommand, {
+    validateGlobalCommand,
+    validateSubCommand,
+    validateGroupCommand
+} from '../../src/runtime/CommandValidation';
 
 function getSubCommand(name: string, options: Option[], positionals: Positional[]): SubCommand {
     return {
