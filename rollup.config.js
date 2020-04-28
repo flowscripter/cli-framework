@@ -43,7 +43,8 @@ module.exports = [
             'tls',
             'net',
             'dns',
-            'constants'
+            'constants',
+            'async_hooks'
         ],
         plugins: [
             peerDepsExternal(),
