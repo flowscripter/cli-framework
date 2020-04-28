@@ -35,7 +35,7 @@
     ],
     "types": "dist/types/index.d.ts",
     "engines": {
-        "node": "12.16.2"
+        "node": "12.16.3"
     },
     "scripts": {
         "prebuild": "npx rimraf dist",
@@ -57,7 +57,7 @@
         "@types/js-yaml": "3.12.3",
         "@types/lodash": "4.14.150",
         "@types/mock-fs": "4.10.0",
-        "@types/node": "13.11.1",
+        "@types/node": "13.13.4",
         "@types/pacote": "11.1.0",
         "@types/prompts": "2.0.6",
         "@typescript-eslint/eslint-plugin": "2.30.0",
@@ -98,7 +98,7 @@
         "leven": "3.1.0",
         "lodash": "4.17.15",
         "ora": "4.0.3",
-        "pacote": "11.1.4",
+        "pacote": "11.1.6",
         "prompts": "2.3.2"
     }
 }
