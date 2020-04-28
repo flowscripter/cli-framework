@@ -91,7 +91,7 @@
     },
     "dependencies": {
         "@flowscripter/esm-dynamic-plugins": "1.4.26",
-        "bluebird": "^3.7.2",
+        "bluebird": "3.7.2",
         "debug": "4.1.1",
         "js-yaml": "3.13.1",
         "kleur": "3.0.3",
