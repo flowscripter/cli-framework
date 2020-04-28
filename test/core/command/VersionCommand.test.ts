@@ -2,7 +2,7 @@ import { mockProcessStdout } from 'jest-mock-process';
 import VersionCommand from '../../../src/core/command/VersionCommand';
 import { StdoutPrinterService } from '../../../src/core/service/PrinterService';
 import { getContext } from '../../fixtures/Context';
-import { getCliConfig } from '../../fixtures/CliConfig';
+import { getCliConfig } from '../../fixtures/CLIConfig';
 
 const mockStdout = mockProcessStdout();
 

@@ -12,8 +12,8 @@ import path from 'path';
 import fs from 'fs';
 import debug from 'debug';
 import BaseCLI from './BaseCLI';
-import { CliConfig } from '../api/Context';
 import { CommandArgs } from '..';
+import CLIConfig from '../api/CLIConfig';
 
 const packageInfo = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 
@@ -27,7 +27,7 @@ export default class NodeCLI extends BaseCLI {
     /**
      * Constructor taking an optional config.
      *
-     * If the optional [[CliConfig]] is not provided an internal config will be created with the following properties:
+     * If the optional [[CLIConfig]] is not provided an internal config will be created with the following properties:
      *
      * * `name`: taken from the `package.json` file.
      * * `description`: taken from the `package.json` file.
@@ -37,14 +37,12 @@ export default class NodeCLI extends BaseCLI {
      * * `stderr`: `process.stderr`.
      * ** `pluginManagerConfig.pluginManager`: the NodePluginManager implementation class from esm-dynamic-plugins.
      * ** `pluginManagerConfig.pluginLocation`: `<process.cwd()>/node_modules`
-     * ** `pluginManagerConfig.remoteRegistryLocation`: `https://registry.npmjs.org/`
-     * ** `pluginManagerConfig.cacheLocation`: `<home_dir>/.npm`
      *
-     * @param cliConfig an optional [[CliConfig]] object which will be made available in the [[Context]].
+     * @param cliConfig an optional [[CLIConfig]] object which will be made available in the [[Context]].
      * @param serviceConfigs optional service configurations to be made available in the [[Context]].
      * @param commandConfigs optional command configurations to be made available in the [[Context]].
      */
-    public constructor(cliConfig?: CliConfig, serviceConfigs?: Map<string, any>,
+    public constructor(cliConfig?: CLIConfig, serviceConfigs?: Map<string, any>,
         commandConfigs?: Map<string, CommandArgs>) {
         super(!_.isUndefined(cliConfig) ? cliConfig : {
             name: packageInfo.name,

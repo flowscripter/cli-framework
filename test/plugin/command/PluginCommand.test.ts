@@ -3,7 +3,7 @@
 import PluginCommand from '../../../src/plugin/command/PluginCommand';
 import { AddCommand, RemoveCommand } from '../../../src/plugin/command/AddRemoveCommand';
 import { getContext } from '../../fixtures/Context';
-import { getCliConfig } from '../../fixtures/CliConfig';
+import { getCliConfig } from '../../fixtures/CLIConfig';
 import { CommandArgs } from '../../../src';
 
 describe('PluginCommand test', () => {
