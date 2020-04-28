@@ -25,11 +25,11 @@ describe('PrompterService test', () => {
     });
 
     test('PrompterService is instantiable', () => {
-        expect(new PrompterService(process.stdin, process.stdout, 1)).toBeInstanceOf(PrompterService);
+        expect(new PrompterService(1)).toBeInstanceOf(PrompterService);
     });
 
     test('Text prompt works', async () => {
-        const ps = new PrompterService(process.stdin, process.stdout, 100);
+        const ps = new PrompterService(100);
 
         process.nextTick(() => {
             mockStdIn.send('bar\r');
@@ -43,7 +43,7 @@ describe('PrompterService test', () => {
     });
 
     test('Number prompt works for integer', async () => {
-        const ps = new PrompterService(process.stdin, process.stdout, 100);
+        const ps = new PrompterService(100);
 
         process.nextTick(() => {
             mockStdIn.send('11\r');
@@ -57,7 +57,7 @@ describe('PrompterService test', () => {
     });
 
     test('Number prompt works for float with default rounding', async () => {
-        const ps = new PrompterService(process.stdin, process.stdout, 100);
+        const ps = new PrompterService(100);
 
         process.nextTick(() => {
             mockStdIn.send('1.123\r');
@@ -71,7 +71,7 @@ describe('PrompterService test', () => {
     });
 
     test('Number prompt works for float with non-default rounding', async () => {
-        const ps = new PrompterService(process.stdin, process.stdout, 100);
+        const ps = new PrompterService(100);
 
         process.nextTick(() => {
             mockStdIn.send('1.1236\r');
@@ -85,7 +85,7 @@ describe('PrompterService test', () => {
     });
 
     test('Boolean prompt works', async () => {
-        const ps = new PrompterService(process.stdin, process.stdout, 100);
+        const ps = new PrompterService(100);
 
         process.nextTick(() => {
             mockStdIn.send('y\r');
@@ -99,7 +99,7 @@ describe('PrompterService test', () => {
     });
 
     test('Password prompt works', async () => {
-        const ps = new PrompterService(process.stdin, process.stdout, 100);
+        const ps = new PrompterService(100);
 
         process.nextTick(() => {
             mockStdIn.send('secret\r');
@@ -113,7 +113,7 @@ describe('PrompterService test', () => {
     });
 
     test('Select prompt works', async () => {
-        const ps = new PrompterService(process.stdin, process.stdout, 100);
+        const ps = new PrompterService(100);
 
         process.nextTick(() => {
             mockStdIn.send('\r');

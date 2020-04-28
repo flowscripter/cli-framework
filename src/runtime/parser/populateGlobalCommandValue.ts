@@ -2,8 +2,6 @@
  * @module @flowscripter/cli-framework
  */
 
-/* eslint-disable no-continue */
-
 import _ from 'lodash';
 import debug from 'debug';
 import { InvalidArg, InvalidReason } from '../../api/Parser';
@@ -26,9 +24,6 @@ export default function populateGlobalCommandValue(globalCommand: GlobalCommand,
     invalidArgs: InvalidArg[]): PopulateResult {
 
     log(`Populating args: ${potentialArgs.join(' ')} for global command: ${globalCommand.name}`);
-
-    // const commandArgs: CommandArgs = {};
-    // const unusedArgs: string[] = [];
 
     const { argument } = globalCommand;
 

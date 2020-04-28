@@ -7,9 +7,8 @@
 import _ from 'lodash';
 import debug from 'debug';
 import Command, { CommandArgs } from '../../api/Command';
-import populateSubCommandValues from './SubCommandValuePopulation';
-import populateGlobalCommandValue from './GlobalCommandValuePopulation';
-import GroupCommand from '../../api/GroupCommand';
+import populateSubCommandValues from './populateSubCommandValues';
+import populateGlobalCommandValue from './populateGlobalCommandValue';
 import {
     validateGlobalCommandArgumentValue,
     validateOptionValue,
@@ -24,9 +23,10 @@ import Parser, {
 import {
     isGlobalCommand,
     isGlobalModifierCommand,
-    isGroupCommand,
     isSubCommand
 } from '../../api/CommandTypeGuards';
+import CommandRegistry from '../../api/CommandRegistry';
+import GroupCommand from '../../api/GroupCommand';
 
 /**
  * A container holding the result of a single scanning operation.
@@ -53,47 +53,23 @@ export default class DefaultParser implements Parser {
 
     private readonly log: debug.Debugger = debug('DefaultParser');
 
-    private readonly subCommandsByName: Map<string, Command> = new Map();
-
-    private readonly globalCommandsByName: Map<string, Command> = new Map();
-
-    private readonly globalCommandNamesByShortAlias: Map<string, string> = new Map();
+    private commandRegistry: CommandRegistry | undefined;
 
     private readonly groupAndMemberCommandsByJoinedNames: Map<string, [GroupCommand, Command]> = new Map();
 
     /**
      * @inheritdoc
      */
-    public setCommands(commands: Command[]): void {
+    public setCommandRegistry(commandRegistry: CommandRegistry): void {
+        this.commandRegistry = commandRegistry;
 
-        commands.forEach((command) => {
-
-            // sub-commands
-            if (isSubCommand(command)) {
-                this.subCommandsByName.set(command.name, command);
-                return;
-            }
-
-            // global commands
-            if (isGlobalCommand(command) || isGlobalModifierCommand(command)) {
-                this.globalCommandsByName.set(command.name, command);
-                if (!_.isUndefined(command.shortAlias)) {
-                    this.globalCommandNamesByShortAlias.set(command.shortAlias, command.name);
-                }
-                return;
-            }
-
-            // group commands
-            if (isGroupCommand(command)) {
-                command.memberSubCommands.forEach((memberSubCommand) => {
-                    this.groupAndMemberCommandsByJoinedNames.set(command.name + memberSubCommand.name, [
-                        command, memberSubCommand
-                    ]);
-                });
-                return;
-            }
-            throw new Error('Unsupported command type provided');
-        });
+        for (const groupCommand of this.commandRegistry.getGroupCommands()) {
+            groupCommand.memberSubCommands.forEach((memberSubCommand) => {
+                this.groupAndMemberCommandsByJoinedNames.set(groupCommand.name + memberSubCommand.name, [
+                    groupCommand, memberSubCommand
+                ]);
+            });
+        }
     }
 
     private scanForNextCommandArg(potentialArgs: string[], greedy: boolean): LocalScanResult {
@@ -149,27 +125,28 @@ export default class DefaultParser implements Parser {
                 }
 
                 // could be <sub_command_name>
-                if (this.subCommandsByName.has(arg)) {
+                if (this.commandRegistry === undefined) {
+                    throw new Error('commandRegistry is undefined, has setCommandRegistry() been invoked?');
+                }
+                const command = this.commandRegistry.getSubCommandByName(arg);
 
-                    const command = this.subCommandsByName.get(arg);
+                if (command) {
+                    this.log(`Found sub-command name: ${arg}`);
 
-                    if (command) {
-                        this.log(`Found sub-command name: ${arg}`);
-
-                        return {
-                            commandClause: {
-                                command,
-                                potentialArgs: pendingArgs
-                            },
-                            unusedLeadingArgs
-                        };
-                    }
+                    return {
+                        commandClause: {
+                            command,
+                            potentialArgs: pendingArgs
+                        },
+                        unusedLeadingArgs
+                    };
                 }
             } else if (arg.startsWith('--')) {
                 // could be <global_modifier_command_name> or <global_command_name>
                 const potentialGlobalCommandName = arg.slice(2);
 
-                const command = this.globalCommandsByName.get(potentialGlobalCommandName);
+                // eslint-disable-next-line max-len,@typescript-eslint/no-non-null-assertion
+                const command = this.commandRegistry!.getGlobalOrGlobalModifierCommandByName(potentialGlobalCommandName);
                 if (command) {
                     if (!greedy || isGlobalModifierCommand(command)) {
                         this.log(`Found global command name: ${potentialGlobalCommandName}`);
@@ -196,6 +173,10 @@ export default class DefaultParser implements Parser {
      */
     public scanForCommandClauses(args: string[]): ScanResult {
 
+        if (!this.commandRegistry) {
+            throw new Error('CommandRegistry has not been set!');
+        }
+
         this.log('Normalising global command arguments: mapping from short alias to name and removing =');
 
         // expand global args
@@ -221,7 +202,7 @@ export default class DefaultParser implements Parser {
                 }
 
                 // check if this is a global command name
-                if (!this.globalCommandsByName.has(potentialGlobalCommandName)) {
+                if (!this.commandRegistry.getGlobalOrGlobalModifierCommandByName(potentialGlobalCommandName)) {
                     potentialArgs.push(arg);
                     // eslint-disable-next-line no-continue
                     continue;
@@ -245,14 +226,16 @@ export default class DefaultParser implements Parser {
                 }
 
                 // check if this is a global command short alias
-                if (!this.globalCommandNamesByShortAlias.has(potentialGlobalCommandShortAlias)) {
+                // eslint-disable-next-line max-len
+                if (!this.commandRegistry.getGlobalOrGlobalModifierCommandByShortAlias(potentialGlobalCommandShortAlias)) {
                     potentialArgs.push(arg);
                     // eslint-disable-next-line no-continue
                     continue;
                 }
 
                 this.log(`Found global command short alias: ${potentialGlobalCommandShortAlias}`);
-                potentialArgs.push(`--${this.globalCommandNamesByShortAlias.get(potentialGlobalCommandShortAlias)}`);
+                // eslint-disable-next-line max-len,@typescript-eslint/no-non-null-assertion
+                potentialArgs.push(`--${this.commandRegistry.getGlobalOrGlobalModifierCommandByShortAlias(potentialGlobalCommandShortAlias)!.name}`);
 
                 // keep the value split from <global_command_short_alias>=<value>
                 if (!_.isUndefined(nextArg)) {

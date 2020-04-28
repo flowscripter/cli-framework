@@ -2,7 +2,7 @@
 
 import _ from 'lodash';
 import leven from 'leven';
-import Command, { CommandArgs } from '../../api/Command';
+import { CommandArgs } from '../../api/Command';
 import Context from '../../api/Context';
 import Printer, { Icon, STDOUT_PRINTER_SERVICE } from '../service/PrinterService';
 import SubCommand from '../../api/SubCommand';
@@ -10,12 +10,6 @@ import GlobalCommand from '../../api/GlobalCommand';
 import Option from '../../api/Option';
 import Positional from '../../api/Positional';
 import Configuration, { CONFIGURATION_SERVICE } from '../service/ConfigurationService';
-import {
-    isGlobalCommand,
-    isGlobalModifierCommand,
-    isGroupCommand,
-    isSubCommand
-} from '../../api/CommandTypeGuards';
 import GlobalModifierCommand from '../../api/GlobalModifierCommand';
 import GroupCommand from '../../api/GroupCommand';
 import { ArgumentValueTypeName } from '../../api/ArgumentValueType';
@@ -47,11 +41,11 @@ const SYNTAX_MIN_PADDING_WIDTH = 2;
  */
 class CommonHelpCommand {
 
-    readonly appName: string;
+    protected appName: string | undefined;
 
-    readonly appDescription: string;
+    protected appDescription: string | undefined;
 
-    readonly appVersion: string;
+    protected appVersion: string | undefined;
 
     readonly name = 'help';
 
@@ -59,24 +53,13 @@ class CommonHelpCommand {
 
     private readonly helpEntryIndent = ' '.repeat(SYNTAX_INDENT_WIDTH);
 
-    /**
-     * @param appName the name of the application
-     * @param appDescription a description for the application
-     * @param appVersion the version of the application
-     */
-    public constructor(appName: string, appDescription: string, appVersion: string) {
-        this.appName = appName;
-        this.appDescription = appDescription;
-        this.appVersion = appVersion;
-    }
-
     private getAppSyntax(
         globalModifierCommands: GlobalModifierCommand[],
         globalCommands: GlobalCommand[],
         groupCommands: GroupCommand[],
         subCommands: SubCommand[]
     ): string {
-        let syntax = this.appName;
+        let syntax = this.appName || '';
         if (globalModifierCommands.length > 0) {
             syntax += ' [<global_option> [<arg>]]';
         }
@@ -158,43 +141,6 @@ class CommonHelpCommand {
             }
         });
         return globalCommandsSection;
-    }
-
-    private getSortedCommands(commands: Command[]):
-        [GlobalModifierCommand[], GlobalCommand[], GroupCommand[], SubCommand[]] {
-
-        const globalModifiers: GlobalModifierCommand[] = [];
-        const globalCommands: GlobalCommand[] = [];
-        const groupCommands: GroupCommand[] = [];
-        const subCommands: SubCommand[] = [];
-
-        _.sortBy(commands, 'name').forEach((command) => {
-            if (isGlobalModifierCommand(command)) {
-                globalModifiers.push(command as GlobalModifierCommand);
-            } else if (isGlobalCommand(command)) {
-                globalCommands.push(command);
-            } else if (isGroupCommand(command)) {
-                groupCommands.push(command);
-            } else {
-                subCommands.push(command as SubCommand);
-            }
-        });
-        return [globalModifiers, globalCommands, groupCommands, subCommands];
-    }
-
-    private getSortedNonGlobalCommands(commands: Command[]): [GroupCommand[], SubCommand[]] {
-
-        const groupCommands: GroupCommand[] = [];
-        const subCommands: SubCommand[] = [];
-
-        _.sortBy(commands, 'name').forEach((command) => {
-            if (isGroupCommand(command)) {
-                groupCommands.push(command);
-            } else if (isSubCommand(command)) {
-                subCommands.push(command as SubCommand);
-            }
-        });
-        return [groupCommands, subCommands];
     }
 
     private findCommand(commandName: string, groupCommands: GroupCommand[], subCommands: SubCommand[]):
@@ -492,19 +438,21 @@ class CommonHelpCommand {
      * @param context the [[Context]] in which to run.
      */
     public async printGenericHelp(context: Context): Promise<void> {
-        const printer = context.getService(STDOUT_PRINTER_SERVICE) as unknown as Printer;
-        if (printer == null) {
+        const printer = context.serviceRegistry.getServiceById(STDOUT_PRINTER_SERVICE) as unknown as Printer;
+        if (!printer) {
             throw new Error('STDOUT_PRINTER_SERVICE not available in context');
         }
 
-        const [globalModifierCommands, globalCommands,
-            groupCommands, subCommands] = this.getSortedCommands(context.commands);
+        const globalModifierCommands = Array.from(context.commandRegistry.getGlobalModifierCommands());
+        const globalCommands = Array.from(context.commandRegistry.getGlobalCommands());
+        const groupCommands = Array.from(context.commandRegistry.getGroupCommands());
+        const subCommands = Array.from(context.commandRegistry.getSubCommands());
 
         // display generic help
         const helpSections: HelpSection[] = [];
 
         helpSections.push({
-            title: this.appDescription,
+            title: this.appDescription || '',
             entries: [
                 {
                     syntax: 'version:',
@@ -512,8 +460,8 @@ class CommonHelpCommand {
                 }
             ]
         });
-        const configuration = context.getService(CONFIGURATION_SERVICE) as unknown as Configuration;
-        if ((configuration != null) && (!_.isUndefined(configuration.configurationLocation))) {
+        const configuration = context.serviceRegistry.getServiceById(CONFIGURATION_SERVICE) as unknown as Configuration;
+        if (configuration && (!_.isUndefined(configuration.configurationLocation))) {
             helpSections[0].entries.push({
                 syntax: 'config:',
                 description: configuration.configurationLocation
@@ -544,12 +492,13 @@ class CommonHelpCommand {
      * @param commandName name of the command for which to show help.
      */
     public async printUsageHelp(context: Context, commandName: string): Promise<void> {
-        const printer = context.getService(STDOUT_PRINTER_SERVICE) as unknown as Printer;
-        if (printer == null) {
+        const printer = context.serviceRegistry.getServiceById(STDOUT_PRINTER_SERVICE) as unknown as Printer;
+        if (!printer) {
             throw new Error('STDOUT_PRINTER_SERVICE not available in context');
         }
 
-        const [groupCommands, subCommands] = this.getSortedNonGlobalCommands(context.commands);
+        const groupCommands = Array.from(context.commandRegistry.getGroupCommands());
+        const subCommands = Array.from(context.commandRegistry.getSubCommands());
 
         // find sub-command or group sub-command
         const [groupCommand, subCommand] = this.findCommand(commandName, groupCommands, subCommands);
@@ -572,6 +521,34 @@ class CommonHelpCommand {
             ? subCommand.name : `${groupCommand.name}:${subCommand.name}`, subCommand);
         this.printSections(printer, helpSections);
     }
+
+    /**
+     * @inheritdoc
+     *
+     * Prints CLI help. Expects an implementation of [[Printer]] registered with the [[STDOUT_PRINTER_SERVICE]] ID
+     * in the provided [[Context]].
+     */
+    public async run(commandArgs: CommandArgs, context: Context): Promise<void> {
+
+        if (_.isUndefined(context.cliConfig) || !_.isString(context.cliConfig.name)) {
+            throw new Error('Provided context is missing property: "cliConfig.name: string"');
+        }
+        if (_.isUndefined(context.cliConfig) || !_.isString(context.cliConfig.description)) {
+            throw new Error('Provided context is missing property: "cliConfig.description: string"');
+        }
+        if (_.isUndefined(context.cliConfig) || !_.isString(context.cliConfig.version)) {
+            throw new Error('Provided context is missing property: "cliConfig.version: string"');
+        }
+        this.appName = context.cliConfig.name;
+        this.appDescription = context.cliConfig.description;
+        this.appVersion = context.cliConfig.version;
+
+        if (_.isUndefined(commandArgs.command)) {
+            this.printGenericHelp(context);
+        } else {
+            this.printUsageHelp(context, commandArgs.command as string);
+        }
+    }
 }
 
 /**
@@ -585,20 +562,6 @@ export class HelpGlobalCommand extends CommonHelpCommand implements GlobalComman
         name: 'command',
         isOptional: true
     };
-
-    /**
-     * @inheritdoc
-     *
-     * Prints CLI help. Expects an implementation of [[Printer]] registered with the [[STDOUT_PRINTER_SERVICE]] ID
-     * in the provided [[Context]].
-     */
-    public async run(commandArgs: CommandArgs, context: Context): Promise<void> {
-        if (_.isUndefined(commandArgs.command)) {
-            this.printGenericHelp(context);
-        } else {
-            this.printUsageHelp(context, commandArgs.command as string);
-        }
-    }
 }
 
 /**
@@ -615,18 +578,4 @@ export class HelpSubCommand extends CommonHelpCommand implements SubCommand {
             description: 'Display help for the specific <command>'
         }
     ];
-
-    /**
-     * @inheritdoc
-     *
-     * Prints CLI help. Expects an implementation of [[Printer]] registered with the [[STDOUT_PRINTER_SERVICE]] ID
-     * in the provided [[Context]].
-     */
-    public async run(commandArgs: CommandArgs, context: Context): Promise<void> {
-        if (_.isUndefined(commandArgs.command)) {
-            this.printGenericHelp(context);
-        } else {
-            this.printUsageHelp(context, commandArgs.command as string);
-        }
-    }
 }

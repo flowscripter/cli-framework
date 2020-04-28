@@ -2,9 +2,11 @@
  * @module @flowscripter/cli-framework
  */
 
+import _ from 'lodash';
 import { Readable, Writable } from 'stream';
 import prompts from 'prompts';
 import Service from '../../api/Service';
+import Context from '../../api/Context';
 
 export const PROMPTER_SERVICE = '@flowscripter/cli-framework/prompter-service';
 
@@ -71,29 +73,39 @@ export class PrompterService implements Service, Prompter {
 
     readonly initPriority: number;
 
-    readonly readable: Readable;
+    private writable: Writable | undefined;
 
-    readonly writable: Writable;
+    private readable: Readable | undefined;
 
     /**
-     * Create a [[Prompter]] service using the provided Readable and Writable.
+     * Create a [[Prompter]] service.
      *
-     * @param readable the Readable to use for input.
-     * @param writable the Writable to use for output.
      * @param initPriority to determine the relative order in which multiple [[Service]] instances are initialised.
      */
-    public constructor(readable: Readable, writable: Writable, initPriority: number) {
-        this.readable = readable;
-        this.writable = writable;
+    public constructor(initPriority: number) {
         this.initPriority = initPriority;
     }
 
     /**
      * @inheritdoc
+     *
+     * @throws *Error* if provided [[Context]] does not include:
+     *
+     * * `cliConfig.stdout: Writable`
+     * * `cliConfig.stdin: Readable`
      */
-    // eslint-disable-next-line max-len
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any,@typescript-eslint/no-unused-vars,@typescript-eslint/no-empty-function,class-methods-use-this
-    public init(config?: any): void { }
+    public init(context: Context): void {
+        if (_.isUndefined(context.cliConfig) || _.isUndefined(context.cliConfig.stdout)
+            || !_.isFunction(context.cliConfig.stdout.write)) {
+            throw new Error('Provided context is missing property: "cliConfig.stdout: Writable"');
+        }
+        if (_.isUndefined(context.cliConfig) || _.isUndefined(context.cliConfig.stdin)
+            || !_.isFunction(context.cliConfig.stdin.read)) {
+            throw new Error('Provided context is missing property: "cliConfig.stdin: Readable"');
+        }
+        this.writable = context.cliConfig.stdout;
+        this.readable = context.cliConfig.stdin;
+    }
 
     /**
      * @inheritdoc

@@ -46,7 +46,7 @@ export default interface Printer {
     /**
      * The Writable used for output. Can be used for directly outputting binary data etc.
      */
-    writable: Writable;
+    writable: Writable | undefined;
 
     /**
      * Return the provided message so that it appears bold when printed.
@@ -136,21 +136,26 @@ abstract class PrinterService implements Service, Printer {
 
     private spinner: ora.Ora = ora();
 
-    readonly writable: Writable;
+    protected readonlyWritable: Writable | undefined;
+
+    get writable(): Writable {
+        if (_.isUndefined(this.readonlyWritable)) {
+            throw new Error('writable is undefined, has init() been called?"');
+        }
+        return this.readonlyWritable;
+    }
 
     readonly id: string;
 
     readonly initPriority: number;
 
     /**
-     * Create a [[Printer]] service using the provided Writable and registering with the provided [[Service]] ID.
+     * Create a [[Printer]] service registering with the provided [[Service]] ID.
      *
-     * @param writable the Writable to use for output.
      * @param id the ID to use for service registration.
      * @param initPriority to determine the relative order in which multiple [[Service]] instances are initialised.
      */
-    protected constructor(writable: Writable, id: string, initPriority: number) {
-        this.writable = writable;
+    protected constructor(id: string, initPriority: number) {
         this.id = id;
         this.initPriority = initPriority;
     }
@@ -162,7 +167,9 @@ abstract class PrinterService implements Service, Printer {
         if (this.threshold > level) {
             return;
         }
-        this.writable.write(`${icon ? `${icons[icon]} ` : ''}${message}`);
+        if (this.writable) {
+            this.writable.write(`${icon ? `${icons[icon]} ` : ''}${message}`);
+        }
     }
 
     /**
@@ -292,11 +299,25 @@ export class StdoutPrinterService extends PrinterService {
     /**
      * Create a [[Printer]] service for stdout
      *
-     * @param stdoutWritable the Writable to use for stdout output
      * @param initPriority to determine the relative order in which multiple [[Service]] instances are initialised.
      */
-    public constructor(stdoutWritable: Writable, initPriority: number) {
-        super(stdoutWritable, STDOUT_PRINTER_SERVICE, initPriority);
+    public constructor(initPriority: number) {
+        super(STDOUT_PRINTER_SERVICE, initPriority);
+    }
+
+    /**
+     * @inheritdoc
+     *
+     * @throws *Error* if provided [[Context]] does not include:
+     *
+     * * `cliConfig.stdout: Writable`
+     */
+    public init(context: Context): void {
+        if (_.isUndefined(context.cliConfig) || _.isUndefined(context.cliConfig.stdout)
+            || !_.isFunction(context.cliConfig.stdout.write)) {
+            throw new Error('Provided context is missing property: "cliConfig.stdout: Writable"');
+        }
+        this.readonlyWritable = context.cliConfig.stdout;
     }
 }
 
@@ -308,10 +329,24 @@ export class StderrPrinterService extends PrinterService {
     /**
      * Create a [[Printer]] service for stderr
      *
-     * @param stderrWritable the Writable to use for stderr output
      * @param initPriority to determine the relative order in which multiple [[Service]] instances are initialised.
      */
-    public constructor(stderrWritable: Writable, initPriority: number) {
-        super(stderrWritable, STDERR_PRINTER_SERVICE, initPriority);
+    public constructor(initPriority: number) {
+        super(STDERR_PRINTER_SERVICE, initPriority);
+    }
+
+    /**
+     * @inheritdoc
+     *
+     * @throws *Error* if provided [[Context]] does not include:
+     *
+     * * `cliConfig.stderr: Writable`
+     */
+    public init(context: Context): void {
+        if (_.isUndefined(context.cliConfig) || _.isUndefined(context.cliConfig.stderr)
+            || !_.isFunction(context.cliConfig.stderr.write)) {
+            throw new Error('Provided context is missing property: "cliConfig.stderr: Writable"');
+        }
+        this.readonlyWritable = context.cliConfig.stderr;
     }
 }

@@ -7,7 +7,7 @@ import * as os from 'os';
 import { ConfigurationService } from '../../../src/core/service/ConfigurationService';
 import { CommandArgs } from '../../../src';
 import Context from '../../../src/api/Context';
-import DefaultContext from '../../../src/runtime/DefaultContext';
+import { getContext } from '../../fixtures/Context';
 
 const mockStdout = mockProcessStdout();
 const mockStderr = mockProcessStderr();
@@ -49,14 +49,6 @@ describe('ConfigurationService test', () => {
         return associativeArray;
     }
 
-    function getContext(): Context {
-        return new DefaultContext({
-            name: 'cli',
-            description: 'my cli',
-            version: '1.2.3'
-        }, [], [], new Map(), new Map());
-    }
-
     afterAll(() => {
         mockFs.restore();
     });
@@ -73,7 +65,11 @@ describe('ConfigurationService test', () => {
 
         const configuration = new ConfigurationService(100);
 
-        const context: Context = getContext();
+        const context: Context = getContext({
+            name: 'cli',
+            description: 'my cli',
+            version: '1.2.3'
+        }, [], []);
         expect(configuration.configurationLocation).toBeUndefined();
         configuration.init(context);
         expect(configuration.configurationLocation).toEqual(`${os.homedir()}/.cli.yaml`);
@@ -89,7 +85,11 @@ describe('ConfigurationService test', () => {
 
         const configuration = new ConfigurationService(100);
 
-        const context: Context = getContext();
+        const context: Context = getContext({
+            name: 'cli',
+            description: 'my cli',
+            version: '1.2.3'
+        }, [], []);
 
         context.serviceConfigs.set(configuration.id, {
             configFilePath: '/foo.yaml'
@@ -106,7 +106,11 @@ describe('ConfigurationService test', () => {
 
         const configuration = new ConfigurationService(100);
 
-        const context: Context = getContext();
+        const context: Context = getContext({
+            name: 'cli',
+            description: 'my cli',
+            version: '1.2.3'
+        }, [], []);
         expect(configuration.configurationLocation).toBeUndefined();
         configuration.init(context);
         expect(configuration.configurationLocation).toEqual(`${os.homedir()}/.${context.cliConfig.name}.yaml`);
@@ -117,7 +121,11 @@ describe('ConfigurationService test', () => {
 
         const configuration = new ConfigurationService(100);
 
-        const context: Context = getContext();
+        const context: Context = getContext({
+            name: 'cli',
+            description: 'my cli',
+            version: '1.2.3'
+        }, [], []);
         context.serviceConfigs.set(configuration.id, {
             configFilePath: '/foo.yaml'
         });
@@ -135,7 +143,11 @@ describe('ConfigurationService test', () => {
 
         const configuration = new ConfigurationService(100);
 
-        const context: Context = getContext();
+        const context: Context = getContext({
+            name: 'cli',
+            description: 'my cli',
+            version: '1.2.3'
+        }, [], []);
         configuration.init(context);
         expect(context.serviceConfigs.size).toEqual(0);
         expect(context.commandConfigs.size).toEqual(0);
@@ -149,7 +161,11 @@ describe('ConfigurationService test', () => {
 
         const configuration = new ConfigurationService(100);
 
-        const context: Context = getContext();
+        const context: Context = getContext({
+            name: 'cli',
+            description: 'my cli',
+            version: '1.2.3'
+        }, [], []);
         const commandArgs: CommandArgs = { foo: 'bar' };
         configuration.init(context);
         configuration.setCommandConfig('command', commandArgs);
@@ -164,7 +180,11 @@ describe('ConfigurationService test', () => {
 
         const configuration = new ConfigurationService(100);
 
-        const context: Context = getContext();
+        const context: Context = getContext({
+            name: 'cli',
+            description: 'my cli',
+            version: '1.2.3'
+        }, [], []);
         const serviceConfig = { foo: 'bar' };
         configuration.init(context);
         configuration.setServiceConfig('serviceA', serviceConfig);
@@ -176,7 +196,11 @@ describe('ConfigurationService test', () => {
 
         const configuration = new ConfigurationService(100);
 
-        const context: Context = getContext();
+        const context: Context = getContext({
+            name: 'cli',
+            description: 'my cli',
+            version: '1.2.3'
+        }, [], []);
         configuration.init(context);
 
         configuration.configurationLocation = '/foo.yaml';
@@ -195,7 +219,11 @@ describe('ConfigurationService test', () => {
 
         const configuration = new ConfigurationService(100);
 
-        const context: Context = getContext();
+        const context: Context = getContext({
+            name: 'cli',
+            description: 'my cli',
+            version: '1.2.3'
+        }, [], []);
         configuration.init(context);
 
         expect(configuration.getConfig().serviceConfigs.size).toEqual(0);

@@ -21,8 +21,6 @@ export default class DefaultRunner implements Runner {
 
     private readonly parser: Parser;
 
-    private nonGlobalCommandsByName: Map<string, Command> = new Map();
-
     /**
      * Constructor configures the instance using the specified [[Parser]] instance and optional default [[Command]].
      *
@@ -30,25 +28,6 @@ export default class DefaultRunner implements Runner {
      */
     public constructor(parser: Parser) {
         this.parser = parser;
-    }
-
-    /**
-     * Validate specified command against all others validated so far.
-     *
-     * @throws *Error* if the [[Command]] is not a [[GlobalCommand]] and its name duplicates an already validated
-     * [[Command]] name.
-     */
-    private validateWithOtherCommands(command: Command): void {
-
-        // check for non-global command name duplicate
-        if (!isGlobalCommand(command)) {
-            if (this.nonGlobalCommandsByName.has(command.name)) {
-                throw new Error(`Command name: ${command.name} duplicates the name of an existing command`);
-            }
-        }
-
-        // store command by name for future validation against new commands
-        this.nonGlobalCommandsByName.set(command.name, command);
     }
 
     /**
@@ -131,12 +110,10 @@ export default class DefaultRunner implements Runner {
      *
      * @throws *Error* if:
      *
-     * * the provided [[Command]] instances are not valid
      * * a default command is specified and it is not a [[SubCommand]] or [[GlobalCommand]]
      * * there is an error caused by the CLI framework implementation
      */
-    public async run(args: string[], context: Context, commands: Command[], defaultCommand?: Command):
-        Promise<string | undefined> {
+    public async run(args: string[], context: Context, defaultCommand?: Command): Promise<string | undefined> {
 
         if (defaultCommand && !isGlobalCommand(defaultCommand) && !isSubCommand(defaultCommand)) {
             throw new Error(`Default command: ${defaultCommand.name} is not a global command or sub-command`);
@@ -144,21 +121,13 @@ export default class DefaultRunner implements Runner {
 
         let failureMessage;
 
-        // validate each command itself and against each other
-        this.nonGlobalCommandsByName = new Map<string, Command>();
-
-        commands.forEach((command) => {
-            validateCommand(command);
-            this.validateWithOtherCommands(command);
-        });
-
         // validate default command if specified
         if (defaultCommand) {
             validateCommand(defaultCommand);
         }
 
-        // provide the commands to the parser
-        this.parser.setCommands(commands);
+        // provide the command registry to the parser
+        this.parser.setCommandRegistry(context.commandRegistry);
 
         // scan for command clauses
         const scanResult: ScanResult = this.parser.scanForCommandClauses(args);

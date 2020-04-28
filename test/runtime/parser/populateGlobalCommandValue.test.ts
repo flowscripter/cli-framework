@@ -1,4 +1,4 @@
-import populateGlobalCommandValue from '../../../src/runtime/parser/GlobalCommandValuePopulation';
+import populateGlobalCommandValue from '../../../src/runtime/parser/populateGlobalCommandValue';
 import { InvalidArg, InvalidReason } from '../../../src/api/Parser';
 import { CommandArgs } from '../../../src/api/Command';
 import { ArgumentValueTypeName } from '../../../src/api/ArgumentValueType';
@@ -11,7 +11,7 @@ function expectExtractResult(result: PopulateResult, commandArgs: CommandArgs, u
     expect(result.unusedArgs).toEqual(unusedArgs);
 }
 
-describe('GlobalCommandValuePopulation test', () => {
+describe('populateGlobalCommandValue test', () => {
 
     test('Global command argument', () => {
 

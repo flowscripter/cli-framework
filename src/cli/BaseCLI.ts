@@ -9,20 +9,22 @@ import debug from 'debug';
 import CLI from '../api/CLI';
 import CommandFactory from '../api/CommandFactory';
 import ServiceFactory from '../api/ServiceFactory';
-import DefaultRunner from '../runtime/DefaultRunner';
-import DefaultContext from '../runtime/DefaultContext';
 import CoreCommandFactory from '../core/CoreCommandFactory';
 import CoreServiceFactory from '../core/CoreServiceFactory';
-import Service from '../api/Service';
-import Command from '../api/Command';
-import Context from '../api/Context';
+import DefaultRunner from '../runtime/DefaultRunner';
+import DefaultContext from '../runtime/DefaultContext';
+import Context, { CliConfig } from '../api/Context';
 import Runner from '../api/Runner';
-import { Icon } from '../core/service/PrinterService';
+import Printer, { Icon, STDERR_PRINTER_SERVICE } from '../core/service/PrinterService';
 import DefaultParser from '../runtime/parser/DefaultParser';
+import DefaultServiceRegistry from '../runtime/DefaultServiceRegistry';
+import DefaultCommandRegistry from '../runtime/DefaultCommandRegistry';
+import { CommandArgs } from '..';
+import PluginServiceFactory from '../plugin/PluginServiceFactory';
+import PluginCommandFactory from '../plugin/PluginCommandFactory';
 
 /**
- * Base implementation of a [[CLI]]. Requires provision of a CLI configuration with properties
- * for stdout and stderr [[Writeable]] streams and a CLI name and version.
+ * Base implementation of a [[CLI]].
  *
  * [[CoreServiceFactory]] and [[CoreCommandFactory]] are added by default.
  */
@@ -30,7 +32,7 @@ export default class BaseCLI implements CLI {
 
     protected readonly log: debug.Debugger = debug('BaseCLI');
 
-    private readonly cliConfig: any = {};
+    private readonly cliConfig: CliConfig;
 
     private readonly coreServiceFactory: CoreServiceFactory;
 
@@ -40,64 +42,40 @@ export default class BaseCLI implements CLI {
 
     public readonly serviceFactories: ServiceFactory[] = [];
 
+    private readonly serviceConfigs: Map<string, any>;
+
+    private readonly commandConfigs: Map<string, CommandArgs>;
+
     /**
      * Constructor which adds the following factories by default: [[CoreServiceFactory]] and [[CoreCommandFactory]]
      *
-     * @param cliConfig a CLI configuration object which will be made available in the [[Context]]. It should have
-     * the following required properties defined:
-     * * `name` a string value for the CLI name which will be provided to [[Help]] and [[Usage]] [[Command]]
-     * implementations.
-     * * `description` a string value for a CLI description which will be provided to [[Help]] and [[Usage]] [[Command]]
-     * implementations.
-     * * `version` a string value for the CLI version which will be provided to a [[Version]] [[Command]]
-     * implementation.
-     * * *stdin* a Readable stream which will be provided to a [[Prompter]] [[Service]]
-     * implementation.
-     * * *stdout* a Writable stream which will be provided to a stdout [[Printer]] [[Service]]
-     * implementation.
-     * * *stderr* a Writable stream which will be provided to a stderr [[Printer]] [[Service]]
-     * implementation.
-     * * *serviceConfigs* a [[Service]] configuration map where the keys are [[Service.id]] values and the values are
-     * generic configuration objects.
-     * * *commandConfigs* a [[Command]] configuration map where the keys are [[Command.name]] values and the values are
-     * in the form of [[CommandArgs]].
-     * @throws *Error* if the required properties for the provided CLI config are not defined or the optional
-     * properties are not of the correct type.
+     * If a [[PluginManagerConfig]] is defined in the provided [[CliConfig]] a [[PluginServiceFactory]] and
+     * [[PluginCommandFactory]] are also added.
+     *
+     * @param cliConfig a CLI configuration object which will be made available in the [[Context]].
+     * @param serviceConfigs an optional [[Service]] configuration map where the keys are [[Service.id]] values and
+     * the values are generic configuration objects.
+     * @param commandConfigs an optional [[Command]] configuration map where the keys are [[Command.name]] values and
+     * the values are in the form of [[CommandArgs]].
      */
-    public constructor(cliConfig: any) {
-
-        if (_.isUndefined(cliConfig.name) || !_.isString(cliConfig.name)) {
-            throw new Error('Provided cliConfig is missing property: "name: string"');
-        }
-        if (_.isUndefined(cliConfig.description) || !_.isString(cliConfig.description)) {
-            throw new Error('Provided cliConfig is missing property: "description: string"');
-        }
-        if (_.isUndefined(cliConfig.version) || !_.isString(cliConfig.version)) {
-            throw new Error('Provided cliConfig is missing property: "version: string"');
-        }
-        if (_.isUndefined(cliConfig.stdin) || !_.isFunction(cliConfig.stdin.read)) {
-            throw new Error('Provided cliConfig is missing property: "stdin: Readable"');
-        }
-        if (_.isUndefined(cliConfig.stdout) || !_.isFunction(cliConfig.stdout.write)) {
-            throw new Error('Provided cliConfig is missing property: "stdout: Writable"');
-        }
-        if (_.isUndefined(cliConfig.stderr) || !_.isFunction(cliConfig.stderr.write)) {
-            throw new Error('Provided cliConfig is missing property: "stderr: Writable"');
-        }
-        if (!_.isUndefined(cliConfig.serviceConfigs) && !_.isMap(cliConfig.serviceConfigs)) {
-            throw new Error('cliConfig.commandConfigs should be a Map');
-        }
-        if (!_.isUndefined(cliConfig.commandConfigs) && !_.isMap(cliConfig.commandConfigs)) {
-            throw new Error('cliConfig.commandConfigs should be a Map');
-        }
+    public constructor(cliConfig: CliConfig, serviceConfigs?: Map<string, any>,
+        commandConfigs?: Map<string, CommandArgs>) {
 
         this.cliConfig = cliConfig;
 
-        this.coreServiceFactory = new CoreServiceFactory(cliConfig.stdin, cliConfig.stdout, cliConfig.stderr);
-        this.coreCommandFactory = new CoreCommandFactory(cliConfig.name, cliConfig.description, cliConfig.version);
+        this.coreServiceFactory = new CoreServiceFactory();
+        this.coreCommandFactory = new CoreCommandFactory();
+
+        this.serviceConfigs = serviceConfigs || new Map<string, any>();
+        this.commandConfigs = commandConfigs || new Map<string, CommandArgs>();
 
         this.addServiceFactory(this.coreServiceFactory);
         this.addCommandFactory(this.coreCommandFactory);
+
+        if (!_.isUndefined(cliConfig.pluginManagerConfig)) {
+            this.addServiceFactory(new PluginServiceFactory());
+            this.addCommandFactory(new PluginCommandFactory());
+        }
     }
 
     /**
@@ -109,51 +87,51 @@ export default class BaseCLI implements CLI {
      *
      * The [[UsageCommand]] is also provided to the [[DefaultRunner]] implementation as the default command.
      *
-     * @throws *Error* if there is an error in the CLI framework when invoking the [[DefaultRunner]] implementation.
+     * @throws *Error* if there is an error:
+     * * when registering [[Command]] and [[Service]] instances.
+     * * in the CLI framework when invoking the [[DefaultRunner]] implementation.
      */
     public async execute(args: string[]): Promise<number> {
 
         this.log(`executing with args: ${args}`);
 
-        const services: Service[] = [];
-        const commands: Command[] = [];
-
+        const serviceRegistry = new DefaultServiceRegistry();
         for (const serviceFactory of this.serviceFactories) {
             for (const service of serviceFactory.getServices()) {
-                services.push(service);
+                serviceRegistry.addService(service);
             }
         }
 
+        const commandRegistry = new DefaultCommandRegistry();
         for (const commandFactory of this.commandFactories) {
             for (const command of commandFactory.getCommands()) {
-                commands.push(command);
+                commandRegistry.addCommand(command);
             }
-        }
-
-        if (_.isUndefined(this.cliConfig.serviceConfigs)) {
-            this.cliConfig.serviceConfigs = new Map<string, any>();
-        }
-        if (_.isUndefined(this.cliConfig.commandConfigs)) {
-            this.cliConfig.commandConfigs = new Map<string, any>();
         }
 
         // create the context
-        const context: Context = new DefaultContext(this.cliConfig, services, commands, this.cliConfig.serviceConfigs,
-            this.cliConfig.commandConfigs);
+        const context: Context = new DefaultContext(this.cliConfig, serviceRegistry, commandRegistry,
+            this.serviceConfigs, this.commandConfigs);
 
         // initialise the services
-        for (const service of services.sort((a, b) => (a.initPriority >= b.initPriority ? 1 : 0))) {
+        for (const service of serviceRegistry.getServices()) {
             this.log(`Initialising service: ${service.id}`);
-            service.init(context);
+            // eslint-disable-next-line no-await-in-loop
+            await service.init(context);
         }
 
         // pass the usage command as the default command
         const runner: Runner = new DefaultRunner(new DefaultParser());
 
-        const failureResult = await runner.run(args, context, commands, this.coreCommandFactory.usageCommand);
+        const failureResult = await runner.run(args, context, this.coreCommandFactory.usageCommand);
         if (!_.isUndefined(failureResult)) {
+
             // output any unused args, parsing error or run error on stderr
-            this.coreServiceFactory.stderrPrinterService.error(`${failureResult}\n`, Icon.FAILURE);
+            const printer = context.serviceRegistry.getServiceById(STDERR_PRINTER_SERVICE) as unknown as Printer;
+            if (printer == null) {
+                throw new Error('STDERR_PRINTER_SERVICE not available in context');
+            }
+            printer.error(`${failureResult}\n`, Icon.FAILURE);
 
             // display usage information
             await this.coreCommandFactory.usageCommand.run({}, context);

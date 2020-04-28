@@ -1,10 +1,11 @@
 /**
- * @module @flowscripter/cli-framework
+ * @module @flowscripter/cli-framework-api
  */
 
 import Command, { CommandArgs } from './Command';
 import { ArgumentValueType } from './ArgumentValueType';
 import GroupCommand from './GroupCommand';
+import CommandRegistry from './CommandRegistry';
 
 /**
  * Possible reasons for an invalid argument
@@ -131,11 +132,11 @@ export interface ParseResult {
 export default interface Parser {
 
     /**
-     * Set the list of [[Command]] instances to be used when scanning and parsing for commands and arguments.
+     * Set the [[CommandRegistry]] to be used by the [[Parser]].
      *
-     * @param commands the known [[Command]] instances to use
+     * @param commandRegistry the [[CommandRegistry]] to use
      */
-    setCommands(commands: Command[]): void;
+    setCommandRegistry(commandRegistry: CommandRegistry): void;
 
     /**
      * Scan the provided arguments and segment them into clauses demarcated by [[Command]] names and aliases.

@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import { CommandArgs } from '../../api/Command';
 import Context from '../../api/Context';
 import Printer, { STDOUT_PRINTER_SERVICE } from '../service/PrinterService';
@@ -12,20 +13,12 @@ export default class UsageCommand implements GlobalCommand {
 
     readonly description = 'Show usage information';
 
-    readonly cliName: string;
-
-    readonly cliDescription: string;
-
     readonly helpCommand: GlobalCommand;
 
     /**
-     * @param cliName the name of the application to output as part of usage information
-     * @param cliDescription the description of the application to output as part of usage information
      * @param helpCommand the [[GlobalCommand]] to use as an example of invoking help when outputting usage information
      */
-    public constructor(cliName: string, cliDescription: string, helpCommand: GlobalCommand) {
-        this.cliName = cliName;
-        this.cliDescription = cliDescription;
+    public constructor(helpCommand: GlobalCommand) {
         this.helpCommand = helpCommand;
     }
 
@@ -36,11 +29,19 @@ export default class UsageCommand implements GlobalCommand {
      * in the provided [[Context]].
      */
     public async run(commandArgs: CommandArgs, context: Context): Promise<void> {
-        const printer = context.getService(STDOUT_PRINTER_SERVICE) as unknown as Printer;
-        if (printer == null) {
+
+        if (_.isUndefined(context.cliConfig) || !_.isString(context.cliConfig.name)) {
+            throw new Error('Provided context is missing property: "cliConfig.name: string"');
+        }
+        if (_.isUndefined(context.cliConfig) || !_.isString(context.cliConfig.description)) {
+            throw new Error('Provided context is missing property: "cliConfig.description: string"');
+        }
+
+        const printer = context.serviceRegistry.getServiceById(STDOUT_PRINTER_SERVICE) as unknown as Printer;
+        if (!printer) {
             throw new Error('STDOUT_PRINTER_SERVICE not available in context');
         }
-        printer.info(`\n${this.cliDescription}\n\n`);
-        printer.info(`Try running:\n\n  ${this.cliName} --${this.helpCommand.name}\n\n`);
+        printer.info(`\n${context.cliConfig.description}\n\n`);
+        printer.info(`Try running:\n\n  ${context.cliConfig.name} --${this.helpCommand.name}\n\n`);
     }
 }

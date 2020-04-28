@@ -8,8 +8,11 @@ module.exports = {
         '**/?(*.)test.ts'
     ],
     transform: {
-        '\\.ts$': 'ts-jest'
+        '\\.(j|t)s$': 'ts-jest'
     },
+    transformIgnorePatterns: [
+        'node_modules/(?!(@flowscripter)/)'
+    ],
     modulePaths: [
         'src'
     ],
@@ -20,5 +23,16 @@ module.exports = {
         'src/**/*.ts'
     ],
     coverageDirectory: 'reports',
-    setupFiles: ['./jest.env.js']
+    setupFiles: ['./jest.env.js'],
+    globals: {
+        'ts-jest': {
+            babelConfig: {
+                plugins: [
+                    'transform-es2015-modules-commonjs',
+                    'transform-dynamic-import'
+                ]
+            },
+            isolatedModules: true
+        }
+    }
 };

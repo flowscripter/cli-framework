@@ -23,7 +23,6 @@ export default class ServiceFactoryA implements ServiceFactory {
 
     public readonly serviceA = new ServiceA();
 
-    // eslint-disable-next-line class-methods-use-this
     public getServices(): Iterable<Service> {
         return [this.serviceA];
     }

@@ -13,7 +13,7 @@ import GlobalCommandArgument from '../../api/GlobalCommandArgument';
 function validateValue(argument: Argument, name: string, value: ArgumentSingleValueType):
     { validValue?: ArgumentSingleValueType; error?: InvalidArg } {
 
-    let convertedValue = value;
+    let convertedValue;
 
     // type check and conversion
     switch (argument.type) {

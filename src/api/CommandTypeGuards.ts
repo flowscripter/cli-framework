@@ -1,5 +1,5 @@
 /**
- * @module @flowscripter/cli-framework
+ * @module @flowscripter/cli-framework-api
  */
 
 import SubCommand from './SubCommand';
@@ -18,7 +18,7 @@ export function isSubCommand(command: SubCommand | GroupCommand | GlobalCommand 
 }
 
 export function isGlobalModifierCommand(command: SubCommand | GroupCommand | GlobalCommand | GlobalModifierCommand):
-    command is GlobalCommand {
+    command is GlobalModifierCommand {
     return (command as GlobalModifierCommand).runPriority !== undefined;
 }
 

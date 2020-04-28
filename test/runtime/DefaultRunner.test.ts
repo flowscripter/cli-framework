@@ -2,13 +2,13 @@ import { mockProcessStdout, mockProcessStderr } from 'jest-mock-process';
 import DefaultRunner from '../../src/runtime/DefaultRunner';
 import Option from '../../src/api/Option';
 import Positional from '../../src/api/Positional';
-import DefaultContext from '../../src/runtime/DefaultContext';
 import DefaultParser from '../../src/runtime/parser/DefaultParser';
 import SubCommand from '../../src/api/SubCommand';
 import GlobalCommand from '../../src/api/GlobalCommand';
 import GlobalCommandArgument from '../../src/api/GlobalCommandArgument';
 import GlobalModifierCommand from '../../src/api/GlobalModifierCommand';
 import GroupCommand from '../../src/api/GroupCommand';
+import { getContext } from '../fixtures/Context';
 
 const mockStdout = mockProcessStdout();
 const mockStderr = mockProcessStderr();
@@ -75,30 +75,17 @@ describe('DefaultRunner test', () => {
     });
 
     test('Check valid default command type', async () => {
-        const context = new DefaultContext({}, [], [], new Map(), new Map());
         const subCommand = getSubCommand('command', [], []);
+        const context = getContext({}, [], [subCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await expect(runner.run(['command'], context, [subCommand],
+        await expect(runner.run(['command'], context,
             getGlobalModifierCommand('modifier', 'm', 0))).rejects.toThrowError();
-        await expect(runner.run(['command'], context, [subCommand],
+        await expect(runner.run(['command'], context,
             getGroupCommand('group', [getSubCommand('sub', [], [])]))).rejects.toThrowError();
 
-        await runner.run(['command'], context, [subCommand], getSubCommand('sub', [], []));
-        await runner.run(['command'], context, [subCommand], getGlobalCommand('global', 'g'));
-    });
-
-    test('Check for duplicate command name', async () => {
-
-        const runner = new DefaultRunner(new DefaultParser());
-        const command1 = getSubCommand('c1', [], []);
-        const command2 = getSubCommand('c1', [], []);
-
-        let context = new DefaultContext({}, [], [], new Map(), new Map());
-        await runner.run(['c1'], context, [command1]);
-
-        context = new DefaultContext({}, [], [], new Map(), new Map());
-        await expect(runner.run(['c1'], context, [command1, command2])).rejects.toThrowError();
+        await runner.run(['command'], context, getSubCommand('sub', [], []));
+        await runner.run(['command'], context, getGlobalCommand('global', 'g'));
     });
 
     test('Sub-Command run scenario', async () => {
@@ -113,10 +100,10 @@ describe('DefaultRunner test', () => {
 
         command.run = async (): Promise<void> => { hasRun = true; };
 
-        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const context = getContext({}, [], [command]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await runner.run(['command', '--foo', 'bar'], context, [command]);
+        await runner.run(['command', '--foo', 'bar'], context);
         expect(hasRun).toBe(true);
     });
 
@@ -133,10 +120,10 @@ describe('DefaultRunner test', () => {
         globalModifierCommand.run = async (): Promise<void> => { modifierHasRun = true; };
         subCommand.run = async (): Promise<void> => { subHasRun = true; };
 
-        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const context = getContext({}, [], [globalModifierCommand, subCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await runner.run(['--modifierCommand=bar', 'subCommand'], context, [globalModifierCommand, subCommand]);
+        await runner.run(['--modifierCommand=bar', 'subCommand'], context);
 
         expect(modifierHasRun).toBe(true);
         expect(subHasRun).toBe(true);
@@ -144,7 +131,7 @@ describe('DefaultRunner test', () => {
         modifierHasRun = false;
         subHasRun = false;
 
-        await runner.run(['-c', 'bar', 'subCommand'], context, [globalModifierCommand, subCommand]);
+        await runner.run(['-c', 'bar', 'subCommand'], context);
 
         expect(modifierHasRun).toBe(true);
         expect(subHasRun).toBe(true);
@@ -160,16 +147,16 @@ describe('DefaultRunner test', () => {
 
         command.run = async (): Promise<void> => { hasRun = true; };
 
-        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const context = getContext({}, [], [command]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await runner.run(['--command=bar'], context, [command]);
+        await runner.run(['--command=bar'], context);
 
         expect(hasRun).toBe(true);
 
         hasRun = false;
 
-        await runner.run(['-c', 'bar'], context, [command]);
+        await runner.run(['-c', 'bar'], context);
         expect(hasRun).toBe(true);
     });
 
@@ -184,15 +171,15 @@ describe('DefaultRunner test', () => {
         subCommand.run = async (): Promise<void> => { subHasRun = true; };
         command.run = async (): Promise<void> => { groupHasRun = true; };
 
-        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const context = getContext({}, [], [command]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await runner.run(['group', 'command'], context, [command]);
+        await runner.run(['group', 'command'], context);
 
         expect(groupHasRun).toBe(true);
         expect(subHasRun).toBe(true);
 
-        await runner.run(['group:command'], context, [command]);
+        await runner.run(['group:command'], context);
 
         expect(groupHasRun).toBe(true);
         expect(subHasRun).toBe(true);
@@ -215,10 +202,10 @@ describe('DefaultRunner test', () => {
         modifierCommand.run = async (): Promise<void> => { modifierHasRun = true; };
         subCommand.run = async (): Promise<void> => { subHasRun = true; };
 
-        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const context = getContext({}, [], [modifierCommand, subCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await runner.run(['--modifier=bar', 'command', '--foo', 'bar'], context, [modifierCommand, subCommand]);
+        await runner.run(['--modifier=bar', 'command', '--foo', 'bar'], context);
 
         expect(modifierHasRun).toBe(true);
         expect(subHasRun).toBe(true);
@@ -239,10 +226,10 @@ describe('DefaultRunner test', () => {
         modifierCommand.run = async (): Promise<void> => { modifierHasRun = true; };
         globalCommand.run = async (): Promise<void> => { globalHasRun = true; };
 
-        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const context = getContext({}, [], [modifierCommand, globalCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await runner.run(['--modifier=bar', '-g', 'bar'], context, [modifierCommand, globalCommand]);
+        await runner.run(['--modifier=bar', '-g', 'bar'], context);
 
         expect(modifierHasRun).toBe(true);
         expect(globalHasRun).toBe(true);
@@ -261,10 +248,10 @@ describe('DefaultRunner test', () => {
         modifierCommand.run = async (): Promise<void> => { modifierHasRun = true; };
         globalCommand.run = async (): Promise<void> => { defaultHasRun = true; };
 
-        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const context = getContext({}, [], [modifierCommand, globalCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await runner.run(['--modifier=bar'], context, [modifierCommand, globalCommand], globalCommand);
+        await runner.run(['--modifier=bar'], context, globalCommand);
 
         expect(modifierHasRun).toBe(true);
         expect(defaultHasRun).toBe(true);
@@ -282,10 +269,10 @@ describe('DefaultRunner test', () => {
 
         subCommand.run = async (): Promise<void> => { subHasRun = true; };
 
-        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const context = getContext({}, [], []);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await runner.run(['--foo=bar'], context, [], subCommand);
+        await runner.run(['--foo=bar'], context, subCommand);
 
         expect(subHasRun).toBe(true);
     });
@@ -300,10 +287,10 @@ describe('DefaultRunner test', () => {
 
         subCommand.run = async (): Promise<void> => { throw new Error(); };
 
-        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const context = getContext({}, [], [subCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await expect(runner.run(['command', '--foo', 'bar'], context, [subCommand])).toBeDefined();
+        await expect(runner.run(['command', '--foo', 'bar'], context)).toBeDefined();
     });
 
     test('Error thrown in global run scenario', async () => {
@@ -314,10 +301,10 @@ describe('DefaultRunner test', () => {
 
         globalCommand.run = async (): Promise<void> => { throw new Error('d34db33f'); };
 
-        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const context = getContext({}, [], [globalCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        const error = await runner.run(['--global=bar'], context, [globalCommand]);
+        const error = await runner.run(['--global=bar'], context);
         expect(error).toBeDefined();
         if (error) {
             expect(error.includes('d34db33f')).toBeTruthy();
@@ -334,10 +321,10 @@ describe('DefaultRunner test', () => {
         globalModifierCommand.run = async (): Promise<void> => { throw new Error('d34db33f'); };
         globalCommand.run = async (): Promise<void> => { globalHasRun = true; };
 
-        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const context = getContext({}, [], [globalCommand, globalModifierCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        const error = await runner.run(['--global', '--modifier'], context, [globalCommand, globalModifierCommand]);
+        const error = await runner.run(['--global', '--modifier'], context);
         expect(error).toBeDefined();
         if (error) {
             expect(error.includes('d34db33f')).toBeTruthy();
@@ -353,10 +340,10 @@ describe('DefaultRunner test', () => {
 
         subCommand.run = async (): Promise<void> => { hasRun = true; };
 
-        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const context = getContext({}, [], [subCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        const error = await runner.run(['command', '-bad'], context, [subCommand]);
+        const error = await runner.run(['command', '-bad'], context);
         expect(error).toBeDefined();
         if (error) {
             expect(error.includes('Unused arg: -bad')).toBeTruthy();
@@ -372,10 +359,10 @@ describe('DefaultRunner test', () => {
 
         globalCommand.run = async (): Promise<void> => { hasRun = true; };
 
-        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const context = getContext({}, [], []);
         const runner = new DefaultRunner(new DefaultParser());
 
-        const error = await runner.run(['--bad'], context, [], globalCommand);
+        const error = await runner.run(['--bad'], context, globalCommand);
         expect(error).toBeDefined();
         if (error) {
             expect(error.includes('Unused arg: --bad')).toBeTruthy();
@@ -389,10 +376,10 @@ describe('DefaultRunner test', () => {
 
         globalCommand.run = async (): Promise<void> => { throw new Error('d34db33f'); };
 
-        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const context = getContext({}, [], []);
         const runner = new DefaultRunner(new DefaultParser());
 
-        const error = await runner.run([], context, [], globalCommand);
+        const error = await runner.run([], context, globalCommand);
         expect(error).toBeDefined();
         if (error) {
             expect(error.includes('d34db33f')).toBeTruthy();
@@ -408,10 +395,10 @@ describe('DefaultRunner test', () => {
         const subCommand1 = getSubCommand('command1', [option], []);
         const subCommand2 = getSubCommand('command2', [], []);
 
-        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const context = getContext({}, [], [subCommand1, subCommand2]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        const error = await runner.run(['command1', '--foo', 'bar', 'command2'], context, [subCommand1, subCommand2]);
+        const error = await runner.run(['command1', '--foo', 'bar', 'command2'], context);
         expect(error).toBeDefined();
         if (error) {
             expect(error.includes('Unused arg: command2')).toBeTruthy();
@@ -436,11 +423,10 @@ describe('DefaultRunner test', () => {
         modifier2Command.run = async (): Promise<void> => { hasRun.push(modifier2Command.name); };
         globalCommand.run = async (): Promise<void> => { hasRun.push(globalCommand.name); };
 
-        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const context = getContext({}, [], [globalCommand, modifier1Command, modifier2Command]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await runner.run(['--modifier2=foo', '-g', 'bar', '--modifier1=bar'], context,
-            [globalCommand, modifier1Command, modifier2Command]);
+        await runner.run(['--modifier2=foo', '-g', 'bar', '--modifier1=bar'], context);
 
         expect(hasRun[0]).toBe('modifier1');
         expect(hasRun[1]).toBe('modifier2');
@@ -455,10 +441,10 @@ describe('DefaultRunner test', () => {
         };
         const subCommand = getSubCommand('command', [option], []);
 
-        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const context = getContext({}, [], [subCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await expect(runner.run(['blah', 'command', '--foo', 'bar'], context, [subCommand])).toBeDefined();
+        await expect(runner.run(['blah', 'command', '--foo', 'bar'], context)).toBeDefined();
     });
 
     test('Error thrown for unused trailing args', async () => {
@@ -469,9 +455,9 @@ describe('DefaultRunner test', () => {
         };
         const subCommand = getSubCommand('command', [option], []);
 
-        const context = new DefaultContext({}, [], [], new Map(), new Map());
+        const context = getContext({}, [], [subCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await expect(runner.run(['command', '--foo', 'bar', 'blah'], context, [subCommand])).toBeDefined();
+        await expect(runner.run(['command', '--foo', 'bar', 'blah'], context)).toBeDefined();
     });
 });

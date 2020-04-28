@@ -57,9 +57,13 @@
         "@types/js-yaml": "3.12.3",
         "@types/lodash": "4.14.150",
         "@types/mock-fs": "4.10.0",
+        "@types/node": "13.11.1",
+        "@types/pacote": "11.1.0",
         "@types/prompts": "2.0.6",
         "@typescript-eslint/eslint-plugin": "2.30.0",
         "@typescript-eslint/parser": "2.30.0",
+        "babel-plugin-transform-dynamic-import": "2.1.0",
+        "babel-plugin-transform-es2015-modules-commonjs": "6.26.2",
         "eslint": "6.8.0",
         "eslint-plugin-import": "2.20.2",
         "eslint-plugin-jest": "23.8.2",
@@ -73,7 +77,6 @@
         "rollup": "2.7.3",
         "rollup-plugin-cleanup": "3.1.1",
         "rollup-plugin-commonjs": "10.1.0",
-        "rollup-plugin-eslint": "7.0.0",
         "rollup-plugin-json": "4.0.0",
         "rollup-plugin-node-resolve": "5.2.0",
         "rollup-plugin-peer-deps-external": "2.2.2",
@@ -87,12 +90,14 @@
         "typescript": "3.8.3"
     },
     "dependencies": {
+        "@flowscripter/esm-dynamic-plugins": "1.4.26",
         "debug": "4.1.1",
         "js-yaml": "3.13.1",
         "kleur": "3.0.3",
         "leven": "3.1.0",
         "lodash": "4.17.15",
-        "ora": "4.0.4",
+        "ora": "4.0.3",
+        "pacote": "11.1.4",
         "prompts": "2.3.2"
     }
 }

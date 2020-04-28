@@ -478,7 +478,8 @@ rely heavily on other CLI support packages under the hood e.g. [yargs-parser](ht
     * This is sensible, but both seem to suffer from feature creep as they move towards being a 'product' in their own
     right and both come with a growing list of dependencies. This project aims for a lightweight, abstracted service model
     so that almost all features are optional and customisable. It also aims to keep the core runtime clear of
-    ANY behavioural logic e.g. reading from configs, logging, help etc.
+    ANY behavioural logic e.g. reading from configs, logging, help etc. Where dependencies necessarily creep in, the
+    resulting distributable size is minimised thanks to tree-shaking.
 
     * This project had some pretty specific requirements for argument parsing to accommodate the ideas of global
     modifier commands. [yargs-parser](https://github.com/yargs/yargs-parser) was a bit over-powered and

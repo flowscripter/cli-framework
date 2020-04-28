@@ -1,4 +1,4 @@
-import populateSubCommandValues from '../../../src/runtime/parser/SubCommandValuePopulation';
+import populateSubCommandValues from '../../../src/runtime/parser/populateSubCommandValues';
 import { InvalidArg, InvalidReason } from '../../../src/api/Parser';
 import { CommandArgs } from '../../../src/api/Command';
 import { ArgumentValueTypeName } from '../../../src/api/ArgumentValueType';

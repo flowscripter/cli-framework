@@ -18,32 +18,20 @@ export default class CoreCommandFactory implements CommandFactory {
 
     public readonly helpGlobalCommand: HelpGlobalCommand;
 
-    public readonly helpSubCommand: HelpSubCommand;
-
     public readonly usageCommand: UsageCommand;
 
-    public readonly versionCommand: VersionCommand;
-
-    /**
-     * @param name a string provided to the [[HelpCommand]] and [[UsageCommand]] implementations
-     * @param description a string provided to the [[HelpCommand]] and [[UsageCommand]] implementations
-     * @param version a string provided to the [[VersionCommand]] implementation
-     */
-    public constructor(name: string, description: string, version: string) {
-        this.helpGlobalCommand = new HelpGlobalCommand(name, description, version);
-        this.helpSubCommand = new HelpSubCommand(name, description, version);
-        this.usageCommand = new UsageCommand(name, description, this.helpGlobalCommand);
-        this.versionCommand = new VersionCommand(version);
+    public constructor() {
+        this.helpGlobalCommand = new HelpGlobalCommand();
+        this.usageCommand = new UsageCommand(this.helpGlobalCommand);
     }
 
     /**
      * @inheritdoc
      */
-    // eslint-disable-next-line class-methods-use-this
     public getCommands(): Iterable<Command> {
         return [
-            this.versionCommand,
-            this.helpSubCommand,
+            new VersionCommand(),
+            new HelpSubCommand(),
             this.helpGlobalCommand,
             this.usageCommand,
             new LogLevelCommand(100),

@@ -4,10 +4,10 @@
 
 import CommandFactory from '../api/CommandFactory';
 import Command from '../api/Command';
-import InstallCommand from './command/InstallCommand';
+import PluginCommand from './command/PluginCommand';
 
 /**
- * Provides plugin commands.
+ * Provides a [[Plugin]] [[GroupCommand]] to manage plugins.
  */
 export default class PluginCommandFactory implements CommandFactory {
 
@@ -17,7 +17,7 @@ export default class PluginCommandFactory implements CommandFactory {
     // eslint-disable-next-line class-methods-use-this
     public getCommands(): Iterable<Command> {
         return [
-            new InstallCommand()
+            new PluginCommand()
         ];
     }
 }

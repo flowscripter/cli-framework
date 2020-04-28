@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import Context from '../../api/Context';
 import Printer, { STDOUT_PRINTER_SERVICE } from '../service/PrinterService';
 import GlobalCommand from '../../api/GlobalCommand';
@@ -20,26 +21,21 @@ export default class VersionCommand implements GlobalCommand {
 
     readonly description = 'Show version information';
 
-    readonly version: string;
-
-    /**
-     * @param version the version to display
-     */
-    public constructor(version: string) {
-        this.version = version;
-    }
-
     /**
      * @inheritdoc
      *
      * Prints the CLI version. Expects an implementation of [[Printer]] registered with the [[STDOUT_PRINTER_SERVICE]]
      * ID in the provided [[Context]].
      */
+    // eslint-disable-next-line class-methods-use-this
     public async run(commandArgs: CommandArgs, context: Context): Promise<void> {
-        const printer = context.getService(STDOUT_PRINTER_SERVICE) as unknown as Printer;
-        if (printer == null) {
+        const printer = context.serviceRegistry.getServiceById(STDOUT_PRINTER_SERVICE) as unknown as Printer;
+        if (!printer) {
             throw new Error('STDOUT_PRINTER_SERVICE not available in context');
         }
-        printer.info(this.version);
+        if (_.isUndefined(context.cliConfig) || !_.isString(context.cliConfig.version)) {
+            throw new Error('Provided context is missing property: "cliConfig.version: string"');
+        }
+        printer.info(context.cliConfig.version);
     }
 }
