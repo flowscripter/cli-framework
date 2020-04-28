@@ -9,7 +9,7 @@ import { StderrPrinterService } from '../../../src/core/service/PrinterService';
 import { CommandArgs } from '../../../src';
 import { ConfigurationService } from '../../../src/core/service/ConfigurationService';
 import { getContext } from '../../fixtures/Context';
-import { getCliConfig } from '../../fixtures/CliConfig';
+import { getCliConfig } from '../../fixtures/CLIConfig';
 
 const mockStdout = mockProcessStdout();
 const mockStderr = mockProcessStderr();

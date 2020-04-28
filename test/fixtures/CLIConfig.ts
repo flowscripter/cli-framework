@@ -1,8 +1,7 @@
-import { CliConfig } from '../../src';
-import { PluginManagerConfig } from '../../src/api/Context';
+import CLIConfig, { PluginManagerConfig } from '../../src/api/CLIConfig';
 
 // eslint-disable-next-line import/prefer-default-export
-export function getCliConfig(pluginManagerConfig?: PluginManagerConfig): CliConfig {
+export function getCliConfig(pluginManagerConfig?: PluginManagerConfig): CLIConfig {
     return {
         name: 'foo',
         description: 'foo bar',

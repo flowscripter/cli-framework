@@ -4,7 +4,7 @@ import { mockProcessStdout, mockProcessStderr } from 'jest-mock-process';
 import { NodePluginManager } from '@flowscripter/esm-dynamic-plugins';
 import { AddCommand, RemoveCommand } from '../../../src/plugin/command/AddRemoveCommand';
 import { getContext } from '../../fixtures/Context';
-import { getCliConfig } from '../../fixtures/CliConfig';
+import { getCliConfig } from '../../fixtures/CLIConfig';
 import { CommandArgs } from '../../../src';
 import { StderrPrinterService } from '../../../src/core/service/PrinterService';
 import { PluginRegistryService } from '../../../src/plugin/service/PluginRegistryService';

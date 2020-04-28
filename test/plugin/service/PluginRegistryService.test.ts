@@ -4,7 +4,7 @@ import mockFs from 'mock-fs';
 import { PLUGIN_REGISTRY_SERVICE, PluginRegistryService } from '../../../src/plugin/service/PluginRegistryService';
 import Context from '../../../src/api/Context';
 import { getContext } from '../../fixtures/Context';
-import { getCliConfig } from '../../fixtures/CliConfig';
+import { getCliConfig } from '../../fixtures/CLIConfig';
 
 describe('PluginRegistryService test', () => {
 

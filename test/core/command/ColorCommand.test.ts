@@ -2,7 +2,7 @@ import { mockProcessStderr, mockProcessStdout } from 'jest-mock-process';
 import { StdoutPrinterService, StderrPrinterService } from '../../../src/core/service/PrinterService';
 import { ColorCommand, NoColorCommand } from '../../../src/core/command/ColorCommand';
 import { getContext } from '../../fixtures/Context';
-import { getCliConfig } from '../../fixtures/CliConfig';
+import { getCliConfig } from '../../fixtures/CLIConfig';
 
 const mockStdout = mockProcessStdout();
 const mockStderr = mockProcessStderr();

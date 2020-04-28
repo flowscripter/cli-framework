@@ -3,7 +3,7 @@ import { HelpGlobalCommand, HelpSubCommand } from '../../../src/core/command/Hel
 import { StdoutPrinterService } from '../../../src/core/service/PrinterService';
 import { SubCommandA } from '../../fixtures/CommandFactoryA';
 import { getContext } from '../../fixtures/Context';
-import { getCliConfig } from '../../fixtures/CliConfig';
+import { getCliConfig } from '../../fixtures/CLIConfig';
 
 const mockStdout = mockProcessStdout();
 

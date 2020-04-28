@@ -3,7 +3,7 @@ import UsageCommand from '../../../src/core/command/UsageCommand';
 import { StdoutPrinterService } from '../../../src/core/service/PrinterService';
 import GlobalCommand from '../../../src/api/GlobalCommand';
 import { getContext } from '../../fixtures/Context';
-import { getCliConfig } from '../../fixtures/CliConfig';
+import { getCliConfig } from '../../fixtures/CLIConfig';
 
 const mockStdout = mockProcessStdout();
 

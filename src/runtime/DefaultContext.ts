@@ -8,6 +8,7 @@ import Context from '../api/Context';
 import { CommandArgs } from '..';
 import ServiceRegistry from '../api/ServiceRegistry';
 import CommandRegistry from '../api/CommandRegistry';
+import CLIConfig from '../api/CLIConfig';
 
 /**
  * Default implementation of a [[Context]].
@@ -38,7 +39,7 @@ export default class DefaultContext implements Context {
      *
      * @throws *Error* if [[Service]] instances are provided with duplicate IDs.
      */
-    public constructor(cliConfig: any, serviceRegistry: ServiceRegistry, commandRegistry: CommandRegistry,
+    public constructor(cliConfig: CLIConfig, serviceRegistry: ServiceRegistry, commandRegistry: CommandRegistry,
         serviceConfigs: Map<string, any>, commandConfigs: Map<string, CommandArgs>) {
 
         this.cliConfig = cliConfig;

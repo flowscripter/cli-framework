@@ -13,7 +13,8 @@ import CoreCommandFactory from '../core/CoreCommandFactory';
 import CoreServiceFactory from '../core/CoreServiceFactory';
 import DefaultRunner from '../runtime/DefaultRunner';
 import DefaultContext from '../runtime/DefaultContext';
-import Context, { CliConfig } from '../api/Context';
+import CLIConfig from '../api/CLIConfig';
+import Context from '../api/Context';
 import Runner from '../api/Runner';
 import Printer, { Icon, STDERR_PRINTER_SERVICE } from '../core/service/PrinterService';
 import DefaultParser from '../runtime/parser/DefaultParser';
@@ -32,7 +33,7 @@ export default class BaseCLI implements CLI {
 
     protected readonly log: debug.Debugger = debug('BaseCLI');
 
-    private readonly cliConfig: CliConfig;
+    private readonly cliConfig: CLIConfig;
 
     private readonly coreServiceFactory: CoreServiceFactory;
 
@@ -49,7 +50,7 @@ export default class BaseCLI implements CLI {
     /**
      * Constructor which adds the following factories by default: [[CoreServiceFactory]] and [[CoreCommandFactory]]
      *
-     * If a [[PluginManagerConfig]] is defined in the provided [[CliConfig]] a [[PluginServiceFactory]] and
+     * If a [[PluginManagerConfig]] is defined in the provided [[CLIConfig]] a [[PluginServiceFactory]] and
      * [[PluginCommandFactory]] are also added.
      *
      * @param cliConfig a CLI configuration object which will be made available in the [[Context]].
@@ -58,7 +59,7 @@ export default class BaseCLI implements CLI {
      * @param commandConfigs an optional [[Command]] configuration map where the keys are [[Command.name]] values and
      * the values are in the form of [[CommandArgs]].
      */
-    public constructor(cliConfig: CliConfig, serviceConfigs?: Map<string, any>,
+    public constructor(cliConfig: CLIConfig, serviceConfigs?: Map<string, any>,
         commandConfigs?: Map<string, CommandArgs>) {
 
         this.cliConfig = cliConfig;
