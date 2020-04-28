@@ -34,14 +34,16 @@ The key concepts are:
 
 * A host application implements the *CLI* interface (a default NodeJS specific CLI implementation is provided).
 * The *CLI* is responsible for:
-    * maintaining a list of *CommandFactories* and ensuring the *Commands* they provide are available to a *Runner*.
+    * maintaining a *CommandRegistry* and ensuring the *Commands* it provides are available to a *Runner*.
     * providing invocation arguments to the *Runner* which parses them and determines which *Command* to run.
-    * maintaining a list of *ServiceFactories* and ensuring the *Services* they provide are available in a *Context*.
-    * running the specified *Command* providing it with the parsed arguments and a *Context* providing access to a number of *Services*.
+    * maintaining a *ServiceRegistry* and ensuring the *Services* it provides are available in a *Context*.
+    * running the specified *Command* providing it with the parsed arguments and a *Context*.
 * Dynamic plugins (enabled by [@flowscripter/esm-dynamic-plugins](https://github.com/flowscripter/esm-dynamic-plugins)
 which makes use ES2015 Dynamic Module Imports) are used by:
-    * *PluginCommandFactory* (an instance of a *CommandFactory*) which allows for the dynamic load and import of *CommandPlugins* containing one or more *Command* implementations.
-    * *PluginServiceFactory* (an instance of a *ServiceFactory*) which allows for the dynamic load and import of *ServicesPlugins* containing one or more *Service* implementations.
+    * *PluginCommandFactory* (an instance of a *CommandFactory*) which allows for the dynamic load and import of a
+    *CommandFactory* providing one or more *Command* implementations.
+    * *PluginServiceFactory* (an instance of a *ServiceFactory*) which allows for the dynamic load and import of a
+    *ServicesFactory* providing one or more *Service* implementations.
 
 The following high level class diagram illustrates these relationships:
 
@@ -396,17 +398,30 @@ a command if it was specified as an argument.
 **NOTE**: This requires a `Printer` service in the context registered with the ID `STDOUT_PRINTER_SERVICE`.
 
 ## Plugin Support
-TODO
+
+Dynamic discovery and registration of [@flowscripter/esm-dynamic-plugins](https://github.com/flowscripter/esm-dynamic-plugins) plugins
+providing `Command` and `Service` implementations is available if configured in the `CLIConfig` configuration.
 
 #### Plugin Registry Service
-TODO
+The `PluginRegistryService` is responsible for instantiating a [@flowscripter/esm-dynamic-plugins](https://github.com/flowscripter/esm-dynamic-plugins)
+`PluginManager` which is then used to discover available command and service plugins and add these to `ServiceRegistry` and `CommandRegistry`.
 
 #### Plugin Command
-TODO
+The `PluginCommand` is a group command providing `AddCommand` and `RemoveCommand`. These implement a VERY BASIC
+NPM functionality to demonstrate the ability to add and remove plugins:
+
+* No support is provided for multiple versions!
+* All packages are installed at the top level!
+* Differing package versions for dependencies are not supported!
+* Installed packages are assumed to always be in a valid state and to have not been modified manually
+or by another process!
+* Versions in specs are expected to be explicit and not use ranges!
+* Dist-tags are not supported!
+* Package checksums are not verified!
 
 ## Node CLI
 The `BaseCLI` implementation ensures that the core commands and services are available to the CLI. It expects to be
-provided a configuration object containing the CLI application's name, version and description together with streams to
+provided a `CLIConfig` object containing the CLI application's name, version and description together with streams to
 use for `stdout` and `stderr`.
 
 The `NodeCLI` implementation is a simple extension to the `BaseCLI` which provides the name, version and description from
@@ -418,6 +433,12 @@ the current project's `package.json` and uses the NodeJS provided `process.stdou
 this framework.
 
 [js-example-cli](https://github.com/flowscripter/js-example-cli) is a demo CLI Javascript application based on
+this framework.
+
+[ts-example-cli-plugin](https://github.com/flowscripter/ts-example-cli-plugin) is a demo Typescript command plugin based on
+this framework.
+
+[js-example-cli-plugin](https://github.com/flowscripter/js-example-cli-plugin) is a demo Javascript command plugin based on
 this framework.
 
 ## Code Documentation
@@ -434,7 +455,7 @@ npm install
 
 then:
 
-Build: `npm run build`
+Build: `npm run build` (excuse the rollup warning, npm pacote library brings in a lot of cruft)
 
 Watch: `npm run watch`
 
