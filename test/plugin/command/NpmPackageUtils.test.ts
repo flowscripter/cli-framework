@@ -60,6 +60,22 @@ const packumentF = {
     }
 };
 
+const packumentZ = {
+    name: 'z',
+    'dist-tags': {
+        next: '6'
+    },
+    versions: {
+        6: {
+            name: 'z',
+            version: '6',
+            dist: {
+                tarball: 'registry/z/z-6.tgz'
+            }
+        }
+    }
+};
+
 describe('NpmPackageUtils test', () => {
 
     beforeEach(() => {
@@ -103,7 +119,8 @@ describe('NpmPackageUtils test', () => {
                         name: 'i',
                         version: '9'
                     })
-                }
+                },
+                z: 'foo'
             },
             '/e': {
                 a: {
@@ -156,7 +173,7 @@ describe('NpmPackageUtils test', () => {
         ]);
     });
 
-    test('packageDependencyGenerator', async () => {
+    test('packageDependencyGenerator success', async () => {
 
         mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: JSON.stringify(packumentE) }));
         mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: JSON.stringify(packumentF) }));
@@ -177,8 +194,13 @@ describe('NpmPackageUtils test', () => {
         ]);
     });
 
-    test('installPackage', async () => {
-        // mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: JSON.stringify(packumentE) }));
+    test('packageDependencyGenerator failure if no dist-tag latest when version unspecified', async () => {
+
+        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: JSON.stringify(packumentZ) }));
+        await expect(getDependencies('registry', { name: 'g' })).rejects.toThrowError();
+    });
+
+    test('installPackage success', async () => {
         mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: tar.pack('/e') }));
 
         await expect(fs.access('/location/e', constants.F_OK)).rejects.toThrowError();
@@ -186,9 +208,32 @@ describe('NpmPackageUtils test', () => {
         await fs.access('/location/e', constants.F_OK);
     });
 
-    test('uninstallPackage', async () => {
+    test('installPackage failure if folder exists', async () => {
+        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: tar.pack('/e') }));
+
+        await fs.mkdir('/location/e');
+        await fs.access('/location/e', constants.F_OK);
+        await expect(installPackage('/location',
+            { name: 'e', version: '5', tarballUri: 'registry/e/e-5.tgz' })).rejects.toThrowError();
+    });
+
+    test('uninstallPackage success', async () => {
         await fs.access('/location/a', constants.F_OK);
         await uninstallPackage('/location', { name: 'a', version: '1' });
         await expect(fs.access('/location/a', constants.F_OK)).rejects.toThrowError();
+    });
+
+    test('uninstallPackage failure if version not specified', async () => {
+        await fs.access('/location/a', constants.F_OK);
+        await expect(uninstallPackage('/location', { name: 'a', version: '1' })).rejects.toThrowError();
+    });
+
+    test('uninstallPackage failure if file not folder exists', async () => {
+        await expect(uninstallPackage('/location', { name: 'z', version: '1' })).rejects.toThrowError();
+    });
+
+    test('uninstallPackage failure if no package.json exists', async () => {
+        await fs.unlink('/location/a/package.json');
+        await expect(uninstallPackage('/location', { name: 'a', version: '1' })).rejects.toThrowError();
     });
 });

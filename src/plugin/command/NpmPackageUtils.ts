@@ -286,7 +286,7 @@ export async function getDependencies(remoteModuleRegistry: string, packageSpec:
             resolvedSpecs.push(currentSpec);
         }
 
-        const manifest = packument.versions[currentVersion] as any;
+        const manifest = packument.versions[currentVersion];
 
         // add any further specs we need to resolve
         if (!_.isEmpty(manifest.dependencies)) {

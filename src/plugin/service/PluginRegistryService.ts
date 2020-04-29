@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /**
  * @module @flowscripter/cli-framework
  */
@@ -139,11 +140,8 @@ export class PluginRegistryService implements Service, PluginRegistry {
         }
         this.log(`Using pluginLocation: ${this.pluginLocation}`);
 
-        if (_.isUndefined(this.pluginLocation)) {
-            throw new Error('Logic error: this.pluginLocation is undefined!');
-        }
         try {
-            fs.accessSync(this.pluginLocation, fs.constants.F_OK);
+            fs.accessSync(this.pluginLocation!, fs.constants.F_OK);
         } catch (err) {
             if (customLocation) {
                 throw new Error(`pluginLocation: ${this.pluginLocation} doesn't exist or not visible!`);
@@ -154,7 +152,7 @@ export class PluginRegistryService implements Service, PluginRegistry {
 
         let locationExists = false;
         try {
-            fs.accessSync(this.pluginLocation, fs.constants.R_OK);
+            fs.accessSync(this.pluginLocation!, fs.constants.R_OK);
             locationExists = true;
         } catch (err) {
             if (customLocation) {
@@ -165,10 +163,10 @@ export class PluginRegistryService implements Service, PluginRegistry {
         }
 
         if (locationExists) {
-            const stats = fs.statSync(this.pluginLocation);
+            const stats = fs.statSync(this.pluginLocation!);
             if (!stats.isDirectory()) {
                 if (customLocation) {
-                    throw new Error(`pluginLocation: ${this.pluginLocation} is not a directory!`);
+                    throw new Error(`pluginLocation: ${this.pluginLocation!} is not a directory!`);
                 } else {
                     this.log(`pluginLocation: ${
                         this.pluginLocation} is not a directory - ignoring, no plugins will be loaded`);
@@ -188,7 +186,7 @@ export class PluginRegistryService implements Service, PluginRegistry {
             if (!this.moduleScope.startsWith('@')) {
                 throw new Error(`The configured "moduleScope" must start with "@": ${this.moduleScope}!`);
             }
-            if (!this.moduleScope.startsWith('@')) {
+            if (this.moduleScope.length < 2) {
                 throw new Error('The configured "moduleScope" must be more than "@"!');
             }
             this.log(`Using moduleScope: ${this.moduleScope}`);
@@ -196,7 +194,7 @@ export class PluginRegistryService implements Service, PluginRegistry {
 
         if (locationExists) {
             // eslint-disable-next-line new-cap
-            this.pluginManager = new context.cliConfig.pluginManagerConfig.pluginManager([this.pluginLocation]);
+            this.pluginManager = new context.cliConfig.pluginManagerConfig.pluginManager([this.pluginLocation!]);
 
             if (_.isUndefined(this.pluginManager)) {
                 throw new Error('Logic error: this.pluginManager is undefined!');
