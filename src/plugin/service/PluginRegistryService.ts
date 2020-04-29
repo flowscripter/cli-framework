@@ -28,6 +28,12 @@ export default interface PluginRegistry {
     pluginLocation: string | undefined;
 
     /**
+     * The optional scope of modules which are plugins e.g. if a scope of `@foo` is configured and a plugin
+     * name `bar` is specified then the module name used will be `@foo/bar`.
+     */
+    moduleScope: string | undefined;
+
+    /**
      * Scan for any available plugins which have not already been registered and register them.
      * Any plugins discovered for:
      *
@@ -53,6 +59,8 @@ export class PluginRegistryService implements Service, PluginRegistry {
     private pluginManager: PluginManager<string> | undefined;
 
     public pluginLocation: string | undefined;
+
+    public moduleScope: string | undefined;
 
     /**
      * Create a [[PluginRegistry]] service using the provided esm-dynamic-modules PluginManager.
@@ -101,6 +109,10 @@ export class PluginRegistryService implements Service, PluginRegistry {
      * If a `pluginLocation` property is provided in the service's config this will be used
      * in preference to that provided in the `cliConfig.pluginManagerConfig.pluginLocation` property.
      *
+     * If a `cliConfig.pluginManagerConfig.moduleScope` property is provided in the [[Context]] this will also
+     * be set. If a `moduleScope` property is provided in the service's config this will be used
+     * in preference.
+     *
      * Once the PluginManager is initialised, the extensions [[SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID]] and
      * [[COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID]] will be registered. Following this, [[scan]] will be invoked.
      *
@@ -114,9 +126,9 @@ export class PluginRegistryService implements Service, PluginRegistry {
 
         let customLocation = false;
 
-        // determine actual config file path
+        // determine actual plugin location
         const pluginServiceConfig = context.serviceConfigs.get(this.id);
-        if (!_.isUndefined(pluginServiceConfig)) {
+        if (!_.isUndefined(pluginServiceConfig) && !_.isUndefined(pluginServiceConfig.pluginLocation)) {
             if (!_.isString(pluginServiceConfig.pluginLocation)) {
                 throw new Error('The configured "pluginLocation" is not a string!');
             }
@@ -164,6 +176,24 @@ export class PluginRegistryService implements Service, PluginRegistry {
             }
         }
 
+        // determine actual plugin module scope
+        if (!_.isUndefined(pluginServiceConfig)) {
+            this.moduleScope = pluginServiceConfig.moduleScope;
+        }
+        this.moduleScope = this.moduleScope || context.cliConfig.pluginManagerConfig.moduleScope;
+        if (!_.isUndefined(this.moduleScope)) {
+            if (!_.isString(this.moduleScope)) {
+                throw new Error('The configured "moduleScope" is not a string!');
+            }
+            if (!this.moduleScope.startsWith('@')) {
+                throw new Error(`The configured "moduleScope" must start with "@": ${this.moduleScope}!`);
+            }
+            if (!this.moduleScope.startsWith('@')) {
+                throw new Error('The configured "moduleScope" must be more than "@"!');
+            }
+            this.log(`Using moduleScope: ${this.moduleScope}`);
+        }
+
         if (locationExists) {
             // eslint-disable-next-line new-cap
             this.pluginManager = new context.cliConfig.pluginManagerConfig.pluginManager([this.pluginLocation]);
@@ -190,11 +220,22 @@ export class PluginRegistryService implements Service, PluginRegistry {
             throw new Error('"pluginManager" is undefined, has init() been invoked?');
         }
 
-        let pluginCount = await
-        this.pluginManager.registerPluginsByExtensionPoint(SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID);
-
-        pluginCount += await
-        this.pluginManager.registerPluginsByExtensionPoint(COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID);
+        let pluginCount = 0;
+        if (!_.isUndefined(this.moduleScope)) {
+            pluginCount += await
+            this.pluginManager.registerPluginsByModuleScopeAndExtensionPoint(
+                this.moduleScope, SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID
+            );
+            pluginCount += await
+            this.pluginManager.registerPluginsByModuleScopeAndExtensionPoint(
+                this.moduleScope, COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID
+            );
+        } else {
+            pluginCount += await
+            this.pluginManager.registerPluginsByExtensionPoint(SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID);
+            pluginCount += await
+            this.pluginManager.registerPluginsByExtensionPoint(COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID);
+        }
         this.log(`Registered ${pluginCount} new plugins(s)`);
 
         let i = 0;

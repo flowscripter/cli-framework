@@ -33,6 +33,16 @@ describe('PluginRegistryService test', () => {
         await pluginRegistry.init(context);
     });
 
+    test('PluginRegistry init works with default module scope', async () => {
+        const pluginRegistry = new PluginRegistryService(100);
+        const context: Context = getContext(getCliConfig({
+            pluginManager: NodePluginManager,
+            pluginLocation: '/plugins'
+        }), [], []);
+        await pluginRegistry.init(context);
+        expect(pluginRegistry.moduleScope).toBeUndefined();
+    });
+
     test('PluginRegistry init works with non-default location', async () => {
         const pluginRegistry = new PluginRegistryService(100);
 
@@ -52,6 +62,30 @@ describe('PluginRegistryService test', () => {
             }
         });
         await pluginRegistry.init(context);
+
+        expect(pluginRegistry.pluginLocation).toEqual('/plugins2');
+    });
+
+    test('PluginRegistry init works with non-default module scope', async () => {
+        const pluginRegistry = new PluginRegistryService(100);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const serviceConfigs = new Map<string, any>();
+        serviceConfigs.set(PLUGIN_REGISTRY_SERVICE, {
+            moduleScope: '@foo'
+        });
+        const context: Context = getContext(getCliConfig({
+            pluginManager: NodePluginManager,
+            pluginLocation: path.join(process.cwd(), 'node_modules')
+        }), [], [], serviceConfigs);
+
+        mockFs({
+            '/plugins2': {
+                hello: 'world'
+            }
+        });
+        await pluginRegistry.init(context);
+        expect(pluginRegistry.moduleScope).toEqual('@foo');
     });
 
     test('PluginRegistry init works with invalid default folder', async () => {

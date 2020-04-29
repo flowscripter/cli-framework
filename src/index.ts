@@ -31,6 +31,7 @@ export {
 export { default as Configuration, CONFIGURATION_SERVICE } from './core/service/ConfigurationService';
 export { default as Printer, STDOUT_PRINTER_SERVICE, STDERR_PRINTER_SERVICE } from './core/service/PrinterService';
 export { default as Prompter, PROMPTER_SERVICE } from './core/service/PrompterService';
+export { default as PluginRegistry, PLUGIN_REGISTRY_SERVICE } from './plugin/service/PluginRegistryService';
 
 export {
     SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID,

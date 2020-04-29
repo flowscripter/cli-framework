@@ -6,14 +6,12 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import _ from 'lodash';
 import { NodePluginManager } from '@flowscripter/esm-dynamic-plugins';
 import path from 'path';
 import fs from 'fs';
 import debug from 'debug';
 import BaseCLI from './BaseCLI';
 import { CommandArgs } from '..';
-import CLIConfig from '../api/CLIConfig';
 
 const packageInfo = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 
@@ -25,11 +23,11 @@ export default class NodeCLI extends BaseCLI {
     protected readonly log: debug.Debugger = debug('NodeCLI');
 
     /**
-     * Constructor taking an optional config.
+     * Constructor taking an optional name.
      *
-     * If the optional [[CLIConfig]] is not provided an internal config will be created with the following properties:
+     * An [[CLIConfig]] will be created with the following properties:
      *
-     * * `name`: taken from the `package.json` file.
+     * * `name`: taken from the `package.json` file if the optional name is not specified.
      * * `description`: taken from the `package.json` file.
      * * `version`: taken from the `package.json` file.
      * * `stdin`: `process.stdin`.
@@ -38,14 +36,15 @@ export default class NodeCLI extends BaseCLI {
      * ** `pluginManagerConfig.pluginManager`: the NodePluginManager implementation class from esm-dynamic-plugins.
      * ** `pluginManagerConfig.pluginLocation`: `<process.cwd()>/node_modules`
      *
-     * @param cliConfig an optional [[CLIConfig]] object which will be made available in the [[Context]].
-     * @param serviceConfigs optional service configurations to be made available in the [[Context]].
-     * @param commandConfigs optional command configurations to be made available in the [[Context]].
+     * @param name an optional name for the CLI. If not specified it will be taken from the `package.json` file.
+     * @param serviceConfigs an optional [[Service]] configuration map where the keys are [[Service.id]] values and
+     * the values are generic configuration objects.
+     * @param commandConfigs an optional [[Command]] configuration map where the keys are [[Command.name]] values and
+     * the values are in the form of [[CommandArgs]].
      */
-    public constructor(cliConfig?: CLIConfig, serviceConfigs?: Map<string, any>,
-        commandConfigs?: Map<string, CommandArgs>) {
-        super(!_.isUndefined(cliConfig) ? cliConfig : {
-            name: packageInfo.name,
+    public constructor(name?: string, serviceConfigs?: Map<string, any>, commandConfigs?: Map<string, CommandArgs>) {
+        super({
+            name: name || packageInfo.name,
             description: packageInfo.description,
             version: packageInfo.version,
             stdin: process.stdin,

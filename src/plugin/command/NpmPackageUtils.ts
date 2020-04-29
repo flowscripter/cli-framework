@@ -5,12 +5,29 @@
 /* eslint-disable import/prefer-default-export,@typescript-eslint/no-explicit-any */
 
 import _ from 'lodash';
-import { promises as fs } from 'fs';
+import { promises as fs, constants } from 'fs';
 import path from 'path';
 import debug from 'debug';
-import { extract, packument } from 'pacote';
+import axios from 'axios';
+import tar from 'tar-fs';
+import util from 'util';
+import gunzip from 'gunzip-maybe';
+import { pipeline } from 'stream';
+
+const pipelinePromise = util.promisify(pipeline);
 
 const log: debug.Debugger = debug('NodePackageUtils');
+
+export interface PackageSpec {
+    name: string;
+
+    /**
+     * If not specified when requesting an install, "latest" dist-tag will be used.
+     */
+    version?: string;
+
+    tarballUri?: string;
+}
 
 /**
  * This is a VERY simple implementation of NPM based package management functionality.
@@ -18,14 +35,60 @@ const log: debug.Debugger = debug('NodePackageUtils');
  * * No support is provided for multiple versions!
  * * All packages are installed at the top level!
  * * Differing package versions for dependencies are not supported!
+ * * Versions in specs are expected to be explicit and not use ranges!
  * * Installed packages are assumed to always be in a valid state and to have not been modified manually
  * or by another process!
- * * Versions in specs are expected to be explicit and not use ranges!
- * * Dist-tags are not supported!
+ * * Dist-tags are not really supported (apart from looking for latest if no version is specified)!
  * * Package checksums are not verified!
  */
 
-async function getInstalledPackageMetadata(packageLocation: string): Promise<any[]> {
+async function getPackument(remoteModuleRegistry: string, packageSpec: PackageSpec): Promise<any> {
+    try {
+        const response = await axios.get(`${remoteModuleRegistry}/${packageSpec.name}`, {
+            headers: {
+                Accept: 'application/vnd.npm.install-v1+json'
+            }
+        });
+        return JSON.parse(response.data);
+    } catch (err) {
+        throw new Error(`Error while attempting to retrieve packument for ${packageSpec.name} => ${err}`);
+    }
+}
+
+async function extract(packageLocation: string, packageSpec: PackageSpec): Promise<void> {
+    if (_.isUndefined(packageSpec.tarballUri)) {
+        throw new Error(`No tarball URI in package spec for package: ${packageSpec.name}`);
+    }
+    const packageFolder = path.join(packageLocation, packageSpec.name);
+    let exists = false;
+    try {
+        await fs.access(packageFolder, constants.R_OK);
+        exists = true;
+    } catch (err) {
+        // desired scenario
+    }
+    if (exists) {
+        throw new Error(`Extract target path already exists: ${packageFolder}`);
+    }
+    try {
+        await fs.mkdir(packageFolder);
+        const response = await axios.get(packageSpec.tarballUri, {
+            responseType: 'stream'
+        });
+        const source = response.data;
+        const process = gunzip();
+        const sink = tar.extract(packageFolder);
+        await pipelinePromise(
+            source,
+            process,
+            sink
+        );
+    } catch (err) {
+        throw new Error(`Error while attempting to extract tarball for ${packageSpec.name} => ${err}`);
+    }
+}
+
+async function getInstalledPackageMetadatas(packageLocation: string): Promise<any[]> {
     const contents = await fs.readdir(packageLocation);
 
     const folders: string[] = [];
@@ -39,47 +102,53 @@ async function getInstalledPackageMetadata(packageLocation: string): Promise<any
                 folders.push(entry);
             }
         } catch (err) {
-            log(`Ignoring error while attempting to stat: ${packagePath}`);
+            log(`Ignoring error while attempting to stat: ${packagePath} => ${err}`);
         }
     }
 
-    const packages = [];
+    const packageMetadatas = [];
     for (const folder of folders) {
+        // NOTE: only one level of dependencies supported
         const packageJsonPath = path.join(packageLocation, folder, 'package.json');
         try {
             // eslint-disable-next-line no-await-in-loop
-            packages.push(JSON.parse((await fs.readFile(packageJsonPath)).toString()));
+            packageMetadatas.push(JSON.parse((await fs.readFile(packageJsonPath)).toString()));
         } catch (err) {
-            log(`Ignoring error while attempting to read and parse: ${packageJsonPath}`);
+            log(`Ignoring error while attempting to read and parse: ${packageJsonPath} => ${err}`);
         }
     }
-    return packages;
+    return packageMetadatas;
 }
 
 /**
  * Return a list of all packages installed in the specified package location.
  *
  * @param packageLocation the location to discover installed packages.
- * @return a list of package specs in the form of `packageName@packageVersion`
+ * @return a list of [[PackageSpec]] instances.
  */
-export async function getAllInstalledPackages(packageLocation: string): Promise<string[]> {
+export async function getAllInstalledPackages(packageLocation: string): Promise<PackageSpec[]> {
 
-    const packageMetadatas = await getInstalledPackageMetadata(packageLocation);
-    return packageMetadatas.map((packageMetadata: any) => `${packageMetadata.name}@${packageMetadata.version}`);
+    const packageMetadatas = await getInstalledPackageMetadatas(packageLocation);
+    return packageMetadatas.map((packageMetadata: any) => ({
+        name: packageMetadata.name,
+        version: packageMetadata.version
+    }));
 }
 
 /**
  * Return a list of top level packages installed in the specified package location.
  *
  * @param packageLocation the location to discover installed packages.
- * @return a list of package specs in the form of `packageName@packageVersion`
+ * @return a list of [[PackageSpec]] instances.
  */
-export async function getInstalledTopLevelPackages(packageLocation: string): Promise<string[]> {
+export async function getInstalledTopLevelPackages(packageLocation: string): Promise<PackageSpec[]> {
 
-    const packageMetadatas = await getInstalledPackageMetadata(packageLocation);
+    const packageMetadatas = await getInstalledPackageMetadatas(packageLocation);
 
-    const installedPackageSpecs: string[] = packageMetadatas.map((packageMetadata: any) => `${
-        packageMetadata.name}@${packageMetadata.version}`);
+    const installedPackageSpecs: PackageSpec[] = packageMetadatas.map((packageMetadata: any) => ({
+        name: packageMetadata.name,
+        version: packageMetadata.version
+    }));
 
     const dependencyPackageSpecs: string[] = [];
 
@@ -90,7 +159,8 @@ export async function getInstalledTopLevelPackages(packageLocation: string): Pro
             }
         }
     });
-    return installedPackageSpecs.filter((spec) => !dependencyPackageSpecs.includes(spec));
+    // NOTE: no support for version ranges
+    return installedPackageSpecs.filter((spec) => !dependencyPackageSpecs.includes(`${spec.name}@${spec.version}`));
 }
 
 /**
@@ -100,27 +170,47 @@ export async function getInstalledTopLevelPackages(packageLocation: string): Pro
  *
  * @param packageLocation the location to discover installed packages.
  * @param packageSpecs the package specs to determine dependencies from
- * @return a list of package specs in the form of `packageName@packageVersion`
+ * @return a list of package specs
  */
-export async function getInstalledDependencies(packageLocation: string, packageSpecs: string[]): Promise<string[]> {
-    const packageMetadatas = await getInstalledPackageMetadata(packageLocation);
+export async function getInstalledDependencies(packageLocation: string, packageSpecs: PackageSpec[]):
+    Promise<PackageSpec[]> {
 
-    const installedDependencyMetadatas: string[] = packageMetadatas.filter(
-        (packageMetadata: any) => packageSpecs.includes(`${packageMetadata.name}@${packageMetadata.version}`)
+    const desiredPackageSpecStrings = packageSpecs.map(
+        (packageSpec) => (`${packageSpec.name}@${packageSpec.version}`)
     );
 
-    const dependencyPackageSpecs: string[] = [];
+    const installedPackageMetadatas = await getInstalledPackageMetadatas(packageLocation);
 
-    installedDependencyMetadatas.forEach((packageMetadata: any) => {
-        let packageSpec = `${packageMetadata.name}@${packageMetadata.version}`;
-        if (!dependencyPackageSpecs.includes(packageSpec)) {
-            dependencyPackageSpecs.push(packageSpec);
+    // NOTE: no support for version ranges
+    const installedDesiredMetadatas: string[] = installedPackageMetadatas.filter(
+        (packageMetadata: any) => desiredPackageSpecStrings.includes(
+            `${packageMetadata.name}@${packageMetadata.version}`
+        )
+    );
+
+    const dependencyPackageSpecs: PackageSpec[] = [];
+    const dependencyPackageSpecStrings: string[] = [];
+
+    installedDesiredMetadatas.forEach((packageMetadata: any) => {
+        let packageSpecString = `${packageMetadata.name}@${packageMetadata.version}`;
+        // NOTE: no support for version ranges
+        if (!dependencyPackageSpecStrings.includes(packageSpecString)) {
+            dependencyPackageSpecStrings.push(packageSpecString);
+            dependencyPackageSpecs.push({
+                name: packageMetadata.name,
+                version: packageMetadata.version
+            });
         }
+        // NOTE: only one level of dependencies supported
         if (!_.isEmpty(packageMetadata.dependencies)) {
-            for (const [name, version] of Object.entries(packageMetadata.dependencies)) {
-                packageSpec = `${name}@${version}`;
-                if (!dependencyPackageSpecs.includes(packageSpec)) {
-                    dependencyPackageSpecs.push(packageSpec);
+            for (const [name, version] of Object.entries(packageMetadata.dependencies as [string, string])) {
+                packageSpecString = `${name}@${version}`;
+                if (!dependencyPackageSpecStrings.includes(packageSpecString)) {
+                    dependencyPackageSpecStrings.push(packageSpecString);
+                    dependencyPackageSpecs.push({
+                        name,
+                        version
+                    });
                 }
             }
         }
@@ -132,57 +222,88 @@ export async function getInstalledDependencies(packageLocation: string, packageS
  * Return a list of all packages required to be installed for the specified package (including the specified package).
  *
  * @param remoteModuleRegistry plugin module remote registry location
- * @param localModuleCacheLocation plugin module local cache location
- * @param packageName the name of the required package
- * @param packageVersion optional version of the required package
- * @return an iterator of package specs in the form of `packageName@packageVersion`
+ * @param packageSpec the spec of the required package
+ * @return an iterator of [[PackageSpec]] instances
  */
-export async function getDependencies(remoteModuleRegistry: string, localModuleCacheLocation: string,
-    packageName: string, packageVersion?: string): Promise<string[]> {
+export async function getDependencies(remoteModuleRegistry: string, packageSpec: PackageSpec): Promise<PackageSpec[]> {
 
-    let spec = packageName;
-    if (!_.isUndefined(packageVersion)) {
-        spec = `${spec}@${packageVersion}`;
+    // NOTE: only one level of dependencies supported
+    // NOTE: no support for version ranges
+    const unresolvedSpecStrings: string[] = [];
+    const unresolvedSpecs: PackageSpec[] = [];
+
+    const resolvedSpecStrings: string[] = [];
+    const resolvedSpecs: PackageSpec[] = [];
+
+    // NOTE: default to latest dist-tag if no version specified
+    let specString = packageSpec.name;
+    if (!_.isUndefined(packageSpec.version)) {
+        specString = `${specString}@${packageSpec.version}`;
+        unresolvedSpecs.push(packageSpec);
+    } else {
+        specString = `${specString}@latest`;
+        unresolvedSpecs.push({
+            name: packageSpec.name,
+            version: 'latest'
+        });
     }
-
-    const unresolvedSpecs = [spec];
-
-    const resolvedSpecs: string[] = [];
+    unresolvedSpecStrings.push(specString);
 
     // continue looping through unresolved specs until we stop adding them
-    for (let i = 0; i < unresolvedSpecs.length; i += 1) {
+    for (let i = 0; i < unresolvedSpecStrings.length; i += 1) {
 
-        let currentSpec = unresolvedSpecs[i];
+        let currentSpecString = unresolvedSpecStrings[i];
+        const currentSpec = unresolvedSpecs[i];
 
         // eslint-disable-next-line no-await-in-loop
-        await packument(currentSpec, {
-            registry: remoteModuleRegistry,
-            cache: localModuleCacheLocation
-        })
-            .then((pkmt) => {
-                let currentVersion = currentSpec.split('@')[1];
-                if (_.isUndefined(currentVersion)) {
-                    // eslint-disable-next-line prefer-destructuring
-                    currentVersion = Object.keys(pkmt.versions)[0];
-                    currentSpec = `${currentSpec}@${currentVersion}`;
-                }
+        const packument = await getPackument(remoteModuleRegistry, currentSpec);
 
-                if (!resolvedSpecs.includes(currentSpec)) {
-                    resolvedSpecs.push(currentSpec);
-                }
+        let currentVersion = currentSpec.version;
+        if (_.isUndefined(currentVersion)) {
+            throw new Error(`Version not specified for package: ${currentSpec.name}`);
+        }
+        // NOTE: only dist-tag supported is latest
+        if (currentVersion === 'latest') {
+            if (_.isUndefined(packument['dist-tags']) || (_.isEmpty(packument['dist-tags']))) {
+                throw new Error(`No dist-tags when looking for latest version of package: ${currentSpec.name}`);
+            }
+            if (_.isUndefined(packument['dist-tags'].latest)) {
+                throw new Error(`No latest dist-tags when looking for latest version of package: ${currentSpec.name}`);
+            }
+            currentVersion = packument['dist-tags'].latest;
+            currentSpec.version = currentVersion;
+            currentSpecString = `${currentSpec.name}@${currentSpec.version}`;
+        }
 
-                const manifest = pkmt.versions[currentVersion] as any;
+        if (_.isUndefined(currentVersion)) {
+            throw new Error(`Version not resolved for package: ${currentSpec.name}`);
+        }
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        currentSpec.tarballUri = packument.versions![currentVersion]!.dist!.tarball;
 
-                // add any further specs we need to resolve
-                if (!_.isEmpty(manifest.dependencies)) {
-                    Object.entries(manifest.dependencies).forEach(([dependencyName, dependencyVersion]) => {
-                        const dependencySpec = `${dependencyName}@${dependencyVersion}`;
-                        if (!unresolvedSpecs.includes(dependencySpec) && !resolvedSpecs.includes(dependencySpec)) {
-                            unresolvedSpecs.push(dependencySpec);
-                        }
+        if (!resolvedSpecStrings.includes(currentSpecString)) {
+            resolvedSpecStrings.push(currentSpecString);
+            resolvedSpecs.push(currentSpec);
+        }
+
+        const manifest = packument.versions[currentVersion] as any;
+
+        // add any further specs we need to resolve
+        if (!_.isEmpty(manifest.dependencies)) {
+            // NOTE: only one level of dependencies supported
+            // NOTE: no support for version ranges
+            Object.entries(manifest.dependencies).forEach(([name, version]) => {
+                const newDependencySpecString = `${name}@${version}`;
+                if (!unresolvedSpecStrings.includes(newDependencySpecString)
+                    && !resolvedSpecStrings.includes(newDependencySpecString)) {
+                    unresolvedSpecStrings.push(newDependencySpecString);
+                    unresolvedSpecs.push({
+                        name,
+                        version: version as string
                     });
                 }
             });
+        }
     }
     return resolvedSpecs;
 }
@@ -191,21 +312,14 @@ export async function getDependencies(remoteModuleRegistry: string, localModuleC
  * Install a specified package.
  *
  * @param packageLocation the location to discover installed packages.
- * @param remoteModuleRegistry plugin module remote registry location
- * @param localModuleCacheLocation plugin module local cache location
- * @param packageSpec the package to install in the form of `packageName@packageVersion`
+ * @param packageSpec the package to install
  */
-export async function installPackage(packageLocation: string, remoteModuleRegistry: string,
-    localModuleCacheLocation: string, packageSpec: string): Promise<void> {
+export async function installPackage(packageLocation: string, packageSpec: PackageSpec): Promise<void> {
     try {
-        const { from, resolved, integrity } = await extract(packageSpec, packageLocation, {
-            registry: remoteModuleRegistry,
-            cache: localModuleCacheLocation
-        });
-        log(`Installed module: ${from} : ${resolved} : ${integrity}`);
+        await extract(packageLocation, packageSpec);
+        log(`Installed module ${packageSpec.name}@${packageSpec.version} into ${packageLocation}`);
     } catch (err) {
-        log(`Failed to install module: ${packageSpec}: ${err}`);
-        throw new Error(`Failed to install module: ${packageSpec}`);
+        throw new Error(`Failed to install module: ${packageSpec} => ${err}`);
     }
 }
 
@@ -213,14 +327,40 @@ export async function installPackage(packageLocation: string, remoteModuleRegist
  * Uninstall a specified package.
  *
  * @param packageLocation the location to discover installed packages.
- * @param packageSpec the package to install in the form of `packageName@packageVersion`
+ * @param packageSpec the package to uninstall
  */
-export async function uninstallPackage(packageLocation: string, packageSpec: string): Promise<void> {
-    const packageName = packageSpec.split('@')[0];
+export async function uninstallPackage(packageLocation: string, packageSpec: PackageSpec): Promise<void> {
+    if (_.isUndefined(packageSpec.version)) {
+        throw new Error(`Version for package ${packageSpec.name} must be specified when uninstalling!`);
+    }
+    const packageFolder = path.join(packageLocation, packageSpec.name);
     try {
-        await fs.rmdir(path.join(packageLocation, packageName), { recursive: true });
+        await fs.access(packageFolder, constants.R_OK);
     } catch (err) {
-        log(`Failed to uninstall module: ${packageSpec}: ${err}`);
-        throw new Error(`Failed to uninstall module: ${packageSpec}`);
+        log(`Ignoring missing path when uninstalling: ${packageFolder}`);
+        return;
+    }
+
+    const stats = await fs.stat(packageFolder);
+    if (!stats.isDirectory()) {
+        throw new Error(`Specified path is a file, not a folder: ${packageFolder}`);
+    }
+
+    let packageJson;
+    const packageJsonPath = path.join(packageFolder, 'package.json');
+    try {
+        packageJson = JSON.parse((await fs.readFile(packageJsonPath)).toString());
+    } catch (err) {
+        throw new Error(`Error while attempting to read and parse: ${packageJsonPath} => ${err}`);
+    }
+
+    if (packageJson.version !== packageSpec.version) {
+        throw new Error(`Version mismatch when uninstalling package: ${packageSpec.name}@${
+            packageSpec.version} != ${packageJson.version}`);
+    }
+    try {
+        await fs.rmdir(packageFolder, { recursive: true });
+    } catch (err) {
+        throw new Error(`Failed to remove path ${packageFolder} for module: ${packageSpec.name} => ${err}`);
     }
 }

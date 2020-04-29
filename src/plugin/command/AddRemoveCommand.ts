@@ -27,10 +27,6 @@ abstract class AbstractPluginCommand {
 
     protected remoteModuleRegistry: string | undefined;
 
-    protected localModuleCacheLocation: string | undefined;
-
-    protected modulePrefix: string | undefined;
-
     protected pluginRegistry: PluginRegistry | undefined;
 
     /**
@@ -39,10 +35,6 @@ abstract class AbstractPluginCommand {
      * * a config with the following properties defined:
      * ** `remoteModuleRegistry`: plugin module remote registry location string. If not provided, the default is
      * `https://registry.npmjs.org/`
-     * ** `localModuleCacheLocation`: plugin module local cache location string. If not provided, the default is
-     * `os.homedir() + "/.npm"`
-     * ** `modulePrefix`: a prefix string for plugin modules e.g. if a prefix of `@foo` is configured and a module
-     * name `bar` is specified in an *install* or *uninstall* request then the module name used will be `@foo/bar`.
      * * an implementation of [[Printer]] service registered with the [[STDERR_PRINTER_SERVICE]] ID in the
      * provided [[Context]].
      * * an implementation of [[PluginRegistry]] service registered with the [[PLUGIN_REGISTRY_SERVICE]] ID in the
@@ -58,16 +50,6 @@ abstract class AbstractPluginCommand {
         this.remoteModuleRegistry = config.remoteModuleRegistry as string | undefined;
         if (_.isUndefined(this.remoteModuleRegistry) || !_.isString(this.remoteModuleRegistry)) {
             throw new Error('Missing "remoteModuleRegistry" configuration or it is not a string!');
-        }
-
-        this.localModuleCacheLocation = config.localModuleCacheLocation as string | undefined;
-        if (_.isUndefined(this.localModuleCacheLocation) || !_.isString(this.localModuleCacheLocation)) {
-            throw new Error('Missing "localModuleCacheLocation" configuration or it is not a string!');
-        }
-
-        this.modulePrefix = config.modulePrefix as string | undefined;
-        if (!_.isUndefined(this.modulePrefix) && !_.isString(this.modulePrefix)) {
-            throw new Error('Missing "modulePrefix" configuration or it is not a string!');
         }
 
         this.printer = context.serviceRegistry.getServiceById(STDERR_PRINTER_SERVICE) as unknown as Printer;
@@ -127,52 +109,37 @@ export class AddCommand extends AbstractPluginCommand implements SubCommand {
             await this.doRun(commandArgs, context, this.name);
 
             let name = commandArgs.name as string;
+            const version = commandArgs.version as string | undefined || 'latest';
 
-            if (!_.isUndefined(this.modulePrefix)) {
-                name = `${this.modulePrefix}${name}`;
+            if (!_.isUndefined(this.pluginRegistry!.moduleScope)) {
+                name = `${this.pluginRegistry!.moduleScope}/${name}`;
             }
 
             this.printer!.showSpinner(`Adding: ${name}`);
 
-            const version = commandArgs.version as string | undefined;
-
             const packageLocation = this.pluginRegistry!.pluginLocation!;
 
             // get list of currently installed packages
-            const installedPackages = await getAllInstalledPackages(packageLocation);
+            const installedPackageSpecs = await getAllInstalledPackages(packageLocation);
 
-            const installedPackageNamesAndVersions: { [packageName: string]: string } = {};
-            installedPackages.forEach((spec) => {
-                const [packageName, packageVersion] = spec.split('@');
-                installedPackageNamesAndVersions[packageName] = packageVersion;
-            });
+            const packageSpecsToInstall = await getDependencies(this.remoteModuleRegistry!, { name, version });
 
-            const packagesToInstall = await getDependencies(this.remoteModuleRegistry!,
-                this.localModuleCacheLocation!, name, version);
-
-            const constPackageNamesAndVersionsToInstall = packagesToInstall.map(
-                (spec) => spec.split('@')
-            );
-
-            for (const packageNameAndVersionToInstall of constPackageNamesAndVersionsToInstall) {
-
-                const packageName = packageNameAndVersionToInstall[0];
-                const packageVersion = packageNameAndVersionToInstall[1];
+            for (const currentPackageSpec of packageSpecsToInstall) {
 
                 // check if package already installed
-                if (!_.isUndefined(installedPackageNamesAndVersions[packageName])) {
-                    if (installedPackageNamesAndVersions[packageName] !== packageVersion) {
+                const found = installedPackageSpecs.find((packageSpec) => packageSpec.name === currentPackageSpec.name);
+                if (found) {
+                    if (found.version !== currentPackageSpec.version) {
                         throw new Error(`Multiple versions are not supported! Requested: ${
-                            packageName}@${packageVersion}, Installed: ${
-                            packageName}@${installedPackageNamesAndVersions[packageName]}`);
+                            currentPackageSpec.name}@${currentPackageSpec.version}, Installed: ${
+                            found.name}@${found.version}`);
                     }
                 } else {
                     // install package
-                    await installPackage(packageLocation, this.remoteModuleRegistry!,
-                        this.localModuleCacheLocation!, `${packageName}@${packageVersion}`);
+                    await installPackage(packageLocation, currentPackageSpec);
 
                     // add installed package to installed list
-                    installedPackageNamesAndVersions[packageName] = packageVersion;
+                    installedPackageSpecs.push(currentPackageSpec);
                 }
             }
         } catch (err) {
@@ -224,8 +191,8 @@ export class RemoveCommand extends AbstractPluginCommand implements SubCommand {
 
             let name = commandArgs.name as string;
 
-            if (!_.isUndefined(this.modulePrefix)) {
-                name = `${this.modulePrefix}${name}`;
+            if (!_.isUndefined(this.pluginRegistry!.moduleScope)) {
+                name = `${this.pluginRegistry!.moduleScope}/${name}`;
             }
 
             this.printer!.showSpinner(`Removing: ${name}`);
@@ -236,7 +203,7 @@ export class RemoveCommand extends AbstractPluginCommand implements SubCommand {
             let topLevelPackages = await getInstalledTopLevelPackages(packageLocation);
 
             // look for package to delete
-            const found = topLevelPackages.find((packageSpec) => packageSpec.startsWith(name));
+            const found = topLevelPackages.find((packageSpec) => packageSpec.name === name);
 
             // return if nothing to do
             if (_.isUndefined(found)) {
@@ -249,8 +216,7 @@ export class RemoveCommand extends AbstractPluginCommand implements SubCommand {
             // build dependency list from top level list
             const requiredPackages = await getInstalledDependencies(packageLocation, topLevelPackages);
 
-            const packagesToUninstall = await getDependencies(this.remoteModuleRegistry!,
-                this.localModuleCacheLocation!, name, found.split('@')[1]);
+            const packagesToUninstall = await getDependencies(this.remoteModuleRegistry!, found);
 
             for (const packageToUninstall of packagesToUninstall) {
 

@@ -54,22 +54,14 @@ describe('NodeCLI test', () => {
         expect(mockExit).toHaveBeenCalledWith(0);
     });
 
-    test('Basic execution works with custom config', async () => {
+    test('Basic execution works with custom name', async () => {
         process.argv = ['node', 'node.js', 'greeter', 'hello', 'world'];
 
         const mockExit = mockProcessExit();
-        const cli = new NodeCLI({
-            name: 'foo1',
-            version: 'foo3',
-            description: 'custom description',
-            stderr: process.stderr,
-            stdout: process.stdout,
-            stdin: process.stdin
-        });
+        const cli = new NodeCLI('foo1');
 
         await cli.execute();
 
-        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('custom description'));
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('foo1 --help'));
         expect(mockExit).toHaveBeenCalledWith(1);
     });
