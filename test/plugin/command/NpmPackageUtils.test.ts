@@ -225,7 +225,7 @@ describe('NpmPackageUtils test', () => {
 
     test('uninstallPackage failure if version not specified', async () => {
         await fs.access('/location/a', constants.F_OK);
-        await expect(uninstallPackage('/location', { name: 'a', version: '1' })).rejects.toThrowError();
+        await expect(uninstallPackage('/location', { name: 'a' })).rejects.toThrowError();
     });
 
     test('uninstallPackage failure if file not folder exists', async () => {
