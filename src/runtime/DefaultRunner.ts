@@ -11,6 +11,7 @@ import { isGlobalCommand, isGlobalModifierCommand, isSubCommand } from '../api/C
 import Command from '../api/Command';
 import validateCommand from './CommandValidation';
 import GlobalModifierCommand from '../api/GlobalModifierCommand';
+import Printer, { Icon, STDERR_PRINTER_SERVICE } from '../core/service/PrinterService';
 
 /**
  * Default implementation of a [[Runner]].
@@ -119,8 +120,6 @@ export default class DefaultRunner implements Runner {
             throw new Error(`Default command: ${defaultCommand.name} is not a global command or sub-command`);
         }
 
-        let failureMessage;
-
         // validate default command if specified
         if (defaultCommand) {
             validateCommand(defaultCommand);
@@ -219,7 +218,7 @@ export default class DefaultRunner implements Runner {
             overallUnusedArgs, context, defaultCommand);
 
         if (!parseResult) {
-            return 'No command specified and no default discovered!';
+            return 'No command specified and no default available!';
         }
         if (_.isString(parseResult)) {
             return parseResult;
@@ -231,16 +230,23 @@ export default class DefaultRunner implements Runner {
 
         // error on unused args
         overallUnusedArgs.push(...parseResult.unusedArgs);
-        if (overallUnusedArgs.length === 1) {
-            return `Unused arg: ${overallUnusedArgs[0]}`;
-        }
-        if (overallUnusedArgs.length > 1) {
-            return `Unused args: ${overallUnusedArgs.join(' ')}`;
+        if (overallUnusedArgs.length > 0) {
+            // output any unused args, parsing error or run error on stderr
+            const printer = context.serviceRegistry.getServiceById(STDERR_PRINTER_SERVICE) as unknown as Printer;
+            if (printer == null) {
+                return 'STDERR_PRINTER_SERVICE not available in context';
+            }
+            if (overallUnusedArgs.length === 1) {
+                printer.warn(`Unused arg: ${overallUnusedArgs[0]}\n`, Icon.ALERT);
+            } else {
+                printer.warn(`Unused args: ${overallUnusedArgs.join(' ')}\n`, Icon.ALERT);
+            }
         }
 
         const { groupCommand, command, commandArgs } = parseResult;
 
         let message;
+        let failureMessage;
         try {
             if (groupCommand) {
                 message = `command: ${groupCommand.name}`;

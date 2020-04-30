@@ -174,7 +174,7 @@ describe('BaseCLI test', () => {
         expect(result).toEqual(0);
     });
 
-    test('Execute failure returns 1', async () => {
+    test('Warning for unknown command', async () => {
         const cliConfig = {
             name: 'cli',
             description: 'good',
@@ -188,11 +188,11 @@ describe('BaseCLI test', () => {
         cli.addCommandFactory(new CommandFactoryA());
 
         const result = await cli.execute(['blah']);
-
-        expect(result).toEqual(1);
+        expect(result).toEqual(0);
+        expect(mockStderr).toHaveBeenCalledWith(expect.stringContaining('Unused arg: blah'));
     });
 
-    test('Execute fails for unknown global argument', async () => {
+    test('Warning for unknown global argument', async () => {
         const cliConfig = {
             name: 'cli',
             description: 'good',
@@ -206,8 +206,8 @@ describe('BaseCLI test', () => {
         cli.addCommandFactory(new CommandFactoryA());
 
         const result = await cli.execute(['--nnn', 'command_a', '--foo=hello']);
-
-        expect(result).toEqual(1);
+        expect(result).toEqual(0);
+        expect(mockStderr).toHaveBeenCalledWith(expect.stringContaining('Unused arg: --nnn'));
     });
 
     test('Default command is run with required arguments provided in config', async () => {

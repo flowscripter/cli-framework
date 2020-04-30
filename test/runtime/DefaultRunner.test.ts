@@ -9,6 +9,7 @@ import GlobalCommandArgument from '../../src/api/GlobalCommandArgument';
 import GlobalModifierCommand from '../../src/api/GlobalModifierCommand';
 import GroupCommand from '../../src/api/GroupCommand';
 import { getContext } from '../fixtures/Context';
+import { StderrPrinterService } from '../../src/core/service/PrinterService';
 
 const mockStdout = mockProcessStdout();
 const mockStderr = mockProcessStderr();
@@ -332,7 +333,7 @@ describe('DefaultRunner test', () => {
         expect(globalHasRun).toBe(false);
     });
 
-    test('Parse error in non-global run scenario', async () => {
+    test('Unknown arg warning in non-global run scenario', async () => {
 
         let hasRun = false;
 
@@ -340,18 +341,18 @@ describe('DefaultRunner test', () => {
 
         subCommand.run = async (): Promise<void> => { hasRun = true; };
 
-        const context = getContext({}, [], [subCommand]);
+        const stderrService = new StderrPrinterService(90);
+        const context = getContext({ stderr: process.stderr }, [stderrService], [subCommand]);
+        stderrService.init(context);
         const runner = new DefaultRunner(new DefaultParser());
 
         const error = await runner.run(['command', '-bad'], context);
-        expect(error).toBeDefined();
-        if (error) {
-            expect(error.includes('Unused arg: -bad')).toBeTruthy();
-        }
-        expect(hasRun).toBe(false);
+        expect(error).toBeUndefined();
+        expect(mockStderr).toHaveBeenCalledWith(expect.stringContaining('Unused arg: -bad'));
+        expect(hasRun).toBe(true);
     });
 
-    test('Parse error in global run scenario', async () => {
+    test('Unknown arg warning in global run scenario', async () => {
 
         let hasRun = false;
 
@@ -359,15 +360,15 @@ describe('DefaultRunner test', () => {
 
         globalCommand.run = async (): Promise<void> => { hasRun = true; };
 
-        const context = getContext({}, [], []);
+        const stderrService = new StderrPrinterService(90);
+        const context = getContext({ stderr: process.stderr }, [stderrService], []);
+        stderrService.init(context);
         const runner = new DefaultRunner(new DefaultParser());
 
         const error = await runner.run(['--bad'], context, globalCommand);
-        expect(error).toBeDefined();
-        if (error) {
-            expect(error.includes('Unused arg: --bad')).toBeTruthy();
-        }
-        expect(hasRun).toBe(false);
+        expect(error).toBeUndefined();
+        expect(mockStderr).toHaveBeenCalledWith(expect.stringContaining('Unused arg: --bad'));
+        expect(hasRun).toBe(true);
     });
 
     test('Error thrown default run scenario', async () => {
@@ -386,23 +387,26 @@ describe('DefaultRunner test', () => {
         }
     });
 
-    test('Illegal multiple commands invoked', async () => {
+    test('Illegal second command treated as unknown arg', async () => {
+        let hasRun = false;
 
         const option = {
             name: 'foo',
             shortAlias: 'f'
         };
         const subCommand1 = getSubCommand('command1', [option], []);
+        subCommand1.run = async (): Promise<void> => { hasRun = true; };
         const subCommand2 = getSubCommand('command2', [], []);
 
-        const context = getContext({}, [], [subCommand1, subCommand2]);
+        const stderrService = new StderrPrinterService(90);
+        const context = getContext({ stderr: process.stderr }, [stderrService], [subCommand1, subCommand2]);
+        stderrService.init(context);
         const runner = new DefaultRunner(new DefaultParser());
 
         const error = await runner.run(['command1', '--foo', 'bar', 'command2'], context);
-        expect(error).toBeDefined();
-        if (error) {
-            expect(error.includes('Unused arg: command2')).toBeTruthy();
-        }
+        expect(error).toBeUndefined();
+        expect(mockStderr).toHaveBeenCalledWith(expect.stringContaining('Unused arg: command2'));
+        expect(hasRun).toBe(true);
     });
 
     test('Ensure global modifier and global run priority order', async () => {

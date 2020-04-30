@@ -63,7 +63,7 @@ describe('NodeCLI test', () => {
         await cli.execute();
 
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('foo1 --help'));
-        expect(mockExit).toHaveBeenCalledWith(1);
+        expect(mockExit).toHaveBeenCalledWith(0);
     });
 
     test('Basic execution with no command exits with 0', async () => {
@@ -87,7 +87,6 @@ describe('NodeCLI test', () => {
         await cli.execute();
         expect(mockExit).toHaveBeenCalledWith(0);
     });
-
 
     test('Basic execution with sub-command help and help subject', async () => {
 
@@ -139,6 +138,6 @@ describe('NodeCLI test', () => {
         const cli = new NodeCLI();
 
         await cli.execute();
-        expect(mockExit).toHaveBeenCalledWith(1);
+        expect(mockExit).toHaveBeenCalledWith(0);
     });
 });
