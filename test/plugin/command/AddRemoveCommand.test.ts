@@ -14,15 +14,16 @@ import {
     getDependencies,
     getInstalledDependencies,
     installPackage,
-    uninstallPackage
+    uninstallPackage,
+    PackageSpec
 } from '../../../src/plugin/command/NpmPackageUtils';
 
 jest.mock('../../../src/plugin/command/NpmPackageUtils');
 
-const mockedGetAllInstalledPackages = getAllInstalledPackages as jest.Mock<Promise<string[]>>;
-const mockedGetInstalledTopLevelPackages = getInstalledTopLevelPackages as jest.Mock<Promise<string[]>>;
-const mockedGetDependencies = getDependencies as jest.Mock<Promise<string[]>>;
-const mockedGetInstalledDependencies = getInstalledDependencies as jest.Mock<Promise<string[]>>;
+const mockedGetAllInstalledPackages = getAllInstalledPackages as jest.Mock<Promise<PackageSpec[]>>;
+const mockedGetInstalledTopLevelPackages = getInstalledTopLevelPackages as jest.Mock<Promise<PackageSpec[]>>;
+const mockedGetDependencies = getDependencies as jest.Mock<Promise<PackageSpec[]>>;
+const mockedGetInstalledDependencies = getInstalledDependencies as jest.Mock<Promise<PackageSpec[]>>;
 const mockedInstallPackage = installPackage as jest.Mock<Promise<void>>;
 const mockedUninstallPackage = uninstallPackage as jest.Mock<Promise<void>>;
 
@@ -33,70 +34,70 @@ describe('AddRemoveCommand test', () => {
 
     beforeAll(() => {
         expect(mockedGetDependencies).toBeDefined();
-        mockedGetAllInstalledPackages.mockImplementation(async (): Promise<string[]> => [
-            'a@1',
-            'b@2',
-            'c@3',
-            'h@8',
-            'i@9'
+        mockedGetAllInstalledPackages.mockImplementation(async (): Promise<PackageSpec[]> => [
+            { name: 'a', version: '1' },
+            { name: 'b', version: '2' },
+            { name: 'c', version: '3' },
+            { name: 'h', version: '8' },
+            { name: 'i', version: '9' }
         ]);
-        mockedGetInstalledTopLevelPackages.mockImplementation(async (): Promise<string[]> => [
-            'a@1',
-            'b@2',
-            'h@8'
+        mockedGetInstalledTopLevelPackages.mockImplementation(async (): Promise<PackageSpec[]> => [
+            { name: 'a', version: '1' },
+            { name: 'b', version: '2' },
+            { name: 'h', version: '8' }
         ]);
-        mockedGetDependencies.mockImplementation((remoteModuleRegistry: string,
-            localModuleCacheLocation: string, packageName: string): Promise<string[]> => {
-            if (packageName === 'a') {
+        mockedGetDependencies.mockImplementation((remoteModuleRegistry: string, packageSpec: PackageSpec):
+        Promise<PackageSpec[]> => {
+            if (packageSpec.name === 'a') {
                 return Promise.resolve([
-                    'a@1',
-                    'c@3'
+                    { name: 'a', version: '1', tarballUri: 'registry/a/a-1.tgz' },
+                    { name: 'c', version: '3', tarballUri: 'registry/c/c-3.tgz' }
                 ]);
             }
-            if (packageName === 'b') {
+            if (packageSpec.name === 'b') {
                 return Promise.resolve([
-                    'b@2',
-                    'c@3'
+                    { name: 'b', version: '2', tarballUri: 'registry/b/b-2.tgz' },
+                    { name: 'c', version: '3', tarballUri: 'registry/c/c-3.tgz' }
                 ]);
             }
-            if (packageName === 'd') {
+            if (packageSpec.name === 'd') {
                 return Promise.resolve([
-                    'd@4',
-                    'c@3'
+                    { name: 'd', version: '4', tarballUri: 'registry/d/d-4.tgz' },
+                    { name: 'c', version: '3', tarballUri: 'registry/c/c-3.tgz' }
                 ]);
             }
-            if (packageName === 'e') {
+            if (packageSpec.name === 'e') {
                 return Promise.resolve([
-                    'e@5',
-                    'f@6'
+                    { name: 'e', version: '5', tarballUri: 'registry/e/e-5.tgz' },
+                    { name: 'f', version: '6', tarballUri: 'registry/f/f-6.tgz' }
                 ]);
             }
-            if (packageName === 'g') {
+            if (packageSpec.name === 'g') {
                 return Promise.resolve([
-                    'g@7',
-                    'c@4'
+                    { name: 'g', version: '7', tarballUri: 'registry/g/g-7.tgz' },
+                    { name: 'c', version: '4', tarballUri: 'registry/c/c-4.tgz' }
                 ]);
             }
-            if (packageName === 'h') {
+            if (packageSpec.name === 'h') {
                 return Promise.resolve([
-                    'h@8',
-                    'i@9'
+                    { name: 'h', version: '8', tarballUri: 'registry/h/h-8.tgz' },
+                    { name: 'i', version: '9', tarballUri: 'registry/i/i-9.tgz' }
                 ]);
             }
             return Promise.resolve([]);
         });
         mockedGetInstalledDependencies.mockImplementation(async (packageLocation: string,
-            packageSpecs: string[]): Promise<string[]> => {
-            if (packageSpecs.includes('a@1')) {
+            packageSpecs: PackageSpec[]): Promise<PackageSpec[]> => {
+            if (packageSpecs.find((packageSpec) => packageSpec.name === 'a' && packageSpec.version === '1')) {
                 return [
-                    'a@1',
-                    'c@3'
+                    { name: 'a', version: '1' },
+                    { name: 'c', version: '3' }
                 ];
             }
-            if (packageSpecs.includes('b@2')) {
+            if (packageSpecs.find((packageSpec) => packageSpec.name === 'b' && packageSpec.version === '2')) {
                 return [
-                    'b@2',
-                    'c@3'
+                    { name: 'b', version: '2' },
+                    { name: 'c', version: '3' }
                 ];
             }
             return [];
@@ -162,8 +163,7 @@ describe('AddRemoveCommand test', () => {
 
         const configMap = new Map<string, CommandArgs>();
         configMap.set(addCommand.name, {
-            remoteModuleRegistry: 'registry',
-            localModuleCacheLocation: 'cache'
+            remoteModuleRegistry: 'registry'
         });
 
         const context = getContext(cliConfig, [stderrService, pluginRegistryService], [], new Map(), configMap);
@@ -171,13 +171,16 @@ describe('AddRemoveCommand test', () => {
         await pluginRegistryService.init(context);
 
         await addCommand.run({ name: 'd' }, context);
-        expect(mockedInstallPackage).toHaveBeenCalledWith('/plugins', 'registry', 'cache', 'd@4');
+        expect(mockedInstallPackage).toHaveBeenCalledWith('/plugins',
+            { name: 'd', version: '4', tarballUri: 'registry/d/d-4.tgz' });
 
         clearMocks();
 
         await addCommand.run({ name: 'e' }, context);
-        expect(mockedInstallPackage).toHaveBeenCalledWith('/plugins', 'registry', 'cache', 'e@5');
-        expect(mockedInstallPackage).toHaveBeenCalledWith('/plugins', 'registry', 'cache', 'f@6');
+        expect(mockedInstallPackage).toHaveBeenCalledWith('/plugins',
+            { name: 'e', version: '5', tarballUri: 'registry/e/e-5.tgz' });
+        expect(mockedInstallPackage).toHaveBeenCalledWith('/plugins',
+            { name: 'f', version: '6', tarballUri: 'registry/f/f-6.tgz' });
 
         clearMocks();
 
@@ -197,8 +200,7 @@ describe('AddRemoveCommand test', () => {
 
         const configMap = new Map<string, CommandArgs>();
         configMap.set(removeCommand.name, {
-            remoteModuleRegistry: 'registry',
-            localModuleCacheLocation: 'cache'
+            remoteModuleRegistry: 'registry'
         });
 
         const context = getContext(cliConfig, [stderrService, pluginRegistryService], [], new Map(), configMap);
@@ -206,7 +208,9 @@ describe('AddRemoveCommand test', () => {
         await pluginRegistryService.init(context);
 
         await removeCommand.run({ name: 'h' }, context);
-        expect(mockedUninstallPackage).toHaveBeenCalledWith('/plugins', 'h@8');
-        expect(mockedUninstallPackage).toHaveBeenCalledWith('/plugins', 'i@9');
+        expect(mockedUninstallPackage).toHaveBeenCalledWith('/plugins',
+            { name: 'h', tarballUri: 'registry/h/h-8.tgz', version: '8' });
+        expect(mockedUninstallPackage).toHaveBeenCalledWith('/plugins',
+            { name: 'i', tarballUri: 'registry/i/i-9.tgz', version: '9' });
     });
 });

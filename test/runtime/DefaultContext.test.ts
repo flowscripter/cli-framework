@@ -2,16 +2,17 @@ import DefaultContext from '../../src/runtime/DefaultContext';
 import { CommandArgs } from '../../src';
 import DefaultCommandRegistry from '../../src/runtime/DefaultCommandRegistry';
 import DefaultServiceRegistry from '../../src/runtime/DefaultServiceRegistry';
+import { getCliConfig } from '../fixtures/CLIConfig';
 
 describe('DefaultContext test', () => {
 
     test('DefaultContext is instantiable', () => {
-        expect(new DefaultContext({}, new DefaultServiceRegistry(), new DefaultCommandRegistry(),
+        expect(new DefaultContext(getCliConfig(), new DefaultServiceRegistry(), new DefaultCommandRegistry(),
             new Map(), new Map())).toBeInstanceOf(DefaultContext);
     });
 
     test('CLI config is populated', () => {
-        const context = new DefaultContext({ name: 'foo' }, new DefaultServiceRegistry(),
+        const context = new DefaultContext(getCliConfig(), new DefaultServiceRegistry(),
             new DefaultCommandRegistry(), new Map(), new Map());
 
         expect(context.cliConfig.name).toEqual('foo');
@@ -23,7 +24,7 @@ describe('DefaultContext test', () => {
 
         serviceConfigs.set('foo', 'bar');
 
-        const context = new DefaultContext({ name: 'foo' }, new DefaultServiceRegistry(),
+        const context = new DefaultContext(getCliConfig(), new DefaultServiceRegistry(),
             new DefaultCommandRegistry(), serviceConfigs, new Map());
 
         expect(context.serviceConfigs.get('foo')).toEqual('bar');
@@ -34,7 +35,7 @@ describe('DefaultContext test', () => {
 
         commandConfigs.set('foo', { bar: 1 });
 
-        const context = new DefaultContext({ name: 'foo' }, new DefaultServiceRegistry(),
+        const context = new DefaultContext(getCliConfig(), new DefaultServiceRegistry(),
             new DefaultCommandRegistry(), new Map(), commandConfigs);
 
         const config = context.commandConfigs.get('foo');

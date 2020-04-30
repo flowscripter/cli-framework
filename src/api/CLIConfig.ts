@@ -19,6 +19,12 @@ export interface PluginManagerConfig {
      * A base storage location for plugins.
      */
     readonly pluginLocation: string;
+
+    /**
+     * A scope string for plugin modules e.g. if a scope of `@foo` is configured and a module
+     * name `bar` is specified then the module name used will be `@foo/bar`.
+     */
+    readonly moduleScope?: string;
 }
 
 /**

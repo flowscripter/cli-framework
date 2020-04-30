@@ -1,14 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { promises as fs, constants } from 'fs';
-import path from 'path';
 import mockFs from 'mock-fs';
-import {
-    extract,
-    packument,
-    FetchResult,
-    Packument, Manifest
-} from 'pacote';
+import axios from 'axios';
+import tar from 'tar-fs';
 import {
     getAllInstalledPackages,
     getInstalledTopLevelPackages,
@@ -18,33 +11,70 @@ import {
     uninstallPackage
 } from '../../../src/plugin/command/NpmPackageUtils';
 
-jest.mock('pacote');
+jest.mock('axios');
 
-const mockExtract = extract as jest.Mock<Promise<FetchResult>>;
-const mockPackument = packument as jest.Mock<Promise<Packument>>;
+const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 const packumentE = {
     name: 'e',
+    'dist-tags': {
+        latest: '5'
+    },
     versions: {
         5: {
             name: 'e',
             version: '5',
             dependencies: {
                 f: '6'
+            },
+            dist: {
+                tarball: 'registry/e/e-5.tgz'
             }
-        } as unknown as Manifest
+        },
+        4: {
+            name: 'e',
+            version: '4',
+            dependencies: {
+                f: '5'
+            },
+            dist: {
+                tarball: 'registry/e/e-4.tgz'
+            }
+        }
     }
-} as unknown as Packument;
+};
 
 const packumentF = {
     name: 'f',
+    'dist-tags': {
+        latest: '6'
+    },
     versions: {
         6: {
             name: 'f',
-            version: '6'
-        } as unknown as Manifest
+            version: '6',
+            dist: {
+                tarball: 'registry/f/f-6.tgz'
+            }
+        }
     }
-} as unknown as Packument;
+};
+
+const packumentZ = {
+    name: 'z',
+    'dist-tags': {
+        next: '6'
+    },
+    versions: {
+        6: {
+            name: 'z',
+            version: '6',
+            dist: {
+                tarball: 'registry/z/z-6.tgz'
+            }
+        }
+    }
+};
 
 describe('NpmPackageUtils test', () => {
 
@@ -89,7 +119,19 @@ describe('NpmPackageUtils test', () => {
                         name: 'i',
                         version: '9'
                     })
-                }
+                },
+                z: 'foo'
+            },
+            '/e': {
+                a: {
+                    'package.json': JSON.stringify({
+                        name: 'e',
+                        version: '5',
+                        dependencies: {
+                            f: '6'
+                        }
+                    })
+                },
             }
         });
     });
@@ -101,75 +143,97 @@ describe('NpmPackageUtils test', () => {
     test('getAllInstalledPackages', async () => {
         const installed = await getAllInstalledPackages('/location');
         expect(installed).toEqual([
-            'a@1',
-            'b@2',
-            'c@3',
-            'h@8',
-            'i@9'
+            { name: 'a', version: '1' },
+            { name: 'b', version: '2' },
+            { name: 'c', version: '3' },
+            { name: 'h', version: '8' },
+            { name: 'i', version: '9' }
         ]);
     });
 
     test('getInstalledTopLevelPackages', async () => {
         const installed = await getInstalledTopLevelPackages('/location');
         expect(installed).toEqual([
-            'a@1',
-            'b@2',
-            'h@8'
+            { name: 'a', version: '1' },
+            { name: 'b', version: '2' },
+            { name: 'h', version: '8' }
         ]);
     });
 
     test('getInstalledDependencies', async () => {
-        const installed = await getInstalledDependencies('/location', ['a@1', 'h@8']);
+        const installed = await getInstalledDependencies('/location', [
+            { name: 'a', version: '1' },
+            { name: 'h', version: '8' }
+        ]);
         expect(installed).toEqual([
-            'a@1',
-            'c@3',
-            'h@8',
-            'i@9'
+            { name: 'a', version: '1' },
+            { name: 'c', version: '3' },
+            { name: 'h', version: '8' },
+            { name: 'i', version: '9' }
         ]);
     });
 
-    test('packageDependencyGenerator', async () => {
+    test('packageDependencyGenerator success', async () => {
 
-        mockPackument.mockImplementationOnce(() => Promise.resolve(packumentE));
-        mockPackument.mockImplementationOnce(() => Promise.resolve(packumentF));
+        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: JSON.stringify(packumentE) }));
+        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: JSON.stringify(packumentF) }));
 
-        let dependencies = await getDependencies('registry', 'cache', 'e', '5');
+        let dependencies = await getDependencies('registry', { name: 'e', version: '5' });
         expect(dependencies).toEqual([
-            'e@5',
-            'f@6'
+            { name: 'e', version: '5', tarballUri: 'registry/e/e-5.tgz' },
+            { name: 'f', version: '6', tarballUri: 'registry/f/f-6.tgz' }
         ]);
 
-        mockPackument.mockImplementationOnce(() => Promise.resolve(packumentE));
-        mockPackument.mockImplementationOnce(() => Promise.resolve(packumentF));
+        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: JSON.stringify(packumentE) }));
+        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: JSON.stringify(packumentF) }));
 
-        dependencies = await getDependencies('registry', 'cache', 'e');
+        dependencies = await getDependencies('registry', { name: 'e' });
         expect(dependencies).toEqual([
-            'e@5',
-            'f@6'
+            { name: 'e', version: '5', tarballUri: 'registry/e/e-5.tgz' },
+            { name: 'f', version: '6', tarballUri: 'registry/f/f-6.tgz' }
         ]);
     });
 
-    test('installPackage', async () => {
-        mockPackument.mockImplementationOnce(() => Promise.resolve(packumentE));
+    test('packageDependencyGenerator failure if no dist-tag latest when version unspecified', async () => {
 
-        mockExtract.mockImplementation(async (packageSpec: string, packageLocation: string) => {
-            const packageName = packageSpec.split('@')[0];
-            await fs.mkdir(path.join(packageLocation, packageName));
-            return Promise.resolve({
-                from: 'mock',
-                resolved: 'mock',
-                integrity: 'mock'
-            });
-        });
+        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: JSON.stringify(packumentZ) }));
+        await expect(getDependencies('registry', { name: 'g' })).rejects.toThrowError();
+    });
+
+    test('installPackage success', async () => {
+        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: tar.pack('/e') }));
 
         await expect(fs.access('/location/e', constants.F_OK)).rejects.toThrowError();
-        await installPackage('/location', 'registry', 'cache', 'e@5');
+        await installPackage('/location', { name: 'e', version: '5', tarballUri: 'registry/e/e-5.tgz' });
         await fs.access('/location/e', constants.F_OK);
     });
 
-    test('uninstallPackage', async () => {
+    test('installPackage failure if folder exists', async () => {
+        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: tar.pack('/e') }));
+
+        await fs.mkdir('/location/e');
+        await fs.access('/location/e', constants.F_OK);
+        await expect(installPackage('/location',
+            { name: 'e', version: '5', tarballUri: 'registry/e/e-5.tgz' })).rejects.toThrowError();
+    });
+
+    test('uninstallPackage success', async () => {
         await fs.access('/location/a', constants.F_OK);
-        await uninstallPackage('/location', 'a@1');
+        await uninstallPackage('/location', { name: 'a', version: '1' });
         await expect(fs.access('/location/a', constants.F_OK)).rejects.toThrowError();
+    });
+
+    test('uninstallPackage failure if version not specified', async () => {
+        await fs.access('/location/a', constants.F_OK);
+        await expect(uninstallPackage('/location', { name: 'a' })).rejects.toThrowError();
+    });
+
+    test('uninstallPackage failure if file not folder exists', async () => {
+        await expect(uninstallPackage('/location', { name: 'z', version: '1' })).rejects.toThrowError();
+    });
+
+    test('uninstallPackage failure if no package.json exists', async () => {
+        await fs.unlink('/location/a/package.json');
+        await expect(uninstallPackage('/location', { name: 'a', version: '1' })).rejects.toThrowError();
     });
 });

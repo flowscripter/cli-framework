@@ -51,15 +51,15 @@
         "@flowscripter/eslint-config": "1.3.41",
         "@flowscripter/renovate-config": "1.0.3",
         "@flowscripter/tsconfig": "1.2.0",
-        "@types/command-line-args": "5.0.0",
         "@types/debug": "4.1.5",
+        "@types/gunzip-maybe": "1.4.0",
         "@types/jest": "25.2.1",
         "@types/js-yaml": "3.12.3",
         "@types/lodash": "4.14.150",
         "@types/mock-fs": "4.10.0",
         "@types/node": "13.13.4",
-        "@types/pacote": "11.1.0",
         "@types/prompts": "2.0.6",
+        "@types/tar-fs": "2.0.0",
         "@typescript-eslint/eslint-plugin": "2.30.0",
         "@typescript-eslint/parser": "2.30.0",
         "babel-plugin-transform-dynamic-import": "2.1.0",
@@ -91,13 +91,15 @@
     },
     "dependencies": {
         "@flowscripter/esm-dynamic-plugins": "1.5.0",
+        "axios": "0.19.2",
         "debug": "4.1.1",
+        "gunzip-maybe": "1.4.2",
         "js-yaml": "3.13.1",
         "kleur": "3.0.3",
         "leven": "3.1.0",
         "lodash": "4.17.15",
         "ora": "4.0.3",
-        "pacote": "11.1.6",
-        "prompts": "2.3.2"
+        "prompts": "2.3.2",
+        "tar-fs": "2.0.1"
     }
 }

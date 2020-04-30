@@ -12,7 +12,7 @@ describe('PluginCommand test', () => {
         expect(new PluginCommand()).toBeInstanceOf(PluginCommand);
     });
 
-    test('PluginCommand expects valid config properties in context', async () => {
+    test('PluginCommand expects valid config property in context', async () => {
         const pluginCommand = new PluginCommand();
 
         let context = getContext(getCliConfig(), [], [], new Map(), new Map());
@@ -25,21 +25,9 @@ describe('PluginCommand test', () => {
         });
         context = getContext(getCliConfig(), [], [], new Map(), configMap);
         await expect(pluginCommand.run({}, context)).rejects.toThrowError();
-
-        configMap.set(pluginCommand.name, {
-            localModuleCacheLocation: 1
-        });
-        context = getContext(getCliConfig(), [], [], new Map(), configMap);
-        await expect(pluginCommand.run({}, context)).rejects.toThrowError();
-
-        configMap.set(pluginCommand.name, {
-            modulePrefix: 1
-        });
-        context = getContext(getCliConfig(), [], [], new Map(), configMap);
-        await expect(pluginCommand.run({}, context)).rejects.toThrowError();
     });
 
-    test('PluginCommand adds config properties in context', async () => {
+    test('PluginCommand adds config property in context', async () => {
         const pluginCommand = new PluginCommand();
         const configMap = new Map<string, CommandArgs>();
         const context = getContext(getCliConfig(), [], [], new Map(), configMap);
@@ -47,15 +35,10 @@ describe('PluginCommand test', () => {
         await pluginCommand.run({}, context);
 
         expect(configMap.get(AddCommand.name)!.remoteModuleRegistry).toEqual('https://registry.npmjs.org/');
-        expect((configMap.get(AddCommand.name)!.localModuleCacheLocation as string).includes('.npm')).toBeTruthy();
-        expect(configMap.get(AddCommand.name)!.modulePrefix).toEqual('');
-
         expect(configMap.get(RemoveCommand.name)!.remoteModuleRegistry).toEqual('https://registry.npmjs.org/');
-        expect((configMap.get(RemoveCommand.name)!.localModuleCacheLocation as string).includes('.npm')).toBeTruthy();
-        expect(configMap.get(RemoveCommand.name)!.modulePrefix).toEqual('');
     });
 
-    test('PluginCommand updates but does not overwrite config properties in context', async () => {
+    test('PluginCommand updates but does not overwrite config property in context', async () => {
         const pluginCommand = new PluginCommand();
         const configMap = new Map<string, CommandArgs>();
         configMap.set(AddCommand.name, { foo: 'bar' });
@@ -69,17 +52,10 @@ describe('PluginCommand test', () => {
         expect(configMap.get(RemoveCommand.name)!.goo).toEqual('gar');
 
         expect(configMap.get(AddCommand.name)!.remoteModuleRegistry).toEqual('https://registry.npmjs.org/');
-        expect((configMap.get(AddCommand.name)!.localModuleCacheLocation as string).includes('.npm')).toBeTruthy();
-        expect(configMap.get(AddCommand.name)!.modulePrefix).toEqual('');
-
         expect(configMap.get(RemoveCommand.name)!.remoteModuleRegistry).toEqual('https://registry.npmjs.org/');
-        expect((configMap.get(RemoveCommand.name)!.localModuleCacheLocation as string).includes('.npm')).toBeTruthy();
-        expect(configMap.get(RemoveCommand.name)!.modulePrefix).toEqual('');
 
         configMap.set(pluginCommand.name, {
-            remoteModuleRegistry: 'a',
-            localModuleCacheLocation: 'b',
-            modulePrefix: 'c'
+            remoteModuleRegistry: 'a'
         });
 
         context = getContext(getCliConfig(), [], [], new Map(), configMap);
@@ -90,12 +66,7 @@ describe('PluginCommand test', () => {
         expect(configMap.get(RemoveCommand.name)!.goo).toEqual('gar');
 
         expect(configMap.get(AddCommand.name)!.remoteModuleRegistry).toEqual('https://registry.npmjs.org/');
-        expect((configMap.get(AddCommand.name)!.localModuleCacheLocation as string).includes('.npm')).toBeTruthy();
-        expect(configMap.get(AddCommand.name)!.modulePrefix).toEqual('');
-
         expect(configMap.get(RemoveCommand.name)!.remoteModuleRegistry).toEqual('https://registry.npmjs.org/');
-        expect((configMap.get(RemoveCommand.name)!.localModuleCacheLocation as string).includes('.npm')).toBeTruthy();
-        expect(configMap.get(RemoveCommand.name)!.modulePrefix).toEqual('');
 
         configMap.set(AddCommand.name, { foo: 'bar' });
         configMap.set(RemoveCommand.name, { goo: 'gar' });
@@ -108,11 +79,6 @@ describe('PluginCommand test', () => {
         expect(configMap.get(RemoveCommand.name)!.goo).toEqual('gar');
 
         expect(configMap.get(AddCommand.name)!.remoteModuleRegistry).toEqual('a');
-        expect(configMap.get(AddCommand.name)!.localModuleCacheLocation).toEqual('b');
-        expect(configMap.get(AddCommand.name)!.modulePrefix).toEqual('c');
-
         expect(configMap.get(RemoveCommand.name)!.remoteModuleRegistry).toEqual('a');
-        expect(configMap.get(RemoveCommand.name)!.localModuleCacheLocation).toEqual('b');
-        expect(configMap.get(RemoveCommand.name)!.modulePrefix).toEqual('c');
     });
 });

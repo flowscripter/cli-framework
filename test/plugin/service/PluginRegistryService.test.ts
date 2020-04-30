@@ -24,6 +24,30 @@ describe('PluginRegistryService test', () => {
         await expect(pluginRegistry.init(context)).rejects.toThrowError();
     });
 
+    test('Error if pluginServiceConfig.moduleScope specified and invalid - no @', async () => {
+        const pluginRegistry = new PluginRegistryService(100);
+        const cliConfig = getCliConfig({
+            pluginManager: NodePluginManager,
+            pluginLocation: '/plugins',
+            moduleScope: 'foo'
+        });
+
+        const context: Context = getContext(cliConfig, [], []);
+        await expect(pluginRegistry.init(context)).rejects.toThrowError();
+    });
+
+    test('Error if pluginServiceConfig.moduleScope specified and invalid - only @', async () => {
+        const pluginRegistry = new PluginRegistryService(100);
+        const cliConfig = getCliConfig({
+            pluginManager: NodePluginManager,
+            pluginLocation: '/plugins',
+            moduleScope: '@'
+        });
+
+        const context: Context = getContext(cliConfig, [], []);
+        await expect(pluginRegistry.init(context)).rejects.toThrowError();
+    });
+
     test('PluginRegistry init works with default location', async () => {
         const pluginRegistry = new PluginRegistryService(100);
         const context: Context = getContext(getCliConfig({
@@ -31,6 +55,16 @@ describe('PluginRegistryService test', () => {
             pluginLocation: '/plugins'
         }), [], []);
         await pluginRegistry.init(context);
+    });
+
+    test('PluginRegistry init works with default module scope', async () => {
+        const pluginRegistry = new PluginRegistryService(100);
+        const context: Context = getContext(getCliConfig({
+            pluginManager: NodePluginManager,
+            pluginLocation: '/plugins'
+        }), [], []);
+        await pluginRegistry.init(context);
+        expect(pluginRegistry.moduleScope).toBeUndefined();
     });
 
     test('PluginRegistry init works with non-default location', async () => {
@@ -52,6 +86,30 @@ describe('PluginRegistryService test', () => {
             }
         });
         await pluginRegistry.init(context);
+
+        expect(pluginRegistry.pluginLocation).toEqual('/plugins2');
+    });
+
+    test('PluginRegistry init works with non-default module scope', async () => {
+        const pluginRegistry = new PluginRegistryService(100);
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const serviceConfigs = new Map<string, any>();
+        serviceConfigs.set(PLUGIN_REGISTRY_SERVICE, {
+            moduleScope: '@foo'
+        });
+        const context: Context = getContext(getCliConfig({
+            pluginManager: NodePluginManager,
+            pluginLocation: path.join(process.cwd(), 'node_modules')
+        }), [], [], serviceConfigs);
+
+        mockFs({
+            '/plugins2': {
+                hello: 'world'
+            }
+        });
+        await pluginRegistry.init(context);
+        expect(pluginRegistry.moduleScope).toEqual('@foo');
     });
 
     test('PluginRegistry init works with invalid default folder', async () => {
@@ -111,6 +169,26 @@ describe('PluginRegistryService test', () => {
         const cliConfig = getCliConfig({
             pluginManager: NodePluginManager,
             pluginLocation: path.join(process.cwd(), 'test/fixtures')
+        });
+
+        const context: Context = getContext(cliConfig, [], []);
+
+        expect(Array.from(context.serviceRegistry.getServices())).toHaveLength(0);
+        expect(Array.from(context.commandRegistry.getCommands())).toHaveLength(0);
+
+        await pluginRegistry.init(context);
+
+        expect(Array.from(context.serviceRegistry.getServices())).toHaveLength(2);
+        expect(Array.from(context.commandRegistry.getCommands())).toHaveLength(2);
+    });
+
+    test('PluginRegistry discovers plugins with scope filtering', async () => {
+        const pluginRegistry = new PluginRegistryService(100);
+
+        const cliConfig = getCliConfig({
+            pluginManager: NodePluginManager,
+            pluginLocation: path.join(process.cwd(), 'test/fixtures'),
+            moduleScope: '@foo'
         });
 
         const context: Context = getContext(cliConfig, [], []);
