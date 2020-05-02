@@ -58,7 +58,7 @@
         "@types/lodash": "4.14.150",
         "@types/mock-fs": "4.10.0",
         "@types/node": "13.13.4",
-        "@types/prompts": "2.0.6",
+        "@types/prompts": "2.0.7",
         "@types/tar-fs": "2.0.0",
         "@typescript-eslint/eslint-plugin": "2.30.0",
         "@typescript-eslint/parser": "2.30.0",
