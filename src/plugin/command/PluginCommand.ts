@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import GroupCommand from '../../api/GroupCommand';
 import SubCommand from '../../api/SubCommand';
-import { AddCommand, RemoveCommand } from './AddRemoveCommand';
+import { ADD_COMMAND_NAME, REMOVE_COMMAND_NAME, AddCommand, RemoveCommand } from './AddRemoveCommand';
 import Context from '../../api/Context';
 import { CommandArgs } from '../..';
 
@@ -44,15 +44,15 @@ export default class PluginCommand implements GroupCommand {
             }
         }
 
-        let addConfig = context.commandConfigs.get(AddCommand.name);
+        let addConfig = context.commandConfigs.get(ADD_COMMAND_NAME);
         if (_.isUndefined(addConfig)) {
             addConfig = {};
-            context.commandConfigs.set(AddCommand.name, addConfig);
+            context.commandConfigs.set(ADD_COMMAND_NAME, addConfig);
         }
-        let removeConfig = context.commandConfigs.get(RemoveCommand.name);
+        let removeConfig = context.commandConfigs.get(REMOVE_COMMAND_NAME);
         if (_.isUndefined(removeConfig)) {
             removeConfig = {};
-            context.commandConfigs.set(RemoveCommand.name, removeConfig);
+            context.commandConfigs.set(REMOVE_COMMAND_NAME, removeConfig);
         }
         if (_.isUndefined(addConfig.remoteModuleRegistry)) {
             addConfig.remoteModuleRegistry = remoteModuleRegistry;

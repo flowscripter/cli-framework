@@ -10,7 +10,7 @@ import Context from '../../api/Context';
 import SubCommand from '../../api/SubCommand';
 import Positional from '../../api/Positional';
 import Option from '../../api/Option';
-import Printer, { Icon, STDERR_PRINTER_SERVICE } from '../../core/service/PrinterService';
+import Printer, { STDERR_PRINTER_SERVICE } from '../../core/service/PrinterService';
 import PluginRegistry, { PLUGIN_REGISTRY_SERVICE } from '../service/PluginRegistryService';
 import {
     getAllInstalledPackages,
@@ -20,6 +20,9 @@ import {
     installPackage,
     uninstallPackage
 } from './NpmPackageUtils';
+
+export const ADD_COMMAND_NAME = 'add';
+export const REMOVE_COMMAND_NAME = 'remove';
 
 abstract class AbstractPluginCommand {
 
@@ -44,7 +47,7 @@ abstract class AbstractPluginCommand {
 
         const config = context.commandConfigs.get(name);
         if (_.isUndefined(config)) {
-            throw new Error('No command config provided!');
+            throw new Error(`No command config provided for command: ${name}!`);
         }
 
         this.remoteModuleRegistry = config.remoteModuleRegistry as string | undefined;
@@ -79,7 +82,7 @@ abstract class AbstractPluginCommand {
  */
 export class AddCommand extends AbstractPluginCommand implements SubCommand {
 
-    public readonly name = 'add';
+    public readonly name = ADD_COMMAND_NAME;
 
     public readonly description = 'Adds a plugin.';
 
@@ -105,9 +108,8 @@ export class AddCommand extends AbstractPluginCommand implements SubCommand {
      */
     public async run(commandArgs: CommandArgs, context: Context): Promise<void> {
 
+        await this.doRun(commandArgs, context, this.name);
         try {
-            await this.doRun(commandArgs, context, this.name);
-
             let name = commandArgs.name as string;
             const version = commandArgs.version as string | undefined || 'latest';
 
@@ -143,9 +145,7 @@ export class AddCommand extends AbstractPluginCommand implements SubCommand {
                 }
             }
         } catch (err) {
-            const message = `Unable to add plugin ${commandArgs.name}: ${err.message}`;
-            this.printer!.error(message, Icon.FAILURE);
-            throw new Error(message);
+            throw new Error(`Unable to add plugin ${commandArgs.name}: ${err.message}`);
         } finally {
             this.printer!.hideSpinner();
         }
@@ -166,7 +166,7 @@ export class AddCommand extends AbstractPluginCommand implements SubCommand {
  */
 export class RemoveCommand extends AbstractPluginCommand implements SubCommand {
 
-    public readonly name = 'remove';
+    public readonly name = REMOVE_COMMAND_NAME;
 
     public readonly description = 'Removes a plugin.';
 
@@ -186,9 +186,8 @@ export class RemoveCommand extends AbstractPluginCommand implements SubCommand {
      */
     public async run(commandArgs: CommandArgs, context: Context): Promise<void> {
 
+        await this.doRun(commandArgs, context, this.name);
         try {
-            await this.doRun(commandArgs, context, this.name);
-
             let name = commandArgs.name as string;
 
             if (!_.isUndefined(this.pluginRegistry!.moduleScope)) {
@@ -228,9 +227,7 @@ export class RemoveCommand extends AbstractPluginCommand implements SubCommand {
                 }
             }
         } catch (err) {
-            const message = `Unable to remove plugin ${commandArgs.name}: ${err.message}`;
-            this.printer!.error(message, Icon.FAILURE);
-            throw new Error(message);
+            throw new Error(`Unable to remove plugin ${commandArgs.name}: ${err.message}`);
         } finally {
             this.printer!.hideSpinner();
         }
