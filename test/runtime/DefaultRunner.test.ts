@@ -87,8 +87,10 @@ describe('DefaultRunner test', () => {
         await expect(runner.run(['command'], context,
             getGroupCommand('group', [getSubCommand('sub', [], [])]))).rejects.toThrowError();
 
-        await runner.run(['command'], context, getSubCommand('sub', [], []));
-        await runner.run(['command'], context, getGlobalCommand('global', 'g'));
+        let runResult = await runner.run(['command'], context, getSubCommand('sub', [], []));
+        expect(runResult).toBe(RunResult.Success);
+        runResult = await runner.run(['command'], context, getGlobalCommand('global', 'g'));
+        expect(runResult).toBe(RunResult.Success);
     });
 
     test('Sub-Command run scenario', async () => {
@@ -106,7 +108,8 @@ describe('DefaultRunner test', () => {
         const context = getContext({}, [stderrService], [command]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await runner.run(['command', '--foo', 'bar'], context);
+        const runResult = await runner.run(['command', '--foo', 'bar'], context);
+        expect(runResult).toBe(RunResult.Success);
         expect(hasRun).toBe(true);
     });
 
@@ -126,16 +129,16 @@ describe('DefaultRunner test', () => {
         const context = getContext({}, [stderrService], [globalModifierCommand, subCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await runner.run(['--modifierCommand=bar', 'subCommand'], context);
-
+        let runResult = await runner.run(['--modifierCommand=bar', 'subCommand'], context);
+        expect(runResult).toBe(RunResult.Success);
         expect(modifierHasRun).toBe(true);
         expect(subHasRun).toBe(true);
 
         modifierHasRun = false;
         subHasRun = false;
 
-        await runner.run(['-c', 'bar', 'subCommand'], context);
-
+        runResult = await runner.run(['-c', 'bar', 'subCommand'], context);
+        expect(runResult).toBe(RunResult.Success);
         expect(modifierHasRun).toBe(true);
         expect(subHasRun).toBe(true);
     });
@@ -153,13 +156,14 @@ describe('DefaultRunner test', () => {
         const context = getContext({}, [stderrService], [command]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await runner.run(['--command=bar'], context);
-
+        let runResult = await runner.run(['--command=bar'], context);
         expect(hasRun).toBe(true);
+        expect(runResult).toBe(RunResult.Success);
 
         hasRun = false;
 
-        await runner.run(['-c', 'bar'], context);
+        runResult = await runner.run(['-c', 'bar'], context);
+        expect(runResult).toBe(RunResult.Success);
         expect(hasRun).toBe(true);
     });
 
@@ -177,18 +181,18 @@ describe('DefaultRunner test', () => {
         const context = getContext({}, [stderrService], [command]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await runner.run(['group', 'command'], context);
-
+        let runResult = await runner.run(['group', 'command'], context);
+        expect(runResult).toBe(RunResult.Success);
         expect(groupHasRun).toBe(true);
         expect(subHasRun).toBe(true);
 
-        await runner.run(['group:command'], context);
-
+        runResult = await runner.run(['group:command'], context);
+        expect(runResult).toBe(RunResult.Success);
         expect(groupHasRun).toBe(true);
         expect(subHasRun).toBe(true);
     });
 
-    test('Global qualifier and non-global run scenario', async () => {
+    test('Global modifier and non-global run scenario', async () => {
         const stderrService = new StderrPrinterService(90);
         let modifierHasRun = false;
         let subHasRun = false;
@@ -208,13 +212,13 @@ describe('DefaultRunner test', () => {
         const context = getContext({}, [stderrService], [modifierCommand, subCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await runner.run(['--modifier=bar', 'command', '--foo', 'bar'], context);
-
+        const runResult = await runner.run(['--modifier=bar', 'command', '--foo', 'bar'], context);
+        expect(runResult).toBe(RunResult.Success);
         expect(modifierHasRun).toBe(true);
         expect(subHasRun).toBe(true);
     });
 
-    test('Global qualifier and global run scenario', async () => {
+    test('Global modifier and global run scenario', async () => {
         const stderrService = new StderrPrinterService(90);
         let modifierHasRun = false;
         let globalHasRun = false;
@@ -232,13 +236,43 @@ describe('DefaultRunner test', () => {
         const context = getContext({}, [stderrService], [modifierCommand, globalCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await runner.run(['--modifier=bar', '-g', 'bar'], context);
-
+        const runResult = await runner.run(['--modifier=bar', '-g', 'bar'], context);
+        expect(runResult).toBe(RunResult.Success);
         expect(modifierHasRun).toBe(true);
         expect(globalHasRun).toBe(true);
     });
 
-    test('Global qualifier and default run scenario', async () => {
+    test('Two global modifier and global run scenario', async () => {
+        const stderrService = new StderrPrinterService(90);
+        let modifier1HasRun = false;
+        let modifier2HasRun = false;
+        let globalHasRun = false;
+
+        const modifierCommand1 = getGlobalModifierCommand('modifier1', 'm', 1, {
+            name: 'value'
+        });
+        const modifierCommand2 = getGlobalModifierCommand('modifier2', 'n', 2, {
+            name: 'value'
+        });
+        const globalCommand = getGlobalCommand('global', 'g', {
+            name: 'value'
+        });
+
+        modifierCommand1.run = async (): Promise<void> => { modifier1HasRun = true; };
+        modifierCommand2.run = async (): Promise<void> => { modifier2HasRun = true; };
+        globalCommand.run = async (): Promise<void> => { globalHasRun = true; };
+
+        const context = getContext({}, [stderrService], [modifierCommand1, modifierCommand2, globalCommand]);
+        const runner = new DefaultRunner(new DefaultParser());
+
+        const runResult = await runner.run(['--modifier1=bar', '-g', 'bar', '--modifier2=bar'], context);
+        expect(runResult).toBe(RunResult.Success);
+        expect(modifier1HasRun).toBe(true);
+        expect(modifier2HasRun).toBe(true);
+        expect(globalHasRun).toBe(true);
+    });
+
+    test('Global modifier and default run scenario', async () => {
         const stderrService = new StderrPrinterService(90);
         let modifierHasRun = false;
         let defaultHasRun = false;
@@ -254,10 +288,33 @@ describe('DefaultRunner test', () => {
         const context = getContext({}, [stderrService], [modifierCommand, globalCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await runner.run(['--modifier=bar'], context, globalCommand);
-
+        const runResult = await runner.run(['--modifier=bar'], context, globalCommand);
+        expect(runResult).toBe(RunResult.Success);
         expect(modifierHasRun).toBe(true);
         expect(defaultHasRun).toBe(true);
+    });
+
+    test('Global modifier parse error', async () => {
+        const stderrService = new StderrPrinterService(90);
+        let modifierHasRun = false;
+        let defaultHasRun = false;
+
+        const modifierCommand = getGlobalModifierCommand('modifier', 'm', 1, {
+            name: 'value'
+        });
+        const globalCommand = getGlobalCommand('global', 'g');
+
+        modifierCommand.run = async (): Promise<void> => { modifierHasRun = true; };
+        globalCommand.run = async (): Promise<void> => { defaultHasRun = true; };
+
+        const context = getContext({ stderr: process.stderr }, [stderrService], [modifierCommand, globalCommand]);
+        stderrService.init(context);
+        const runner = new DefaultRunner(new DefaultParser());
+
+        const runResult = await runner.run(['--modifier'], context, globalCommand);
+        expect(runResult).toBe(RunResult.ParseError);
+        expect(modifierHasRun).toBe(false);
+        expect(defaultHasRun).toBe(false);
     });
 
     test('Default run scenario', async () => {
@@ -275,13 +332,13 @@ describe('DefaultRunner test', () => {
         const context = getContext({}, [stderrService], []);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await runner.run(['--foo=bar'], context, subCommand);
-
+        const runResult = await runner.run(['--foo=bar'], context, subCommand);
+        expect(runResult).toBe(RunResult.Success);
         expect(subHasRun).toBe(true);
     });
 
     test('Error thrown in non-global run scenario', async () => {
-
+        const stderrService = new StderrPrinterService(90);
         const option = {
             name: 'foo',
             shortAlias: 'f'
@@ -290,10 +347,12 @@ describe('DefaultRunner test', () => {
 
         subCommand.run = async (): Promise<void> => { throw new Error(); };
 
-        const context = getContext({}, [], [subCommand]);
+        const context = getContext({ stderr: process.stderr }, [stderrService], [subCommand]);
+        stderrService.init(context);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await expect(runner.run(['command', '--foo', 'bar'], context)).toBeDefined();
+        const runResult = await runner.run(['command', '--foo', 'bar'], context);
+        expect(runResult).toBe(RunResult.CommandError);
     });
 
     test('Error thrown in global run scenario', async () => {
@@ -333,6 +392,48 @@ describe('DefaultRunner test', () => {
         expect(mockStderr).toHaveBeenCalledWith(expect.stringContaining('Error running'));
         expect(mockStderr).toHaveBeenCalledWith(expect.stringContaining('d34db33f'));
         expect(globalHasRun).toBe(false);
+    });
+
+    test('Parse error warning in non-global run scenario', async () => {
+        const stderrService = new StderrPrinterService(90);
+        stderrService.colorEnabled = false;
+        let hasRun = false;
+        const option = {
+            name: 'foo',
+            shortAlias: 'f'
+        };
+        const subCommand = getSubCommand('command', [option], []);
+
+        subCommand.run = async (): Promise<void> => { hasRun = true; };
+
+        const context = getContext({ stderr: process.stderr }, [stderrService], [subCommand]);
+        stderrService.init(context);
+        const runner = new DefaultRunner(new DefaultParser());
+
+        const runResult = await runner.run(['command', '-f'], context);
+        expect(runResult).toBe(RunResult.ParseError);
+        expect(hasRun).toBe(false);
+    });
+
+    test('No command specified scenario', async () => {
+        const stderrService = new StderrPrinterService(90);
+        stderrService.colorEnabled = false;
+        let hasRun = false;
+        const option = {
+            name: 'foo',
+            shortAlias: 'f'
+        };
+        const subCommand = getSubCommand('command', [option], []);
+
+        subCommand.run = async (): Promise<void> => { hasRun = true; };
+
+        const context = getContext({ stderr: process.stderr }, [stderrService], [subCommand]);
+        stderrService.init(context);
+        const runner = new DefaultRunner(new DefaultParser());
+
+        const runResult = await runner.run([], context);
+        expect(runResult).toBe(RunResult.ParseError);
+        expect(hasRun).toBe(false);
     });
 
     test('Unknown arg warning in non-global run scenario', async () => {
@@ -433,38 +534,45 @@ describe('DefaultRunner test', () => {
         const context = getContext({}, [stderrService], [globalCommand, modifier1Command, modifier2Command]);
         const runner = new DefaultRunner(new DefaultParser());
 
-        await runner.run(['--modifier2=foo', '-g', 'bar', '--modifier1=bar'], context);
+        const runResult = await runner.run(['--modifier2=foo', '-g', 'bar', '--modifier1=bar'], context);
+        expect(runResult).toBe(RunResult.Success);
 
         expect(hasRun[0]).toBe('modifier1');
         expect(hasRun[1]).toBe('modifier2');
         expect(hasRun[2]).toBe('global');
     });
 
-    test('Error thrown for unused leading args', async () => {
-
+    test('Warning for unused leading args', async () => {
+        const stderrService = new StderrPrinterService(90);
+        stderrService.colorEnabled = false;
         const option = {
             name: 'foo',
             shortAlias: 'f'
         };
         const subCommand = getSubCommand('command', [option], []);
 
-        const context = getContext({}, [], [subCommand]);
+        const context = getContext({ stderr: process.stderr }, [stderrService], [subCommand]);
+        stderrService.init(context);
         const runner = new DefaultRunner(new DefaultParser());
-
-        await expect(runner.run(['blah', 'command', '--foo', 'bar'], context)).toBeDefined();
+        const runResult = await runner.run(['blah', 'command', '--foo', 'bar'], context);
+        expect(runResult).toBe(RunResult.Success);
+        expect(mockStderr).toHaveBeenCalledWith(expect.stringContaining('Unused arg: blah'));
     });
 
-    test('Error thrown for unused trailing args', async () => {
-
+    test('Warning for unused trailing args', async () => {
+        const stderrService = new StderrPrinterService(90);
+        stderrService.colorEnabled = false;
         const option = {
             name: 'foo',
             shortAlias: 'f'
         };
         const subCommand = getSubCommand('command', [option], []);
 
-        const context = getContext({}, [], [subCommand]);
+        const context = getContext({ stderr: process.stderr }, [stderrService], [subCommand]);
+        stderrService.init(context);
         const runner = new DefaultRunner(new DefaultParser());
-
-        await expect(runner.run(['command', '--foo', 'bar', 'blah'], context)).toBeDefined();
+        const runResult = await runner.run(['command', '--foo', 'bar', 'blah'], context);
+        expect(runResult).toBe(RunResult.Success);
+        expect(mockStderr).toHaveBeenCalledWith(expect.stringContaining('Unused arg: blah'));
     });
 });

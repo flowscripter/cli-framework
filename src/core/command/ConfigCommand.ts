@@ -4,7 +4,7 @@ import { CommandArgs } from '../../api/Command';
 import Context from '../../api/Context';
 import GlobalModifierCommand from '../../api/GlobalModifierCommand';
 import Configuration, { CONFIGURATION_SERVICE } from '../service/ConfigurationService';
-import Printer, { Icon, STDERR_PRINTER_SERVICE } from '../service/PrinterService';
+import Printer, { STDERR_PRINTER_SERVICE } from '../service/PrinterService';
 import GlobalCommandArgument from '../../api/GlobalCommandArgument';
 
 /**
