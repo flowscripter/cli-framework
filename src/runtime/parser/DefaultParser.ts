@@ -119,7 +119,7 @@ export default class DefaultParser implements Parser {
                         }
                     }
                 }
-                if (!potentialGroupCommandName.includes(':') && !_.isUndefined(potentialMemberCommandName)) {
+                if (!arg.includes(':') && !_.isUndefined(potentialMemberCommandName)) {
                     // group command not found revert parsing state
                     pendingArgs.unshift(potentialMemberCommandName);
                 }
@@ -289,6 +289,19 @@ export default class DefaultParser implements Parser {
             }
         }
 
+        this.log(`scanResult: {clauses: [${
+            scanResult.commandClauses.map(
+                (clause) => {
+                    let entry = `command: ${clause.command.name}`;
+                    if (clause.groupCommand) {
+                        entry = `groupCommand: ${clause.groupCommand.name}, ${entry}`;
+                    }
+                    return `${entry}, unused: ${clause.potentialArgs.join(',')}`;
+                }
+            ).join(', ')
+        }], unused: ${
+            scanResult.unusedLeadingArgs.join(',')
+        }}`);
         return scanResult;
     }
 

@@ -115,7 +115,7 @@ describe('ConfigCommand test', () => {
         expect(configurationService.getConfig().serviceConfigs.size).toEqual(0);
 
         const configCommand = new ConfigCommand(100);
-        await configCommand.run({ config: '/foo.bar' }, context);
+        await configCommand.run({ location: '/foo.bar' }, context);
 
         expect(configurationService.configurationLocation).toEqual('/foo.bar');
         expect(configurationService.getConfig().serviceConfigs.size).toEqual(1);

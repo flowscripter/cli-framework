@@ -33,6 +33,20 @@ describe('PrinterService test', () => {
         expect(mockStdout).toHaveBeenCalledTimes(1);
     });
 
+    test('Colors works (testing with color disabled...)', () => {
+        const ps = new StdoutPrinterService(100);
+        ps.colorEnabled = false;
+        const context = getContext({
+            stdout: process.stdout
+        }, [ps], []);
+        ps.init(context);
+
+        ps.info(`hello ${ps.green(ps.blue(ps.gray(ps.yellow(ps.cyan(ps.red('world'))))))}`);
+
+        expect(mockStdout).toHaveBeenLastCalledWith('hello world');
+        expect(mockStdout).toHaveBeenCalledTimes(1);
+    });
+
     test('Writable accessible', () => {
         const ps = new StdoutPrinterService(100);
         ps.colorEnabled = false;

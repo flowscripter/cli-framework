@@ -54,6 +54,36 @@ export default interface Printer {
     bold(message: string): string;
 
     /**
+     * Return the provided message so that it appears red when printed.
+     */
+    red(message: string): string;
+
+    /**
+     * Return the provided message so that it appears yellow when printed.
+     */
+    yellow(message: string): string;
+
+    /**
+     * Return the provided message so that it appears green when printed.
+     */
+    green(message: string): string;
+
+    /**
+     * Return the provided message so that it appears blue when printed.
+     */
+    blue(message: string): string;
+
+    /**
+     * Return the provided message so that it appears gray when printed.
+     */
+    gray(message: string): string;
+
+    /**
+     * Return the provided message so that it appears cyan when printed.
+     */
+    cyan(message: string): string;
+
+    /**
      * Print a [[DEBUG]] level message.
      *
      * @param message the message to output
@@ -123,7 +153,7 @@ const levels = {
 const icons = {
     [Icon.SUCCESS]: kleur.green('✔'),
     [Icon.FAILURE]: kleur.red('✖'),
-    [Icon.ALERT]: kleur.yellow('⚠'),
+    [Icon.ALERT]: kleur.yellow('‼'),
     [Icon.INFORMATION]: kleur.blue('ℹ')
 };
 
@@ -168,7 +198,7 @@ abstract class PrinterService implements Service, Printer {
             return;
         }
         if (this.writable) {
-            this.writable.write(`${icon ? `${icons[icon]} ` : ''}${message}`);
+            this.writable.write(`${icon ? `${icons[icon]}  ` : ''}${message}`);
         }
     }
 
@@ -180,13 +210,13 @@ abstract class PrinterService implements Service, Printer {
         kleur.enabled = enabled;
         if (enabled) {
             icons[Icon.SUCCESS] = kleur.green('✔');
-            icons[Icon.FAILURE] = kleur.red('ⅹ');
-            icons[Icon.ALERT] = kleur.yellow('⚠');
+            icons[Icon.FAILURE] = kleur.red('✖');
+            icons[Icon.ALERT] = kleur.yellow('‼');
             icons[Icon.INFORMATION] = kleur.blue('ℹ');
         } else {
             icons[Icon.SUCCESS] = '✔';
-            icons[Icon.FAILURE] = 'ⅹ';
-            icons[Icon.ALERT] = '⚠';
+            icons[Icon.FAILURE] = '✖';
+            icons[Icon.ALERT] = '‼';
             icons[Icon.INFORMATION] = 'ℹ';
         }
     }
@@ -210,8 +240,56 @@ abstract class PrinterService implements Service, Printer {
     /**
      * @inheritdoc
      */
+    // eslint-disable-next-line class-methods-use-this
+    public green(message: string): string {
+        return kleur.green(message);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    // eslint-disable-next-line class-methods-use-this
+    public red(message: string): string {
+        return kleur.red(message);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    // eslint-disable-next-line class-methods-use-this
+    public blue(message: string): string {
+        return kleur.blue(message);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    // eslint-disable-next-line class-methods-use-this
+    public yellow(message: string): string {
+        return kleur.yellow(message);
+    }
+    /**
+     * @inheritdoc
+     */
+
+    // eslint-disable-next-line class-methods-use-this
+    public cyan(message: string): string {
+        return kleur.cyan(message);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    // eslint-disable-next-line class-methods-use-this
+    public gray(message: string): string {
+        return kleur.gray(message);
+    }
+
+    /**
+     * @inheritdoc
+     */
     public debug(message: string, icon?: Icon): void {
-        this.log(levels[Level.DEBUG], kleur.grey(message), icon);
+        this.log(levels[Level.DEBUG], message, icon);
     }
 
     /**
@@ -225,14 +303,14 @@ abstract class PrinterService implements Service, Printer {
      * @inheritdoc
      */
     public warn(message: string, icon?: Icon): void {
-        this.log(levels[Level.WARN], kleur.yellow(message), icon);
+        this.log(levels[Level.WARN], message, icon);
     }
 
     /**
      * @inheritdoc
      */
     public error(message: string, icon?: Icon): void {
-        this.log(levels[Level.ERROR], kleur.red(message), icon);
+        this.log(levels[Level.ERROR], message, icon);
     }
 
     /**
@@ -313,6 +391,7 @@ export class StdoutPrinterService extends PrinterService {
      * * `cliConfig.stdout: Writable`
      */
     public init(context: Context): void {
+        super.init(context);
         if (_.isUndefined(context.cliConfig) || _.isUndefined(context.cliConfig.stdout)
             || !_.isFunction(context.cliConfig.stdout.write)) {
             throw new Error('Provided context is missing property: "cliConfig.stdout: Writable"');
@@ -343,6 +422,7 @@ export class StderrPrinterService extends PrinterService {
      * * `cliConfig.stderr: Writable`
      */
     public init(context: Context): void {
+        super.init(context);
         if (_.isUndefined(context.cliConfig) || _.isUndefined(context.cliConfig.stderr)
             || !_.isFunction(context.cliConfig.stderr.write)) {
             throw new Error('Provided context is missing property: "cliConfig.stderr: Writable"');

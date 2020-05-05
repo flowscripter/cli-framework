@@ -46,7 +46,7 @@ describe('LogLevelCommand test', () => {
         stderrService.info('bar');
         expect(mockStderr).toHaveBeenCalledWith('bar');
 
-        await logLevelCommand.run({ loglevel: 'DEBUG' }, context);
+        await logLevelCommand.run({ level: 'DEBUG' }, context);
 
         stdoutService.debug('goo');
         expect(mockStdout).toHaveBeenLastCalledWith('goo');
@@ -58,7 +58,7 @@ describe('LogLevelCommand test', () => {
         stderrService.info('gar');
         expect(mockStderr).toHaveBeenLastCalledWith('gar');
 
-        await logLevelCommand.run({ loglevel: 'WARN' }, context);
+        await logLevelCommand.run({ level: 'WARN' }, context);
 
         stdoutService.info('hoo');
         expect(mockStdout).toHaveBeenLastCalledWith('gar');

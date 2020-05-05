@@ -4,7 +4,7 @@ import { CommandArgs } from '../../api/Command';
 import Context from '../../api/Context';
 import GlobalModifierCommand from '../../api/GlobalModifierCommand';
 import Configuration, { CONFIGURATION_SERVICE } from '../service/ConfigurationService';
-import Printer, { Icon, STDERR_PRINTER_SERVICE } from '../service/PrinterService';
+import Printer, { STDERR_PRINTER_SERVICE } from '../service/PrinterService';
 import GlobalCommandArgument from '../../api/GlobalCommandArgument';
 
 /**
@@ -46,31 +46,25 @@ export default class ConfigCommand implements GlobalModifierCommand {
             throw new Error('STDERR_PRINTER_SERVICE not available in context');
         }
 
-        const configLocation = commandArgs.config as string;
+        const configLocation = commandArgs.location as string;
 
-        printer.debug(`configLocation: ${configLocation}`);
+        printer.debug(`configLocation: ${configLocation}\n`);
 
         try {
             fs.accessSync(configLocation, fs.constants.F_OK);
         } catch (err) {
-            const message = `configuration location doesn't exist or not visible:  ${configLocation}`;
-            printer.error(message, Icon.FAILURE);
-            throw new Error(message);
+            throw new Error(`configuration location doesn't exist or not visible: ${configLocation}`);
         }
 
         try {
             fs.accessSync(configLocation, fs.constants.R_OK);
         } catch (err) {
-            const message = `configuration location is not readable:  ${configLocation}`;
-            printer.error(message, Icon.FAILURE);
-            throw new Error(message);
+            throw new Error(`configuration location is not readable: ${configLocation}`);
         }
 
         const stat = fs.statSync(configLocation);
         if (stat.isDirectory()) {
-            const message = `configuration location is a directory:  ${configLocation}`;
-            printer.error(message, Icon.FAILURE);
-            throw new Error(message);
+            throw new Error(`configuration location is a directory: ${configLocation}`);
         }
 
         // set the new location for the configuration service

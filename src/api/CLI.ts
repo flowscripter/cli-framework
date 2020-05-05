@@ -4,6 +4,7 @@
 
 import ServiceFactory from './ServiceFactory';
 import CommandFactory from './CommandFactory';
+import { RunResult } from './Runner';
 
 /**
  * Interface to be implemented by a CLI application.
@@ -25,7 +26,7 @@ export default interface CLI {
      *
      * @param args the arguments to parse
      *
-     * @return *0* for successful execution and *1* for failure
+     * @return result of parsing and executing
      */
-    execute(args: string[]): Promise<number>;
+    execute(args: string[]): Promise<RunResult>;
 }

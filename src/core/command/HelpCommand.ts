@@ -182,7 +182,7 @@ class CommonHelpCommand {
             });
         });
         return levenCommandArray
-            .sort((a, b) => b[0] - a[0])
+            .sort((a, b) => a[0] - b[0])
             .slice(0, 2)
             .filter((value) => value[0] < 3)
             .map((value) => value[1]);
@@ -505,7 +505,7 @@ class CommonHelpCommand {
 
         if (_.isUndefined(subCommand)) {
 
-            printer.error(`Unknown command: ${commandName}\n\n`, Icon.FAILURE);
+            printer.error(`Unknown command: ${printer.red(commandName)}\n\n`, Icon.FAILURE);
 
             // look for other possible matches
             const possibleCommandNames = this.findPossibleCommandNames(commandName, groupCommands, subCommands);

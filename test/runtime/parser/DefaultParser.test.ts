@@ -309,6 +309,26 @@ describe('DefaultParser test', () => {
         expectScanResult(scanResult, expected);
     });
 
+    test('Unknown group member command rejected', () => {
+        const defaultParser: DefaultParser = new DefaultParser();
+        const subCommand = getSubCommand();
+        const groupCommand = getGroupCommand('group', [subCommand]);
+
+        defaultParser.setCommandRegistry(getCommandRegistry([groupCommand]));
+
+        let scanResult = defaultParser.scanForCommandClauses(['group', 'blah', 'bar', '--goo', 'g']);
+        expectScanResult(scanResult, {
+            commandClauses: [],
+            unusedLeadingArgs: ['group', 'blah', 'bar', '--goo', 'g']
+        });
+
+        scanResult = defaultParser.scanForCommandClauses(['group:blah', 'bar', '--goo', 'g']);
+        expectScanResult(scanResult, {
+            commandClauses: [],
+            unusedLeadingArgs: ['group:blah', 'bar', '--goo', 'g']
+        });
+    });
+
     test('Two group commands scanned (illegal scenario)', () => {
         const defaultParser: DefaultParser = new DefaultParser();
         const subCommand = getSubCommand();
