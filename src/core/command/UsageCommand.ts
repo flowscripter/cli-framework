@@ -42,6 +42,6 @@ export default class UsageCommand implements GlobalCommand {
             throw new Error('STDOUT_PRINTER_SERVICE not available in context');
         }
         printer.info(`\n${context.cliConfig.description}\n\n`);
-        printer.info(`Try running:\n\n  ${context.cliConfig.name} --${this.helpCommand.name}\n\n`);
+        printer.info(`${printer.gray('Try running:')}\n\n  ${context.cliConfig.name} --${this.helpCommand.name}\n\n`);
     }
 }
