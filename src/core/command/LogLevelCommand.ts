@@ -65,7 +65,7 @@ export default class LogLevelCommand implements GlobalModifierCommand {
         if (!stderrPrinter) {
             throw new Error('STDERR_PRINTER_SERVICE not available in context');
         }
-        stdoutPrinter.setLevel(LogLevelCommand.getLevel(commandArgs.loglevel as string));
-        stderrPrinter.setLevel(LogLevelCommand.getLevel(commandArgs.loglevel as string));
+        stdoutPrinter.setLevel(LogLevelCommand.getLevel(commandArgs.level as string));
+        stderrPrinter.setLevel(LogLevelCommand.getLevel(commandArgs.level as string));
     }
 }
