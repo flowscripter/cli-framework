@@ -4,7 +4,7 @@
 
 import _ from 'lodash';
 import debug from 'debug';
-import Runner from '../api/Runner';
+import Runner, { RunResult } from '../api/Runner';
 import Context from '../api/Context';
 import Parser, { CommandClause, ParseResult, ScanResult } from '../api/Parser';
 import { isGlobalCommand, isGlobalModifierCommand, isSubCommand } from '../api/CommandTypeGuards';
@@ -31,6 +31,35 @@ export default class DefaultRunner implements Runner {
         this.parser = parser;
     }
 
+    // eslint-disable-next-line class-methods-use-this
+    private printParseResultError(parseResult: ParseResult, printer: Printer): void {
+        let errorString = 'Parse error for';
+        if (isGlobalCommand(parseResult.command)) {
+            errorString = `${errorString} global command`;
+        } else if (isGlobalModifierCommand(parseResult.command)) {
+            errorString = `${errorString} global modifier command`;
+        } else {
+            errorString = `${errorString} command`;
+        }
+        if (parseResult.invalidArgs.length > 0) {
+            errorString = `${errorString} and args:`;
+            const argsString = parseResult.invalidArgs.map((arg) => {
+                if (isGlobalModifierCommand(parseResult.command) || isGlobalCommand(parseResult.command)) {
+                    if (_.isUndefined(arg.value)) {
+                        return '';
+                    }
+                    return printer.yellow(`${arg.value}`);
+                }
+                if (_.isUndefined(arg.name)) {
+                    return '';
+                }
+                return printer.yellow(arg.name + _.isUndefined(arg.value) ? '' : `=${arg.value}`);
+            }).join(' ');
+            errorString = `${errorString} ${argsString}`;
+        }
+        printer.error(errorString);
+    }
+
     /**
      * Attempt to successfully parse a non-modifier [[Command]] clause from the potential
      * non-modifier and default clauses provided.
@@ -40,13 +69,13 @@ export default class DefaultRunner implements Runner {
      * @param overallUnusedArgs current list of unused args. This will be appended to during this parsing operation.
      * @param context the [[Context]] for the CLI invocation.
      * @param defaultCommand optional [[Command]] implementation.
-     * @return a [[ParseResult]] for a successfully parsed [[CommandClause]], a *string* if a parse error occurred
+     * @return a [[ParseResult]] for a successfully parsed [[CommandClause]] or a parse error,
      * or *undefined* if no clause was parsed.
      * @throws *Error* if there is a parsing error
      */
     private getNonModifierParseResult(nonModifierClause: CommandClause | undefined, potentialDefaultClauses:
         CommandClause[], overallUnusedArgs: string[], context: Context, defaultCommand?: Command): ParseResult
-        | string | undefined {
+        | undefined {
 
         let parseResult;
 
@@ -94,8 +123,7 @@ export default class DefaultRunner implements Runner {
 
             // fail on a parse error
             if (parseResult.invalidArgs.length > 0) {
-                return `There were parsing errors for command: ${parseResult.command.name} `
-                    + `and args: ${parseResult.invalidArgs.map((arg) => arg.name).join(', ')}`;
+                return parseResult;
             }
             // shift all potential default clause args to unused args
             for (let i = 0; i < potentialDefaultClauses.length; i += 1) {
@@ -114,7 +142,12 @@ export default class DefaultRunner implements Runner {
      * * a default command is specified and it is not a [[SubCommand]] or [[GlobalCommand]]
      * * there is an error caused by the CLI framework implementation
      */
-    public async run(args: string[], context: Context, defaultCommand?: Command): Promise<string | undefined> {
+    public async run(args: string[], context: Context, defaultCommand?: Command): Promise<RunResult> {
+
+        const printer = context.serviceRegistry.getServiceById(STDERR_PRINTER_SERVICE) as unknown as Printer;
+        if (printer == null) {
+            throw new Error('STDERR_PRINTER_SERVICE not available in context');
+        }
 
         if (defaultCommand && !isGlobalCommand(defaultCommand) && !isSubCommand(defaultCommand)) {
             throw new Error(`Default command: ${defaultCommand.name} is not a global command or sub-command`);
@@ -131,8 +164,6 @@ export default class DefaultRunner implements Runner {
         // scan for command clauses
         const scanResult: ScanResult = this.parser.scanForCommandClauses(args);
 
-        this.log(`clauses: ${scanResult.commandClauses.length}, unused args: ${scanResult.unusedLeadingArgs}`);
-
         // categorise the clauses
         const modifierClauses: CommandClause[] = [];
         const nonModifierClauses: CommandClause[] = [];
@@ -147,8 +178,9 @@ export default class DefaultRunner implements Runner {
 
         // check if more than one non-modifier command has been specified
         if (nonModifierClauses.length > 1) {
-            return 'More than one command specified: '
-                + `${nonModifierClauses.map((clause) => clause.command.name).join(', ')}`;
+            printer.error('More than one command specified: '
+                + `${nonModifierClauses.map((clause) => printer.yellow(clause.command.name)).join(', ')}`);
+            return RunResult.ParseError;
         }
         const nonModifierClause = nonModifierClauses[0];
 
@@ -185,8 +217,8 @@ export default class DefaultRunner implements Runner {
 
             // fast fail on a parse error
             if (parseResult.invalidArgs.length > 0) {
-                return `Parse error for global modifier command: ${parseResult.command.name} and args: `
-                    + `${parseResult.invalidArgs.map((arg) => arg.name).join(', ')}`;
+                this.printParseResultError(parseResult, printer);
+                return RunResult.ParseError;
             }
             const { unusedArgs } = parseResult;
 
@@ -203,13 +235,14 @@ export default class DefaultRunner implements Runner {
             // run the successfully parsed global modifier
             const { command, commandArgs } = parseResult;
             const message = `global modifier command: ${command.name} with args: `
-                + `${Object.keys(commandArgs).map((arg) => `${arg}=${commandArgs[arg]}`).join(', ')}`;
+                + `${Object.keys(commandArgs).map((arg) => `${commandArgs[arg]}`).join(', ')}`;
             this.log(`Running ${message}`);
             try {
                 // eslint-disable-next-line no-await-in-loop
                 await command.run(commandArgs, context);
             } catch (err) {
-                return `Error running ${message}: ${err.message}`;
+                printer.error(`Error running ${message}:  ${printer.red(err.message)}`);
+                return RunResult.CommandError;
             }
         }
 
@@ -218,50 +251,44 @@ export default class DefaultRunner implements Runner {
             overallUnusedArgs, context, defaultCommand);
 
         if (!parseResult) {
-            return 'No command specified and no default available!';
-        }
-        if (_.isString(parseResult)) {
-            return parseResult;
+            printer.error('No command specified and no default available!');
+            return RunResult.ParseError;
         }
         if (parseResult.invalidArgs.length > 0) {
-            return `Parse error for command: ${parseResult.command.name} and args: `
-                + `${parseResult.invalidArgs.map((arg) => arg.name).join(', ')}`;
+            this.printParseResultError(parseResult, printer);
+            return RunResult.ParseError;
         }
 
-        // error on unused args
+        // warn on unused args
         overallUnusedArgs.push(...parseResult.unusedArgs);
         if (overallUnusedArgs.length > 0) {
             // output any unused args, parsing error or run error on stderr
-            const printer = context.serviceRegistry.getServiceById(STDERR_PRINTER_SERVICE) as unknown as Printer;
-            if (printer == null) {
-                return 'STDERR_PRINTER_SERVICE not available in context';
-            }
             if (overallUnusedArgs.length === 1) {
-                printer.warn(`Unused arg: ${overallUnusedArgs[0]}\n`, Icon.ALERT);
+                printer.warn(`Unused arg: ${printer.yellow(overallUnusedArgs[0])}\n`, Icon.ALERT);
             } else {
-                printer.warn(`Unused args: ${overallUnusedArgs.join(' ')}\n`, Icon.ALERT);
+                printer.warn(`Unused args: ${printer.yellow(overallUnusedArgs.join(' '))}\n`, Icon.ALERT);
             }
         }
 
         const { groupCommand, command, commandArgs } = parseResult;
 
         let message;
-        let failureMessage;
         try {
             if (groupCommand) {
-                message = `command: ${groupCommand.name}`;
+                message = `command: ${groupCommand.name} with args: `
+                    + `${Object.keys(commandArgs).map((arg) => `${commandArgs[arg]}`).join(', ')}`;
                 this.log(`Running ${message}`);
                 await groupCommand.run({}, context);
             }
-            message = `command: ${command.name} with args: `
+            message = `command: ${groupCommand ? `${groupCommand.name}:` : ''}${command.name} with args: `
                 + `${Object.keys(commandArgs).map((arg) => `${arg}=${commandArgs[arg]}`).join(', ')}`;
             this.log(`Running ${message}`);
             await command.run(commandArgs, context);
         } catch (err) {
-            failureMessage = `Error running ${message}: ${err.message}`;
-            this.log(failureMessage);
+            printer.error(`Error running ${message}:  ${printer.red(err.message)}`);
+            return RunResult.CommandError;
         }
 
-        return failureMessage;
+        return RunResult.Success;
     }
 }

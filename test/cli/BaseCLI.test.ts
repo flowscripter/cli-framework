@@ -2,6 +2,7 @@ import { mockProcessStdout, mockProcessStderr } from 'jest-mock-process';
 import CommandFactoryA from '../fixtures/CommandFactoryA';
 import ServiceFactoryA, { SERVICE_ID_A } from '../fixtures/ServiceFactoryA';
 import BaseCLI from '../../src/cli/BaseCLI';
+import { RunResult, STDERR_PRINTER_SERVICE } from '../../src';
 
 const mockStdout = mockProcessStdout();
 const mockStderr = mockProcessStderr();
@@ -80,8 +81,7 @@ describe('BaseCLI test', () => {
         cli.addCommandFactory(new CommandFactoryA());
 
         const result = await cli.execute([]);
-
-        expect(result).toEqual(0);
+        expect(result).toEqual(RunResult.Success);
     });
 
     test('Global help command is run', async () => {
@@ -98,8 +98,7 @@ describe('BaseCLI test', () => {
         cli.addCommandFactory(new CommandFactoryA());
 
         const result = await cli.execute(['--help']);
-
-        expect(result).toEqual(0);
+        expect(result).toEqual(RunResult.Success);
     });
 
     test('Global help command with argument is run', async () => {
@@ -116,8 +115,7 @@ describe('BaseCLI test', () => {
         cli.addCommandFactory(new CommandFactoryA());
 
         const result = await cli.execute(['--help=command_a']);
-
-        expect(result).toEqual(0);
+        expect(result).toEqual(RunResult.Success);
     });
 
     test('Non-global help command is run', async () => {
@@ -134,8 +132,7 @@ describe('BaseCLI test', () => {
         cli.addCommandFactory(new CommandFactoryA());
 
         const result = await cli.execute(['help']);
-
-        expect(result).toEqual(0);
+        expect(result).toEqual(RunResult.Success);
     });
 
     test('Non-global help command with argument matching command name is run', async () => {
@@ -152,8 +149,7 @@ describe('BaseCLI test', () => {
         cli.addCommandFactory(new CommandFactoryA());
 
         const result = await cli.execute(['help', 'command_a']);
-
-        expect(result).toEqual(0);
+        expect(result).toEqual(RunResult.Success);
     });
 
     test('Global modifier and non-global help command with argument is run', async () => {
@@ -170,8 +166,7 @@ describe('BaseCLI test', () => {
         cli.addCommandFactory(new CommandFactoryA());
 
         const result = await cli.execute(['--color', 'help', 'command_a']);
-
-        expect(result).toEqual(0);
+        expect(result).toEqual(RunResult.Success);
     });
 
     test('Warning for unknown command', async () => {
@@ -183,12 +178,14 @@ describe('BaseCLI test', () => {
             stdout: process.stdout,
             stderr: process.stderr,
         };
-        const cli = new BaseCLI(cliConfig);
+        const serviceConfigs = new Map();
+        serviceConfigs.set(STDERR_PRINTER_SERVICE, { colorEnabled: false });
+        const cli = new BaseCLI(cliConfig, serviceConfigs, new Map());
 
         cli.addCommandFactory(new CommandFactoryA());
 
         const result = await cli.execute(['blah']);
-        expect(result).toEqual(0);
+        expect(result).toEqual(RunResult.Success);
         expect(mockStderr).toHaveBeenCalledWith(expect.stringContaining('Unused arg: blah'));
     });
 
@@ -201,12 +198,14 @@ describe('BaseCLI test', () => {
             stdout: process.stdout,
             stderr: process.stderr,
         };
-        const cli = new BaseCLI(cliConfig);
+        const serviceConfigs = new Map();
+        serviceConfigs.set(STDERR_PRINTER_SERVICE, { colorEnabled: false });
+        const cli = new BaseCLI(cliConfig, serviceConfigs, new Map());
 
         cli.addCommandFactory(new CommandFactoryA());
 
         const result = await cli.execute(['--nnn', 'command_a', '--foo=hello']);
-        expect(result).toEqual(0);
+        expect(result).toEqual(RunResult.Success);
         expect(mockStderr).toHaveBeenCalledWith(expect.stringContaining('Unused arg: --nnn'));
     });
 
@@ -233,8 +232,7 @@ describe('BaseCLI test', () => {
         cli.addCommandFactory(new CommandFactoryA());
 
         const result = await cli.execute([]);
-
-        expect(result).toEqual(0);
+        expect(result).toEqual(RunResult.Success);
     });
 
     test('Service is configured with provided config', async () => {
@@ -261,8 +259,7 @@ describe('BaseCLI test', () => {
         cli.addServiceFactory(serviceFactoryA);
 
         const result = await cli.execute([]);
-
-        expect(result).toEqual(0);
+        expect(result).toEqual(RunResult.Success);
         expect(serviceFactoryA.serviceA.config.foo).toEqual('bar');
     });
 });

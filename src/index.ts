@@ -17,7 +17,7 @@ export { default as Positional } from './api/Positional';
 export { default as Option } from './api/Option';
 export { default as GlobalCommandArgument } from './api/GlobalCommandArgument';
 export { default as Parser } from './api/Parser';
-export { default as Runner } from './api/Runner';
+export { default as Runner, RunResult } from './api/Runner';
 export { default as BaseCLI } from './cli/BaseCLI';
 export { default as NodeCLI } from './cli/NodeCLI';
 

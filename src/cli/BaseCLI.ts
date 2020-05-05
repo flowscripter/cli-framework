@@ -15,8 +15,7 @@ import DefaultRunner from '../runtime/DefaultRunner';
 import DefaultContext from '../runtime/DefaultContext';
 import CLIConfig from '../api/CLIConfig';
 import Context from '../api/Context';
-import Runner from '../api/Runner';
-import Printer, { Icon, STDERR_PRINTER_SERVICE } from '../core/service/PrinterService';
+import Runner, { RunResult } from '../api/Runner';
 import DefaultParser from '../runtime/parser/DefaultParser';
 import DefaultServiceRegistry from '../runtime/DefaultServiceRegistry';
 import DefaultCommandRegistry from '../runtime/DefaultCommandRegistry';
@@ -82,9 +81,8 @@ export default class BaseCLI implements CLI {
     /**
      * @inheritdoc
      *
-     * Any error caused by user arguments when invoking the [[Runner]] will be caught and displayed as an error
-     * message to the user via the [[StderrPrinterService]] provided by the [[CoreServiceFactory]]. General CLI
-     * usage will then be displayed via the [[UsageCommand]] provided by the [[CoreCommandFactory]].
+     * If a parsing error occurs, general CLI usage will be displayed via the
+     * [[UsageCommand]] provided by the [[CoreCommandFactory]].
      *
      * The [[UsageCommand]] is also provided to the [[DefaultRunner]] implementation as the default command.
      *
@@ -92,7 +90,7 @@ export default class BaseCLI implements CLI {
      * * when registering [[Command]] and [[Service]] instances.
      * * in the CLI framework when invoking the [[DefaultRunner]] implementation.
      */
-    public async execute(args: string[]): Promise<number> {
+    public async execute(args: string[]): Promise<RunResult> {
 
         this.log(`executing with args: ${args}`);
 
@@ -124,22 +122,13 @@ export default class BaseCLI implements CLI {
         // pass the usage command as the default command
         const runner: Runner = new DefaultRunner(new DefaultParser());
 
-        const failureResult = await runner.run(args, context, this.coreCommandFactory.usageCommand);
-        if (!_.isUndefined(failureResult)) {
-
-            // output any unused args, parsing error or run error on stderr
-            const printer = context.serviceRegistry.getServiceById(STDERR_PRINTER_SERVICE) as unknown as Printer;
-            if (printer == null) {
-                throw new Error('STDERR_PRINTER_SERVICE not available in context');
-            }
-            printer.error(`${failureResult}\n`, Icon.FAILURE);
+        const runResult = await runner.run(args, context, this.coreCommandFactory.usageCommand);
+        if (runResult === RunResult.ParseError) {
 
             // display usage information
             await this.coreCommandFactory.usageCommand.run({}, context);
-
-            return 1;
         }
-        return 0;
+        return runResult;
     }
 
     /**
