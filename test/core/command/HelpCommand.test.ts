@@ -4,8 +4,37 @@ import { StdoutPrinterService } from '../../../src/core/service/PrinterService';
 import { SubCommandA } from '../../fixtures/CommandFactoryA';
 import { getContext } from '../../fixtures/Context';
 import { getCliConfig } from '../../fixtures/CLIConfig';
+import SubCommand from '../../../src/api/SubCommand';
+import { CommandArgs } from '../../../src';
+import Context from '../../../src/api/Context';
 
 const mockStdout = mockProcessStdout();
+
+class OtherCommand1 implements SubCommand {
+    readonly name = 'other1';
+
+    readonly options = [];
+
+    readonly positionals = [];
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars,class-methods-use-this
+    public async run(commandArgs: CommandArgs, context: Context): Promise<void> {
+        // empty
+    }
+}
+
+class OtherCommand2 implements SubCommand {
+    readonly name = 'other2';
+
+    readonly options = [];
+
+    readonly positionals = [];
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars,class-methods-use-this
+    public async run(commandArgs: CommandArgs, context: Context): Promise<void> {
+        // empty
+    }
+}
 
 describe('HelpCommand test', () => {
 
@@ -79,7 +108,7 @@ describe('HelpCommand test', () => {
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining(commandA.options[0].name));
     });
 
-    test('HelpGlobalCommand with unknown command specified displays warning and generic help', async () => {
+    test('HelpGlobalCommand with unknown command specified error warning and generic help', async () => {
         const help = new HelpGlobalCommand();
         const stdoutService = new StdoutPrinterService(100);
         stdoutService.colorEnabled = false;
@@ -92,7 +121,7 @@ describe('HelpCommand test', () => {
         expect(mockStdout).toHaveBeenCalledWith(expect.not.stringContaining('Usage:'));
     });
 
-    test('HelpSubCommand with unknown command specified displays warning and generic help', async () => {
+    test('HelpSubCommand with unknown command specified displays error and generic help', async () => {
         const help = new HelpSubCommand();
         const stdoutService = new StdoutPrinterService(100);
         stdoutService.colorEnabled = false;
@@ -110,7 +139,8 @@ describe('HelpCommand test', () => {
         const commandA = new SubCommandA();
         const stdoutService = new StdoutPrinterService(100);
         stdoutService.colorEnabled = false;
-        const context = getContext(getCliConfig(), [stdoutService], [help, commandA]);
+        const context = getContext(getCliConfig(), [stdoutService], [new OtherCommand1(), help,
+            commandA, new OtherCommand2()]);
         stdoutService.init(context);
 
         await help.run({ command: 'command_b' }, context);
