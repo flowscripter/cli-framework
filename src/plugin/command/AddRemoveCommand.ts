@@ -84,7 +84,7 @@ export class AddCommand extends AbstractPluginCommand implements SubCommand {
 
     public readonly name = ADD_COMMAND_NAME;
 
-    public readonly description = 'Adds a plugin.';
+    public readonly description = 'Adds a plugin';
 
     public readonly options: ReadonlyArray<Option> = [
         {
@@ -168,7 +168,7 @@ export class RemoveCommand extends AbstractPluginCommand implements SubCommand {
 
     public readonly name = REMOVE_COMMAND_NAME;
 
-    public readonly description = 'Removes a plugin.';
+    public readonly description = 'Removes a plugin';
 
     public readonly options: ReadonlyArray<Option> = [];
 

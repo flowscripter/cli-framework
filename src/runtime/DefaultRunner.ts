@@ -6,12 +6,24 @@ import _ from 'lodash';
 import debug from 'debug';
 import Runner, { RunResult } from '../api/Runner';
 import Context from '../api/Context';
-import Parser, { CommandClause, ParseResult, ScanResult } from '../api/Parser';
-import { isGlobalCommand, isGlobalModifierCommand, isSubCommand } from '../api/CommandTypeGuards';
-import Command from '../api/Command';
+import Parser, {
+    CommandClause,
+    InvalidArg,
+    InvalidReason,
+    ParseResult,
+    ScanResult
+} from '../api/Parser';
+import {
+    isGlobalCommand,
+    isGlobalModifierCommand,
+    isGroupCommand,
+    isSubCommand
+} from '../api/CommandTypeGuards';
+import Command, { CommandArgs } from '../api/Command';
 import validateCommand from './CommandValidation';
 import GlobalModifierCommand from '../api/GlobalModifierCommand';
 import Printer, { Icon, STDERR_PRINTER_SERVICE } from '../core/service/PrinterService';
+import GroupCommand from '../api/GroupCommand';
 
 /**
  * Default implementation of a [[Runner]].
@@ -31,8 +43,37 @@ export default class DefaultRunner implements Runner {
         this.parser = parser;
     }
 
-    // eslint-disable-next-line class-methods-use-this
-    private printParseResultError(parseResult: ParseResult, printer: Printer): void {
+    private static getInvalidArgString(invalidArg: InvalidArg, skipArgName: boolean): string {
+        let argString;
+        if (!skipArgName && !_.isUndefined(invalidArg.name)) {
+            argString = invalidArg.name;
+            argString = `${argString}${_.isUndefined(invalidArg.value) ? '' : `=${invalidArg.value}`}`;
+        } else {
+            argString = _.isUndefined(invalidArg.value) ? '' : `${invalidArg.value}`;
+        }
+        let invalidString = '';
+        // eslint-disable-next-line default-case
+        switch (invalidArg.reason) {
+        case InvalidReason.IllegalMultipleValues:
+            invalidString = '(illegal multiple values)';
+            break;
+        case InvalidReason.IllegalValue:
+            invalidString = '(illegal value)';
+            break;
+        case InvalidReason.IncorrectType:
+            invalidString = '(incorrect type)';
+            break;
+        case InvalidReason.MissingValue:
+            invalidString = '(missing value)';
+            break;
+        }
+        if (argString.length > 0) {
+            return `${argString} ${invalidString}`;
+        }
+        return invalidString;
+    }
+
+    private static printParseResultError(printer: Printer, parseResult: ParseResult): void {
         let errorString = 'Parse error for';
         if (isGlobalCommand(parseResult.command)) {
             errorString = `${errorString} global command`;
@@ -41,23 +82,60 @@ export default class DefaultRunner implements Runner {
         } else {
             errorString = `${errorString} command`;
         }
+        errorString = `${errorString} ${printer.yellow(
+            (_.isUndefined(parseResult.groupCommand) ? '' : `${parseResult.groupCommand.name}:`)
+            + parseResult.command.name
+        )}`;
         if (parseResult.invalidArgs.length > 0) {
-            errorString = `${errorString} and args:`;
-            const argsString = parseResult.invalidArgs.map((arg) => {
-                if (isGlobalModifierCommand(parseResult.command) || isGlobalCommand(parseResult.command)) {
-                    if (_.isUndefined(arg.value)) {
-                        return '';
-                    }
-                    return printer.yellow(`${arg.value}`);
-                }
-                if (_.isUndefined(arg.name)) {
-                    return '';
-                }
-                return printer.yellow(arg.name + _.isUndefined(arg.value) ? '' : `=${arg.value}`);
-            }).join(' ');
-            errorString = `${errorString} ${argsString}`;
+            errorString = `${errorString} and`;
+            if (parseResult.invalidArgs.length === 1) {
+                errorString = `${errorString} arg `;
+            } else {
+                errorString = `${errorString} args `;
+            }
+            const argsString = parseResult.invalidArgs.map(
+                (arg) => printer.yellow(DefaultRunner.getInvalidArgString(arg,
+                    isGlobalModifierCommand(parseResult.command) || isGlobalCommand(parseResult.command)))
+            ).join(' ');
+            errorString = `${errorString}${argsString}`;
         }
-        printer.error(errorString);
+        printer.error(`${errorString}\n`, Icon.FAILURE);
+    }
+
+    private static getCommandString(printer: Printer, command: Command, commandArgs: CommandArgs,
+        groupCommand?: GroupCommand): string {
+        let commandString;
+        if (isGlobalCommand(command)) {
+            commandString = 'global command ';
+        } else if (isGlobalModifierCommand(command)) {
+            commandString = 'global modifier command ';
+        } else if (isGroupCommand(command)) {
+            commandString = 'group command ';
+        } else {
+            commandString = 'command ';
+        }
+        if (groupCommand) {
+            commandString = `${commandString}${printer.yellow(`${groupCommand.name}:`)}`;
+        }
+        commandString = `${commandString}${printer.yellow(command.name)}`;
+        const keys = Object.keys(commandArgs);
+        if (keys.length > 0) {
+            commandString = `${commandString} and`;
+            if (keys.length === 1) {
+                commandString = `${commandString} arg `;
+            } else {
+                commandString = `${commandString} args `;
+            }
+
+            const skipArgName = isGlobalModifierCommand(command) || isGlobalCommand(command);
+            commandString += Object.keys(commandArgs).map((arg) => {
+                if (skipArgName) {
+                    return printer.yellow(`${commandArgs[arg]}`);
+                }
+                return printer.yellow(`${arg}=${commandArgs[arg]}`);
+            }).join(', ');
+        }
+        return commandString;
     }
 
     /**
@@ -217,7 +295,7 @@ export default class DefaultRunner implements Runner {
 
             // fast fail on a parse error
             if (parseResult.invalidArgs.length > 0) {
-                this.printParseResultError(parseResult, printer);
+                DefaultRunner.printParseResultError(printer, parseResult);
                 return RunResult.ParseError;
             }
             const { unusedArgs } = parseResult;
@@ -234,14 +312,13 @@ export default class DefaultRunner implements Runner {
 
             // run the successfully parsed global modifier
             const { command, commandArgs } = parseResult;
-            const message = `global modifier command: ${command.name} with args: `
-                + `${Object.keys(commandArgs).map((arg) => `${commandArgs[arg]}`).join(', ')}`;
+            const message = DefaultRunner.getCommandString(printer, command, commandArgs);
             this.log(`Running ${message}`);
             try {
                 // eslint-disable-next-line no-await-in-loop
                 await command.run(commandArgs, context);
             } catch (err) {
-                printer.error(`Error running ${message}:  ${printer.red(err.message)}`);
+                printer.error(`Error running ${message}: ${printer.red(err.message)}\n`, Icon.FAILURE);
                 return RunResult.CommandError;
             }
         }
@@ -255,7 +332,7 @@ export default class DefaultRunner implements Runner {
             return RunResult.ParseError;
         }
         if (parseResult.invalidArgs.length > 0) {
-            this.printParseResultError(parseResult, printer);
+            DefaultRunner.printParseResultError(printer, parseResult);
             return RunResult.ParseError;
         }
 
@@ -275,17 +352,15 @@ export default class DefaultRunner implements Runner {
         let message;
         try {
             if (groupCommand) {
-                message = `command: ${groupCommand.name} with args: `
-                    + `${Object.keys(commandArgs).map((arg) => `${commandArgs[arg]}`).join(', ')}`;
+                message = DefaultRunner.getCommandString(printer, groupCommand, commandArgs);
                 this.log(`Running ${message}`);
                 await groupCommand.run({}, context);
             }
-            message = `command: ${groupCommand ? `${groupCommand.name}:` : ''}${command.name} with args: `
-                + `${Object.keys(commandArgs).map((arg) => `${arg}=${commandArgs[arg]}`).join(', ')}`;
+            message = DefaultRunner.getCommandString(printer, command, commandArgs, groupCommand);
             this.log(`Running ${message}`);
             await command.run(commandArgs, context);
         } catch (err) {
-            printer.error(`Error running ${message}:  ${printer.red(err.message)}`);
+            printer.error(`Error running ${message}: ${printer.red(err.message)}\n`, Icon.FAILURE);
             return RunResult.CommandError;
         }
 
