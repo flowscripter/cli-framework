@@ -49,9 +49,9 @@ export default interface Printer {
     writable: Writable | undefined;
 
     /**
-     * Return the provided message so that it appears bold when printed.
+     * Return the provided message so that it appears dim when printed.
      */
-    bold(message: string): string;
+    dim(message: string): string;
 
     /**
      * Return the provided message so that it appears red when printed.
@@ -198,7 +198,7 @@ abstract class PrinterService implements Service, Printer {
             return;
         }
         if (this.writable) {
-            this.writable.write(`${icon ? `${icons[icon]}  ` : ''}${message}`);
+            this.writable.write(`${icon ? `${icons[icon]} ` : ''}${message}`);
         }
     }
 
@@ -233,8 +233,8 @@ abstract class PrinterService implements Service, Printer {
      * @inheritdoc
      */
     // eslint-disable-next-line class-methods-use-this
-    public bold(message: string): string {
-        return kleur.bold(message);
+    public dim(message: string): string {
+        return kleur.dim(message);
     }
 
     /**

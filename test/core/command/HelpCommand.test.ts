@@ -63,7 +63,7 @@ describe('HelpCommand test', () => {
 
         await help.run({}, context);
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('foo bar'));
-        expect(mockStdout).toHaveBeenCalledWith(expect.not.stringContaining('Usage:'));
+        expect(mockStdout).toHaveBeenCalledWith(expect.not.stringContaining('Usage'));
     });
 
     test('HelpSubCommand works', async () => {
@@ -75,7 +75,7 @@ describe('HelpCommand test', () => {
 
         await help.run({}, context);
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('foo bar'));
-        expect(mockStdout).toHaveBeenCalledWith(expect.not.stringContaining('Usage:'));
+        expect(mockStdout).toHaveBeenCalledWith(expect.not.stringContaining('Usage'));
     });
 
     test('HelpGlobalCommand with command specified works', async () => {
@@ -88,7 +88,7 @@ describe('HelpCommand test', () => {
 
         await help.run({ command: 'command_a' }, context);
         expect(mockStdout).toHaveBeenCalledWith(expect.not.stringContaining('foo bar'));
-        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Usage:'));
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Usage'));
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining(commandA.description));
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining(commandA.options[0].name));
     });
@@ -103,7 +103,7 @@ describe('HelpCommand test', () => {
 
         await help.run({ command: 'command_a' }, context);
         expect(mockStdout).toHaveBeenCalledWith(expect.not.stringContaining('foo bar'));
-        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Usage:'));
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Usage'));
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining(commandA.description));
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining(commandA.options[0].name));
     });
@@ -118,7 +118,7 @@ describe('HelpCommand test', () => {
         await help.run({ command: 'hello' }, context);
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Unknown command: hello'));
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('foo bar'));
-        expect(mockStdout).toHaveBeenCalledWith(expect.not.stringContaining('Usage:'));
+        expect(mockStdout).toHaveBeenCalledWith(expect.not.stringContaining('Usage'));
     });
 
     test('HelpSubCommand with unknown command specified displays error and generic help', async () => {
@@ -131,7 +131,7 @@ describe('HelpCommand test', () => {
         await help.run({ command: 'hello' }, context);
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Unknown command: hello'));
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('foo bar'));
-        expect(mockStdout).toHaveBeenCalledWith(expect.not.stringContaining('Usage:'));
+        expect(mockStdout).toHaveBeenCalledWith(expect.not.stringContaining('Usage'));
     });
 
     test('HelpSubCommand with mistyped command specified proposes matches', async () => {
@@ -147,6 +147,6 @@ describe('HelpCommand test', () => {
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Possible matches: command_a'));
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Unknown command: command_b'));
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('foo bar'));
-        expect(mockStdout).toHaveBeenCalledWith(expect.not.stringContaining('Usage:'));
+        expect(mockStdout).toHaveBeenCalledWith(expect.not.stringContaining('Usage'));
     });
 });

@@ -270,14 +270,14 @@ class CommonHelpCommand {
             });
         }
         helpSections.push({
-            title: 'Usage:',
+            title: 'Usage',
             entries: [{
                 syntax: `${this.appName} ${name}${this.getArgumentsSyntax(subCommand)}`
             }]
         });
         if (!_.isEmpty(subCommand.options) || !_.isEmpty(subCommand.positionals)) {
             const argumentsSection: HelpSection = {
-                title: 'Where:',
+                title: 'Arguments',
                 entries: []
             };
             subCommand.options.forEach((option) => {
@@ -290,7 +290,7 @@ class CommonHelpCommand {
         }
         if (!_.isUndefined(subCommand.usageExamples) && !_.isEmpty(subCommand.usageExamples)) {
             const usageSection: HelpSection = {
-                title: subCommand.usageExamples.length > 1 ? 'Examples:' : 'Example:',
+                title: subCommand.usageExamples.length > 1 ? 'Examples' : 'Example',
                 entries: []
             };
             helpSections.push(usageSection);
@@ -328,12 +328,12 @@ class CommonHelpCommand {
         const helpSections: HelpSection[] = [];
         if (globalModifierCommands.length > 0) {
             helpSections.push(CommonHelpCommand.getGlobalCommandsHelpSection(
-                'Global options:', globalModifierCommands
+                'Global Options', globalModifierCommands
             ));
         }
         if (globalCommands.length > 0) {
             helpSections.push(CommonHelpCommand.getGlobalCommandsHelpSection(
-                'Global commands:', globalCommands
+                'Global Commands', globalCommands
             ));
         }
         groupCommands.forEach((groupCommand) => {
@@ -367,7 +367,7 @@ class CommonHelpCommand {
                 const topicCommands = subCommandsByTopic.get(key);
                 if (!_.isUndefined(topicCommands)) {
                     const topicSection: HelpSection = {
-                        title: `${key.charAt(0).toUpperCase() + key.slice(1)} commands:`,
+                        title: `${key.charAt(0).toUpperCase() + key.slice(1)} Commands`,
                         entries: []
                     };
                     topicCommands.forEach((subCommand) => {
@@ -382,7 +382,7 @@ class CommonHelpCommand {
 
             if (otherSubCommands.length > 0) {
                 const topicSection: HelpSection = {
-                    title: 'Other commands:',
+                    title: 'Other Commands',
                     entries: []
                 };
                 otherSubCommands.forEach((subCommand) => {
@@ -409,15 +409,15 @@ class CommonHelpCommand {
                         paddingCount = SYNTAX_MIN_PADDING_WIDTH;
                     }
                     const padding = ' '.repeat(paddingCount);
-                    printer.info(`${this.helpEntryIndent + entry.syntax + padding + entry.description}`);
+                    printer.info(`${printer.dim(this.helpEntryIndent + entry.syntax + padding + entry.description)}`);
                     notesIndent = SYNTAX_INDENT_WIDTH + entry.syntax.length + paddingCount;
                 } else {
-                    printer.info(`${this.helpEntryIndent + entry.syntax}`);
+                    printer.info(`${printer.dim(this.helpEntryIndent + entry.syntax)}`);
                 }
                 if (entry.notes) {
                     const notesPadding = ' '.repeat(notesIndent);
                     entry.notes.forEach((note) => {
-                        printer.info(`\n${notesPadding + note}`);
+                        printer.info(`\n${printer.dim(notesPadding + note)}`);
                     });
                 }
                 printer.info('\n');
@@ -437,7 +437,7 @@ class CommonHelpCommand {
      *
      * @param context the [[Context]] in which to run.
      */
-    public async printGenericHelp(context: Context): Promise<void> {
+    public printGenericHelp(context: Context): void {
         const printer = context.serviceRegistry.getServiceById(STDOUT_PRINTER_SERVICE) as unknown as Printer;
         if (!printer) {
             throw new Error('STDOUT_PRINTER_SERVICE not available in context');
@@ -455,7 +455,7 @@ class CommonHelpCommand {
             title: this.appDescription || '',
             entries: [
                 {
-                    syntax: 'version:',
+                    syntax: 'version',
                     description: this.appVersion
                 }
             ]
@@ -463,13 +463,13 @@ class CommonHelpCommand {
         const configuration = context.serviceRegistry.getServiceById(CONFIGURATION_SERVICE) as unknown as Configuration;
         if (configuration && (!_.isUndefined(configuration.configurationLocation))) {
             helpSections[0].entries.push({
-                syntax: 'config:',
+                syntax: 'config',
                 description: configuration.configurationLocation
             });
         }
 
         helpSections.push({
-            title: 'Usage:',
+            title: 'Usage',
             entries: [
                 {
                     syntax: this.getAppSyntax(globalModifierCommands, globalCommands, groupCommands, subCommands)
@@ -491,7 +491,7 @@ class CommonHelpCommand {
      * @param context the [[Context]] in which to run.
      * @param commandName name of the command for which to show help.
      */
-    public async printUsageHelp(context: Context, commandName: string): Promise<void> {
+    public printUsageHelp(context: Context, commandName: string): void {
         const printer = context.serviceRegistry.getServiceById(STDOUT_PRINTER_SERVICE) as unknown as Printer;
         if (!printer) {
             throw new Error('STDOUT_PRINTER_SERVICE not available in context');
@@ -505,12 +505,12 @@ class CommonHelpCommand {
 
         if (_.isUndefined(subCommand)) {
 
-            printer.error(`Unknown command: ${printer.red(commandName)}\n\n`, Icon.FAILURE);
+            printer.error(`Unknown command: ${printer.red(commandName)}\n`, Icon.FAILURE);
 
             // look for other possible matches
             const possibleCommandNames = this.findPossibleCommandNames(commandName, groupCommands, subCommands);
             if (!_.isEmpty(possibleCommandNames)) {
-                printer.info(`Possible matches: ${possibleCommandNames.join(', ')}\n\n`, Icon.INFORMATION);
+                printer.info(`Possible matches: ${possibleCommandNames.join(', ')}\n`, Icon.INFORMATION);
             }
             this.printGenericHelp(context);
             return;
@@ -528,7 +528,7 @@ class CommonHelpCommand {
      * Prints CLI help. Expects an implementation of [[Printer]] registered with the [[STDOUT_PRINTER_SERVICE]] ID
      * in the provided [[Context]].
      */
-    public async run(commandArgs: CommandArgs, context: Context): Promise<void> {
+    public run(commandArgs: CommandArgs, context: Context): void {
 
         if (_.isUndefined(context.cliConfig) || !_.isString(context.cliConfig.name)) {
             throw new Error('Provided context is missing property: "cliConfig.name: string"');

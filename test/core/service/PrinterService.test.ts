@@ -19,7 +19,7 @@ describe('PrinterService test', () => {
         expect(new StdoutPrinterService(100)).toBeInstanceOf(StdoutPrinterService);
     });
 
-    test('Bold works (testing with color disabled)', () => {
+    test('Dim works (testing with color disabled)', () => {
         const ps = new StdoutPrinterService(100);
         ps.colorEnabled = false;
         const context = getContext({
@@ -27,7 +27,7 @@ describe('PrinterService test', () => {
         }, [ps], []);
         ps.init(context);
 
-        ps.info(`hello ${ps.bold('world')}`);
+        ps.info(`hello ${ps.dim('world')}`);
 
         expect(mockStdout).toHaveBeenLastCalledWith('hello world');
         expect(mockStdout).toHaveBeenCalledTimes(1);
