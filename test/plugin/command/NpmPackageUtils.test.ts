@@ -194,6 +194,16 @@ describe('NpmPackageUtils test', () => {
         ]);
     });
 
+    test('packageDependencyGenerator failure with invalid packument', async () => {
+
+        const brokenPackage = packumentE;
+        brokenPackage['dist-tags'].latest = '6.0.0';
+
+        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: brokenPackage }));
+
+        await expect(getDependencies('registry', { name: 'e' })).rejects.toThrowError();
+    });
+
     test('packageDependencyGenerator with semver success', async () => {
 
         mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: packumentE }));
@@ -204,6 +214,13 @@ describe('NpmPackageUtils test', () => {
             { name: 'e', version: '5.0.0', tarballUri: 'registry/e/e-5.0.0.tgz' },
             { name: 'f', version: '6.0.0', tarballUri: 'registry/f/f-6.0.0.tgz' }
         ]);
+    });
+
+    test('packageDependencyGenerator with packument get failure', async () => {
+
+        mockedAxios.get.mockImplementationOnce(() => Promise.reject(new Error('fail')));
+
+        await expect(getDependencies('registry', { name: 'e', version: '5.0.0' })).rejects.toThrowError();
     });
 
     test('packageDependencyGenerator failure if no dist-tag latest when version unspecified', async () => {
@@ -227,6 +244,12 @@ describe('NpmPackageUtils test', () => {
         await fs.access('/location/e', constants.F_OK);
         await expect(installPackage('/location',
             { name: 'e', version: '5.0.0', tarballUri: 'registry/e/e-5.0.0.tgz' })).rejects.toThrowError();
+    });
+
+    test('installPackage failure if no tarballUri specified', async () => {
+        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: tar.pack('/e') }));
+
+        await expect(installPackage('/location', { name: 'e', version: '5.0.0' })).rejects.toThrowError();
     });
 
     test('uninstallPackage success', async () => {
