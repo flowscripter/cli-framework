@@ -204,6 +204,16 @@ describe('NpmPackageUtils test', () => {
         await expect(getDependencies('registry', { name: 'e' })).rejects.toThrowError();
     });
 
+    test('packageDependencyGenerator failure with invalid version', async () => {
+
+        const brokenPackage = packumentE;
+        brokenPackage['dist-tags'].latest = 'foo';
+
+        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: brokenPackage }));
+
+        await expect(getDependencies('registry', { name: 'e' })).rejects.toThrowError();
+    });
+
     test('packageDependencyGenerator with semver success', async () => {
 
         mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: packumentE }));
