@@ -13,10 +13,8 @@ import Option from '../../api/Option';
 import Printer, { Icon, STDERR_PRINTER_SERVICE } from '../../core/service/PrinterService';
 import PluginRegistry, { PLUGIN_REGISTRY_SERVICE } from '../service/PluginRegistryService';
 import {
-    getAllInstalledPackages,
-    getDependencies,
-    getInstalledDependencies,
-    getInstalledTopLevelPackages,
+    getInstalledPackages,
+    resolvePackageSpec,
     installPackage,
     uninstallPackage
 } from './NpmPackageUtils';
@@ -69,16 +67,7 @@ abstract class AbstractPluginCommand {
 }
 
 /**
- * This is a VERY simple implementation of NPM add functionality.
- *
- * * No support is provided for multiple versions!
- * * All packages are installed at the top level!
- * * Differing package versions for dependencies are not supported!
- * * Installed packages are assumed to always be in a valid state and to have not been modified manually
- * or by another process!
- * * Versions in specs are expected to be explicit and not use ranges!
- * * Dist-tags are not supported!
- * * Package checksums are not verified!
+ * This command uses VERY simple NPM functionality in [[NpmPackageUtils]] to add a plugin package.
  */
 export class AddCommand extends AbstractPluginCommand implements SubCommand {
 
@@ -119,35 +108,28 @@ export class AddCommand extends AbstractPluginCommand implements SubCommand {
 
             this.printer!.showSpinner(`Adding: ${name}`);
 
-            const packageLocation = this.pluginRegistry!.pluginLocation!;
+            const packageSpecToInstall = await resolvePackageSpec(this.remoteModuleRegistry!, { name, version });
 
             // get list of currently installed packages
-            const installedPackageSpecs = await getAllInstalledPackages(packageLocation);
+            const packageLocation = this.pluginRegistry!.pluginLocation!;
+            const installedPackageSpecs = await getInstalledPackages(packageLocation);
 
-            const packageSpecsToInstall = await getDependencies(this.remoteModuleRegistry!, { name, version });
-
-            for (const currentPackageSpec of packageSpecsToInstall) {
-
-                // check if package already installed
-                const found = installedPackageSpecs.find((packageSpec) => packageSpec.name === currentPackageSpec.name);
-                if (found) {
-                    if (found.version !== currentPackageSpec.version) {
-                        throw new Error(`Multiple versions are not supported! Requested: ${
-                            currentPackageSpec.name}@${currentPackageSpec.version}, Installed: ${
-                            found.name}@${found.version}`);
-                    }
-                } else {
-                    // install package
-                    await installPackage(packageLocation, currentPackageSpec);
-
-                    this.printer!.info(`${
-                        this.printer!.gray('Installed:')} ${
-                        currentPackageSpec.name}@${currentPackageSpec.version}`, Icon.SUCCESS);
-
-                    // add installed package to installed list
-                    installedPackageSpecs.push(currentPackageSpec);
+            // check if package already installed
+            const found = installedPackageSpecs.find((packageSpec) => packageSpec.name === packageSpecToInstall.name);
+            if (found) {
+                if (found.version !== packageSpecToInstall.version) {
+                    throw new Error(`Multiple versions are not supported! Requested: ${
+                        packageSpecToInstall.name}@${packageSpecToInstall.version}, Installed: ${
+                        found.name}@${found.version}`);
                 }
+                return;
             }
+            // install package
+            await installPackage(packageLocation, packageSpecToInstall);
+
+            this.printer!.info(`${
+                this.printer!.gray('Added:')} ${
+                packageSpecToInstall.name}@${packageSpecToInstall.version}`, Icon.SUCCESS);
         } catch (err) {
             throw new Error(`Unable to add plugin ${commandArgs.name}: ${err.message}`);
         } finally {
@@ -157,16 +139,7 @@ export class AddCommand extends AbstractPluginCommand implements SubCommand {
 }
 
 /**
- * This is a VERY simple implementation of NPM remove functionality.
- *
- * * No support is provided for multiple versions!
- * * All packages are installed at the top level!
- * * Differing package versions for dependencies are not supported!
- * * Installed packages are assumed to always be in a valid state and to have not been modified manually
- * or by another process!
- * * Versions in specs are expected to be explicit and not use ranges!
- * * Dist-tags are not supported!
- * * Package checksums are not verified!
+ * This command uses VERY simple NPM functionality in [[NpmPackageUtils]] to remove a plugin package.
  */
 export class RemoveCommand extends AbstractPluginCommand implements SubCommand {
 
@@ -202,8 +175,8 @@ export class RemoveCommand extends AbstractPluginCommand implements SubCommand {
 
             const packageLocation = this.pluginRegistry!.pluginLocation!;
 
-            // get list of currently installed non-dependency packages
-            let topLevelPackages = await getInstalledTopLevelPackages(packageLocation);
+            // get list of currently installed packages
+            const topLevelPackages = await getInstalledPackages(packageLocation);
 
             // look for package to delete
             const found = topLevelPackages.find((packageSpec) => packageSpec.name === name);
@@ -213,23 +186,10 @@ export class RemoveCommand extends AbstractPluginCommand implements SubCommand {
                 return;
             }
 
-            // remove specified package from top level list
-            topLevelPackages = topLevelPackages.filter((packageSpec) => packageSpec === found);
+            // uninstall package
+            await uninstallPackage(packageLocation, found);
 
-            // build dependency list from top level list
-            const requiredPackages = await getInstalledDependencies(packageLocation, topLevelPackages);
-
-            const packagesToUninstall = await getDependencies(this.remoteModuleRegistry!, found);
-
-            for (const packageToUninstall of packagesToUninstall) {
-
-                // check if package not still required
-                if (!requiredPackages.includes(packageToUninstall)) {
-
-                    // uninstall package
-                    await uninstallPackage(packageLocation, packageToUninstall);
-                }
-            }
+            this.printer!.info(`${this.printer!.gray('Removed:')} ${found.name}@${found.version}`, Icon.SUCCESS);
         } catch (err) {
             throw new Error(`Unable to remove plugin ${commandArgs.name}: ${err.message}`);
         } finally {
