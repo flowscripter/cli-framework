@@ -418,6 +418,8 @@ or by another process!
 * Package checksums are not verified!
 * git tarball URIs are not supported!
 
+**NOTE:** If this basic implementation doesn't suffice you can always use `npm` or `yarn` to install plugin modules.
+
 ## Node CLI
 The `BaseCLI` implementation ensures that the core commands and services are available to the CLI. It expects to be
 provided a `CLIConfig` object containing the CLI application's name, version and description together with streams to
