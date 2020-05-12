@@ -110,6 +110,8 @@ export class PluginRegistryService implements Service, PluginRegistry {
      * If a `pluginLocation` property is provided in the service's config this will be used
      * in preference to that provided in the `cliConfig.pluginManagerConfig.pluginLocation` property.
      *
+     * If the specified `pluginLocation` does not exist, it will be created.
+     *
      * If a `cliConfig.pluginManagerConfig.moduleScope` property is provided in the [[Context]] this will also
      * be set. If a `moduleScope` property is provided in the service's config this will be used
      * in preference.
@@ -118,7 +120,8 @@ export class PluginRegistryService implements Service, PluginRegistry {
      * [[COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID]] will be registered. Following this, [[scan]] will be invoked.
      *
      * @throws *Error* if a non-default plugin location is specified in the service's configuration and it
-     * does not exist, cannot be read or is not a folder
+     * cannot be read or is not a folder, if the parent of the specified plugin location does not exist or if
+     * the plugin location does not exist and it cannot be created.
      */
     public async init(context: Context): Promise<void> {
         if (_.isUndefined(context.cliConfig.pluginManagerConfig)) {
@@ -143,10 +146,11 @@ export class PluginRegistryService implements Service, PluginRegistry {
         try {
             fs.accessSync(this.pluginLocation!, fs.constants.F_OK);
         } catch (err) {
-            if (customLocation) {
-                throw new Error(`pluginLocation: ${this.pluginLocation} doesn't exist or not visible!`);
-            } else {
-                this.log(`pluginLocation: ${this.pluginLocation} doesn't exist or not visible - ignoring`);
+            this.log(`pluginLocation: ${this.pluginLocation} doesn't exist - creating it`);
+            try {
+                fs.mkdirSync(this.pluginLocation!);
+            } catch (err2) {
+                throw new Error(`Unable to create folder for pluginLocation: ${this.pluginLocation} : ${err.message}`);
             }
         }
 
