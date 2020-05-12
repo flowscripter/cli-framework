@@ -291,14 +291,14 @@ export default class DefaultRunner implements Runner {
 
             // get config for command in current clause and use when parsing clause
             const config = context.commandConfigs.get(modifierClause.command.name);
-            const parseResult = this.parser.parseCommandClause(modifierClause, config);
+            const modifierParseResult = this.parser.parseCommandClause(modifierClause, config);
 
             // fast fail on a parse error
-            if (parseResult.invalidArgs.length > 0) {
-                DefaultRunner.printParseResultError(printer, parseResult);
+            if (modifierParseResult.invalidArgs.length > 0) {
+                DefaultRunner.printParseResultError(printer, modifierParseResult);
                 return RunResult.ParseError;
             }
-            const { unusedArgs } = parseResult;
+            const { unusedArgs } = modifierParseResult;
 
             // if no command found yet, and a default is specified, store as potential default clause
             if ((nonModifierClauses.length === 0) && defaultCommand) {
@@ -311,14 +311,14 @@ export default class DefaultRunner implements Runner {
             }
 
             // run the successfully parsed global modifier
-            const { command, commandArgs } = parseResult;
-            const message = DefaultRunner.getCommandString(printer, command, commandArgs);
-            this.log(`Running ${message}`);
+            const { command: modifierCommand, commandArgs: modifierCommandArgs } = modifierParseResult;
+            const modifierMessage = DefaultRunner.getCommandString(printer, modifierCommand, modifierCommandArgs);
+            this.log(`Running ${modifierMessage}`);
             try {
                 // eslint-disable-next-line no-await-in-loop
-                await command.run(commandArgs, context);
+                await modifierCommand.run(modifierCommandArgs, context);
             } catch (err) {
-                printer.error(`Error running ${message}: ${printer.red(err.message)}\n`, Icon.FAILURE);
+                printer.error(`Error running ${modifierMessage}: ${printer.red(err.message)}\n`, Icon.FAILURE);
                 return RunResult.CommandError;
             }
         }
