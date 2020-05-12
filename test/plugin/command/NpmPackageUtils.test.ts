@@ -18,27 +18,27 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 const packumentE = {
     name: 'e',
     'dist-tags': {
-        latest: '5'
+        latest: '5.0.0'
     },
     versions: {
-        5: {
+        '5.0.0': {
             name: 'e',
-            version: '5',
+            version: '5.0.0',
             dependencies: {
-                f: '6'
+                f: '6.0.0'
             },
             dist: {
-                tarball: 'registry/e/e-5.tgz'
+                tarball: 'registry/e/e-5.0.0.tgz'
             }
         },
-        4: {
+        '4.0.0': {
             name: 'e',
-            version: '4',
+            version: '4.0.0',
             dependencies: {
-                f: '5'
+                f: '5.0.0'
             },
             dist: {
-                tarball: 'registry/e/e-4.tgz'
+                tarball: 'registry/e/e-4.0.0.tgz'
             }
         }
     }
@@ -47,14 +47,14 @@ const packumentE = {
 const packumentF = {
     name: 'f',
     'dist-tags': {
-        latest: '6'
+        latest: '6.0.0'
     },
     versions: {
-        6: {
+        '6.0.0': {
             name: 'f',
-            version: '6',
+            version: '6.0.0',
             dist: {
-                tarball: 'registry/f/f-6.tgz'
+                tarball: 'registry/f/f-6.0.0.tgz'
             }
         }
     }
@@ -63,14 +63,14 @@ const packumentF = {
 const packumentZ = {
     name: 'z',
     'dist-tags': {
-        next: '6'
+        next: '6.0.0'
     },
     versions: {
-        6: {
+        '6.0.0': {
             name: 'z',
-            version: '6',
+            version: '6.0.0',
             dist: {
-                tarball: 'registry/z/z-6.tgz'
+                tarball: 'registry/z/z-6.0.0.tgz'
             }
         }
     }
@@ -84,40 +84,40 @@ describe('NpmPackageUtils test', () => {
                 a: {
                     'package.json': JSON.stringify({
                         name: 'a',
-                        version: '1',
+                        version: '1.0.0',
                         dependencies: {
-                            c: '3'
+                            c: '3.0.0'
                         }
                     })
                 },
                 b: {
                     'package.json': JSON.stringify({
                         name: 'b',
-                        version: '2',
+                        version: '2.0.0',
                         dependencies: {
-                            c: '3'
+                            c: '3.0.0'
                         }
                     })
                 },
                 c: {
                     'package.json': JSON.stringify({
                         name: 'c',
-                        version: '3'
+                        version: '3.0.0'
                     })
                 },
                 h: {
                     'package.json': JSON.stringify({
                         name: 'h',
-                        version: '8',
+                        version: '8.0.0',
                         dependencies: {
-                            i: '9'
+                            i: '9.0.0'
                         }
                     })
                 },
                 i: {
                     'package.json': JSON.stringify({
                         name: 'i',
-                        version: '9'
+                        version: '9.0.0'
                     })
                 },
                 z: 'foo'
@@ -126,9 +126,9 @@ describe('NpmPackageUtils test', () => {
                 a: {
                     'package.json': JSON.stringify({
                         name: 'e',
-                        version: '5',
+                        version: '5.0.0',
                         dependencies: {
-                            f: '6'
+                            f: '6.0.0'
                         }
                     })
                 },
@@ -143,60 +143,72 @@ describe('NpmPackageUtils test', () => {
     test('getAllInstalledPackages', async () => {
         const installed = await getAllInstalledPackages('/location');
         expect(installed).toEqual([
-            { name: 'a', version: '1' },
-            { name: 'b', version: '2' },
-            { name: 'c', version: '3' },
-            { name: 'h', version: '8' },
-            { name: 'i', version: '9' }
+            { name: 'a', version: '1.0.0' },
+            { name: 'b', version: '2.0.0' },
+            { name: 'c', version: '3.0.0' },
+            { name: 'h', version: '8.0.0' },
+            { name: 'i', version: '9.0.0' }
         ]);
     });
 
     test('getInstalledTopLevelPackages', async () => {
         const installed = await getInstalledTopLevelPackages('/location');
         expect(installed).toEqual([
-            { name: 'a', version: '1' },
-            { name: 'b', version: '2' },
-            { name: 'h', version: '8' }
+            { name: 'a', version: '1.0.0' },
+            { name: 'b', version: '2.0.0' },
+            { name: 'h', version: '8.0.0' }
         ]);
     });
 
     test('getInstalledDependencies', async () => {
         const installed = await getInstalledDependencies('/location', [
-            { name: 'a', version: '1' },
-            { name: 'h', version: '8' }
+            { name: 'a', version: '1.0.0' },
+            { name: 'h', version: '8.0.0' }
         ]);
         expect(installed).toEqual([
-            { name: 'a', version: '1' },
-            { name: 'c', version: '3' },
-            { name: 'h', version: '8' },
-            { name: 'i', version: '9' }
+            { name: 'a', version: '1.0.0' },
+            { name: 'c', version: '3.0.0' },
+            { name: 'h', version: '8.0.0' },
+            { name: 'i', version: '9.0.0' }
         ]);
     });
 
     test('packageDependencyGenerator success', async () => {
 
-        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: JSON.stringify(packumentE) }));
-        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: JSON.stringify(packumentF) }));
+        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: packumentE }));
+        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: packumentF }));
 
-        let dependencies = await getDependencies('registry', { name: 'e', version: '5' });
+        let dependencies = await getDependencies('registry', { name: 'e', version: '5.0.0' });
         expect(dependencies).toEqual([
-            { name: 'e', version: '5', tarballUri: 'registry/e/e-5.tgz' },
-            { name: 'f', version: '6', tarballUri: 'registry/f/f-6.tgz' }
+            { name: 'e', version: '5.0.0', tarballUri: 'registry/e/e-5.0.0.tgz' },
+            { name: 'f', version: '6.0.0', tarballUri: 'registry/f/f-6.0.0.tgz' }
         ]);
 
-        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: JSON.stringify(packumentE) }));
-        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: JSON.stringify(packumentF) }));
+        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: packumentE }));
+        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: packumentF }));
 
         dependencies = await getDependencies('registry', { name: 'e' });
         expect(dependencies).toEqual([
-            { name: 'e', version: '5', tarballUri: 'registry/e/e-5.tgz' },
-            { name: 'f', version: '6', tarballUri: 'registry/f/f-6.tgz' }
+            { name: 'e', version: '5.0.0', tarballUri: 'registry/e/e-5.0.0.tgz' },
+            { name: 'f', version: '6.0.0', tarballUri: 'registry/f/f-6.0.0.tgz' }
+        ]);
+    });
+
+    test('packageDependencyGenerator with semver success', async () => {
+
+        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: packumentE }));
+        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: packumentF }));
+
+        const dependencies = await getDependencies('registry', { name: 'e', version: '^5.0.0' });
+        expect(dependencies).toEqual([
+            { name: 'e', version: '5.0.0', tarballUri: 'registry/e/e-5.0.0.tgz' },
+            { name: 'f', version: '6.0.0', tarballUri: 'registry/f/f-6.0.0.tgz' }
         ]);
     });
 
     test('packageDependencyGenerator failure if no dist-tag latest when version unspecified', async () => {
 
-        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: JSON.stringify(packumentZ) }));
+        mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: packumentZ }));
         await expect(getDependencies('registry', { name: 'g' })).rejects.toThrowError();
     });
 
@@ -204,7 +216,7 @@ describe('NpmPackageUtils test', () => {
         mockedAxios.get.mockImplementationOnce(() => Promise.resolve({ data: tar.pack('/e') }));
 
         await expect(fs.access('/location/e', constants.F_OK)).rejects.toThrowError();
-        await installPackage('/location', { name: 'e', version: '5', tarballUri: 'registry/e/e-5.tgz' });
+        await installPackage('/location', { name: 'e', version: '5.0.0', tarballUri: 'registry/e/e-5.0.0.tgz' });
         await fs.access('/location/e', constants.F_OK);
     });
 
@@ -214,12 +226,12 @@ describe('NpmPackageUtils test', () => {
         await fs.mkdir('/location/e');
         await fs.access('/location/e', constants.F_OK);
         await expect(installPackage('/location',
-            { name: 'e', version: '5', tarballUri: 'registry/e/e-5.tgz' })).rejects.toThrowError();
+            { name: 'e', version: '5.0.0', tarballUri: 'registry/e/e-5.0.0.tgz' })).rejects.toThrowError();
     });
 
     test('uninstallPackage success', async () => {
         await fs.access('/location/a', constants.F_OK);
-        await uninstallPackage('/location', { name: 'a', version: '1' });
+        await uninstallPackage('/location', { name: 'a', version: '1.0.0' });
         await expect(fs.access('/location/a', constants.F_OK)).rejects.toThrowError();
     });
 
@@ -229,11 +241,11 @@ describe('NpmPackageUtils test', () => {
     });
 
     test('uninstallPackage failure if file not folder exists', async () => {
-        await expect(uninstallPackage('/location', { name: 'z', version: '1' })).rejects.toThrowError();
+        await expect(uninstallPackage('/location', { name: 'z', version: '1.0.0' })).rejects.toThrowError();
     });
 
     test('uninstallPackage failure if no package.json exists', async () => {
         await fs.unlink('/location/a/package.json');
-        await expect(uninstallPackage('/location', { name: 'a', version: '1' })).rejects.toThrowError();
+        await expect(uninstallPackage('/location', { name: 'a', version: '1.0.0' })).rejects.toThrowError();
     });
 });
