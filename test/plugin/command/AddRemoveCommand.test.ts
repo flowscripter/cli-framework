@@ -162,6 +162,7 @@ describe('AddRemoveCommand test', () => {
         const context = getContext(cliConfig, [stderrService, pluginRegistryService], [], new Map(), configMap);
 
         await pluginRegistryService.init(context);
+        await stderrService.init(context);
 
         await removeCommand.run({ name: 'd' }, context);
         expect(mockedUninstallPackage).toBeCalledTimes(1);
