@@ -49,6 +49,9 @@ describe('PluginRegistryService test', () => {
     });
 
     test('PluginRegistry init works with default location', async () => {
+        mockFs({
+            '/plugins': {}
+        });
         const pluginRegistry = new PluginRegistryService(100);
         const context: Context = getContext(getCliConfig({
             pluginManager: NodePluginManager,
@@ -58,6 +61,9 @@ describe('PluginRegistryService test', () => {
     });
 
     test('PluginRegistry init works with default module scope', async () => {
+        mockFs({
+            '/plugins': {}
+        });
         const pluginRegistry = new PluginRegistryService(100);
         const context: Context = getContext(getCliConfig({
             pluginManager: NodePluginManager,
@@ -147,14 +153,6 @@ describe('PluginRegistryService test', () => {
             pluginLocation: '/plugins2'
         });
         const context: Context = getContext(cliConfig, [], [], serviceConfigs);
-
-        mockFs({
-            '/plugins': {
-                hello: 'world'
-            }
-        });
-
-        await expect(pluginRegistry.init(context)).rejects.toThrowError();
 
         mockFs({
             '/plugins2': 'hello'

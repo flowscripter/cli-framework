@@ -9,6 +9,7 @@ import { promises as fs, constants } from 'fs';
 import path from 'path';
 import debug from 'debug';
 import axios from 'axios';
+import { maxSatisfying, coerce } from 'semver';
 import tar from 'tar-fs';
 import util from 'util';
 import gunzip from 'gunzip-maybe';
@@ -44,12 +45,15 @@ export interface PackageSpec {
 
 async function getPackument(remoteModuleRegistry: string, packageSpec: PackageSpec): Promise<any> {
     try {
-        const response = await axios.get(`${remoteModuleRegistry}/${packageSpec.name}`, {
+        const uri = `${remoteModuleRegistry}/${packageSpec.name}`;
+        log(`Packument URI: ${uri}`);
+        const response = await axios.get(uri, {
             headers: {
                 Accept: 'application/vnd.npm.install-v1+json'
             }
         });
-        return JSON.parse(response.data);
+        log(`Packument: ${JSON.stringify(response.data)}`);
+        return response.data;
     } catch (err) {
         throw new Error(`Error while attempting to retrieve packument for ${packageSpec.name} => ${err}`);
     }
@@ -77,13 +81,25 @@ async function extract(packageLocation: string, packageSpec: PackageSpec): Promi
         });
         const source = response.data;
         const process = gunzip();
-        const sink = tar.extract(packageFolder);
+        const sink = tar.extract(packageFolder, {
+            map: (header) => {
+                // eslint-disable-next-line no-param-reassign
+                header.name = header.name.replace(/^(package\/)/, '');
+                return header;
+            }
+        });
         await pipelinePromise(
             source,
             process,
             sink
         );
     } catch (err) {
+        try {
+            await fs.rmdir(packageFolder, { recursive: true });
+        } catch (err2) {
+            throw new Error(`Ignoring error while removing ${
+                packageFolder} as part of failure rollback => ${err} => ${err2}`);
+        }
         throw new Error(`Error while attempting to extract tarball for ${packageSpec.name} => ${err}`);
     }
 }
@@ -248,55 +264,66 @@ export async function getDependencies(remoteModuleRegistry: string, packageSpec:
         });
     }
     unresolvedSpecStrings.push(specString);
+    log(`Pending to resolve: ${specString}`);
 
     // continue looping through unresolved specs until we stop adding them
-    for (let i = 0; i < unresolvedSpecStrings.length; i += 1) {
+    for (let i = 0; i < unresolvedSpecs.length; i += 1) {
 
-        let currentSpecString = unresolvedSpecStrings[i];
+        const currentSpecString = unresolvedSpecStrings[i];
         const currentSpec = unresolvedSpecs[i];
 
         // eslint-disable-next-line no-await-in-loop
         const packument = await getPackument(remoteModuleRegistry, currentSpec);
 
-        let currentVersion = currentSpec.version;
-        if (_.isUndefined(currentVersion)) {
+        if (_.isUndefined(currentSpec.version)) {
             throw new Error(`Version not specified for package: ${currentSpec.name}`);
         }
         // NOTE: only dist-tag supported is latest
-        if (currentVersion === 'latest') {
+        if (currentSpec.version === 'latest') {
             if (_.isUndefined(packument['dist-tags']) || (_.isEmpty(packument['dist-tags']))) {
                 throw new Error(`No dist-tags when looking for latest version of package: ${currentSpec.name}`);
             }
             if (_.isUndefined(packument['dist-tags'].latest)) {
                 throw new Error(`No latest dist-tags when looking for latest version of package: ${currentSpec.name}`);
             }
-            currentVersion = packument['dist-tags'].latest;
-            currentSpec.version = currentVersion;
-            currentSpecString = `${currentSpec.name}@${currentSpec.version}`;
+            // currentVersion = ;
+            currentSpec.version = packument['dist-tags'].latest;
         }
 
-        if (_.isUndefined(currentVersion)) {
-            throw new Error(`Version not resolved for package: ${currentSpec.name}`);
+        if (_.isUndefined(currentSpec.version)) {
+            throw new Error(`Version not specified for package: ${currentSpec.name}`);
         }
+        const requiredVersion = coerce(currentSpec.version);
+        if (_.isNull(requiredVersion)) {
+            throw new Error(`Version not valid semantic version for package: ${currentSpec.name}`);
+        }
+        const installVersion = maxSatisfying(
+            Object.keys(packument.versions), requiredVersion.raw, { loose: true }
+        );
+        if (_.isNull(installVersion)) {
+            throw new Error(`Version not resolvable for package: ${currentSpec.name}@${currentSpec.version}`);
+        }
+        currentSpec.version = installVersion;
+
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        currentSpec.tarballUri = packument.versions![currentVersion]!.dist!.tarball;
+        currentSpec.tarballUri = packument.versions[currentSpec.version]!.dist!.tarball;
 
         if (!resolvedSpecStrings.includes(currentSpecString)) {
             resolvedSpecStrings.push(currentSpecString);
             resolvedSpecs.push(currentSpec);
         }
 
-        const manifest = packument.versions[currentVersion];
+        const manifest = packument.versions[currentSpec.version];
 
         // add any further specs we need to resolve
         if (!_.isEmpty(manifest.dependencies)) {
             // NOTE: only one level of dependencies supported
-            // NOTE: no support for version ranges
             Object.entries(manifest.dependencies).forEach(([name, version]) => {
                 const newDependencySpecString = `${name}@${version}`;
                 if (!unresolvedSpecStrings.includes(newDependencySpecString)
                     && !resolvedSpecStrings.includes(newDependencySpecString)) {
                     unresolvedSpecStrings.push(newDependencySpecString);
+                    log(`Pending to resolve: ${newDependencySpecString}`);
                     unresolvedSpecs.push({
                         name,
                         version: version as string

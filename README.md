@@ -410,14 +410,15 @@ The `PluginRegistryService` is responsible for instantiating a [@flowscripter/es
 The `PluginCommand` is a group command providing `AddCommand` and `RemoveCommand`. These implement a VERY BASIC
 NPM functionality to demonstrate the ability to add and remove plugins:
 
-* No support is provided for multiple versions!
-* All packages are installed at the top level!
 * Differing package versions for dependencies are not supported!
+* All packages are installed at the top level (no sub-folder installations to handle multiple versions of dependencies)!
 * Installed packages are assumed to always be in a valid state and to have not been modified manually
 or by another process!
-* Versions in specs are expected to be explicit and not use ranges!
-* Dist-tags are not supported!
+* Dist-tag support is limited to `latest`!
 * Package checksums are not verified!
+* git tarball URIs are not supported!
+
+**NOTE:** If this basic implementation doesn't suffice you can always use `npm` or `yarn` to install plugin modules.
 
 ## Node CLI
 The `BaseCLI` implementation ensures that the core commands and services are available to the CLI. It expects to be

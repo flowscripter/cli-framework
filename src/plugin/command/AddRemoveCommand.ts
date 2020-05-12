@@ -10,13 +10,13 @@ import Context from '../../api/Context';
 import SubCommand from '../../api/SubCommand';
 import Positional from '../../api/Positional';
 import Option from '../../api/Option';
-import Printer, { STDERR_PRINTER_SERVICE } from '../../core/service/PrinterService';
+import Printer, { Icon, STDERR_PRINTER_SERVICE } from '../../core/service/PrinterService';
 import PluginRegistry, { PLUGIN_REGISTRY_SERVICE } from '../service/PluginRegistryService';
 import {
     getAllInstalledPackages,
-    getInstalledTopLevelPackages,
     getDependencies,
     getInstalledDependencies,
+    getInstalledTopLevelPackages,
     installPackage,
     uninstallPackage
 } from './NpmPackageUtils';
@@ -139,6 +139,10 @@ export class AddCommand extends AbstractPluginCommand implements SubCommand {
                 } else {
                     // install package
                     await installPackage(packageLocation, currentPackageSpec);
+
+                    this.printer!.info(`${
+                        this.printer!.gray('Installed:')} ${
+                        currentPackageSpec.name}@${currentPackageSpec.version}`, Icon.SUCCESS);
 
                     // add installed package to installed list
                     installedPackageSpecs.push(currentPackageSpec);
