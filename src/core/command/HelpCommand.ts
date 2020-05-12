@@ -338,7 +338,7 @@ class CommonHelpCommand {
         }
         groupCommands.forEach((groupCommand) => {
             const topicSection: HelpSection = {
-                title: `${groupCommand.name.charAt(0).toUpperCase() + groupCommand.name.slice(1)} commands:`,
+                title: `${groupCommand.name.charAt(0).toUpperCase() + groupCommand.name.slice(1)} Commands`,
                 entries: []
             };
             groupCommand.memberSubCommands.forEach((memberCommand) => {
