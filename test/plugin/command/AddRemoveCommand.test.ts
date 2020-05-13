@@ -10,10 +10,8 @@ import { CommandArgs } from '../../../src';
 import { StderrPrinterService } from '../../../src/core/service/PrinterService';
 import { PluginRegistryService } from '../../../src/plugin/service/PluginRegistryService';
 import {
-    getAllInstalledPackages,
-    getInstalledTopLevelPackages,
-    getDependencies,
-    getInstalledDependencies,
+    getInstalledPackages,
+    resolvePackageSpec,
     installPackage,
     uninstallPackage,
     PackageSpec
@@ -21,10 +19,8 @@ import {
 
 jest.mock('../../../src/plugin/command/NpmPackageUtils');
 
-const mockedGetAllInstalledPackages = getAllInstalledPackages as jest.Mock<Promise<PackageSpec[]>>;
-const mockedGetInstalledTopLevelPackages = getInstalledTopLevelPackages as jest.Mock<Promise<PackageSpec[]>>;
-const mockedGetDependencies = getDependencies as jest.Mock<Promise<PackageSpec[]>>;
-const mockedGetInstalledDependencies = getInstalledDependencies as jest.Mock<Promise<PackageSpec[]>>;
+const mockedGetInstalledPackages = getInstalledPackages as jest.Mock<Promise<PackageSpec[]>>;
+const mockedResolvePackageSpec = resolvePackageSpec as jest.Mock<Promise<PackageSpec>>;
 const mockedInstallPackage = installPackage as jest.Mock<Promise<void>>;
 const mockedUninstallPackage = uninstallPackage as jest.Mock<Promise<void>>;
 
@@ -33,75 +29,33 @@ const mockStderr = mockProcessStderr();
 
 describe('AddRemoveCommand test', () => {
 
+    function clearMocks(): void {
+        mockedGetInstalledPackages.mockClear();
+        mockedResolvePackageSpec.mockClear();
+        mockedInstallPackage.mockClear();
+        mockedUninstallPackage.mockClear();
+    }
+
     beforeAll(() => {
-        expect(mockedGetDependencies).toBeDefined();
-        mockedGetAllInstalledPackages.mockImplementation(async (): Promise<PackageSpec[]> => [
-            { name: 'a', version: '1.0.0' },
-            { name: 'b', version: '2.0.0' },
-            { name: 'c', version: '3.0.0' },
-            { name: 'h', version: '8.0.0' },
-            { name: 'i', version: '9.0.0' }
+        mockedGetInstalledPackages.mockImplementation(async (): Promise<PackageSpec[]> => [
+            { name: '@foo/c', version: '1.0.0' },
+            { name: 'd', version: '2.0.0' }
         ]);
-        mockedGetInstalledTopLevelPackages.mockImplementation(async (): Promise<PackageSpec[]> => [
-            { name: 'a', version: '1.0.0' },
-            { name: 'b', version: '2.0.0' },
-            { name: 'h', version: '8.0.0' }
-        ]);
-        mockedGetDependencies.mockImplementation((remoteModuleRegistry: string, packageSpec: PackageSpec):
-        Promise<PackageSpec[]> => {
-            if (packageSpec.name === 'a') {
-                return Promise.resolve([
-                    { name: 'a', version: '1.0.0', tarballUri: 'registry/a/a-1.0.0.tgz' },
-                    { name: 'c', version: '3.0.0', tarballUri: 'registry/c/c-3.0.0.tgz' }
-                ]);
+        mockedResolvePackageSpec.mockImplementation((remoteModuleRegistry: string, packageSpec: PackageSpec):
+        Promise<PackageSpec> => {
+            if (packageSpec.name === '@foo/a') {
+                return Promise.resolve({ name: '@foo/a', version: '1.0.0', tarballUri: 'registry/@foo/a/a-1.0.0.tgz' });
             }
             if (packageSpec.name === 'b') {
-                return Promise.resolve([
-                    { name: 'b', version: '2.0.0', tarballUri: 'registry/b/b-2.0.0.tgz' },
-                    { name: 'c', version: '3.0.0', tarballUri: 'registry/c/c-3.0.0.tgz' }
-                ]);
+                return Promise.resolve({ name: 'b', version: '2.0.0', tarballUri: 'registry/b/b-2.0.0.tgz' });
+            }
+            if (packageSpec.name === '@foo/c') {
+                return Promise.resolve({ name: '@foo/c', version: '1.0.0', tarballUri: 'registry/@foo/c/c-1.0.0.tgz' });
             }
             if (packageSpec.name === 'd') {
-                return Promise.resolve([
-                    { name: 'd', version: '4.0.0', tarballUri: 'registry/d/d-4.0.0.tgz' },
-                    { name: 'c', version: '3.0.0', tarballUri: 'registry/c/c-3.0.0.tgz' }
-                ]);
+                return Promise.resolve({ name: 'd', version: '2.0.0', tarballUri: 'registry/d/d-2.0.0.tgz' });
             }
-            if (packageSpec.name === 'e') {
-                return Promise.resolve([
-                    { name: 'e', version: '5.0.0', tarballUri: 'registry/e/e-5.0.0.tgz' },
-                    { name: 'f', version: '6.0.0', tarballUri: 'registry/f/f-6.0.0.tgz' }
-                ]);
-            }
-            if (packageSpec.name === 'g') {
-                return Promise.resolve([
-                    { name: 'g', version: '7.0.0', tarballUri: 'registry/g/g-7.0.0.tgz' },
-                    { name: 'c', version: '4.0.0', tarballUri: 'registry/c/c-4.0.0.tgz' }
-                ]);
-            }
-            if (packageSpec.name === 'h') {
-                return Promise.resolve([
-                    { name: 'h', version: '8.0.0', tarballUri: 'registry/h/h-8.0.0.tgz' },
-                    { name: 'i', version: '9.0.0', tarballUri: 'registry/i/i-9.0.0.tgz' }
-                ]);
-            }
-            return Promise.resolve([]);
-        });
-        mockedGetInstalledDependencies.mockImplementation(async (packageLocation: string,
-            packageSpecs: PackageSpec[]): Promise<PackageSpec[]> => {
-            if (packageSpecs.find((packageSpec) => packageSpec.name === 'a' && packageSpec.version === '1.0.0')) {
-                return [
-                    { name: 'a', version: '1.0.0' },
-                    { name: 'c', version: '3.0.0' }
-                ];
-            }
-            if (packageSpecs.find((packageSpec) => packageSpec.name === 'b' && packageSpec.version === '2.0.0')) {
-                return [
-                    { name: 'b', version: '2.0.0' },
-                    { name: 'c', version: '3.0.0' }
-                ];
-            }
-            return [];
+            throw new Error();
         });
         mockedInstallPackage.mockImplementation(async (): Promise<void> => {});
         mockedUninstallPackage.mockImplementation(async (): Promise<void> => {});
@@ -111,15 +65,6 @@ describe('AddRemoveCommand test', () => {
         mockStdout.mockRestore();
         mockStderr.mockRestore();
     });
-
-    function clearMocks(): void {
-        mockedGetAllInstalledPackages.mockClear();
-        mockedGetInstalledTopLevelPackages.mockClear();
-        mockedGetDependencies.mockClear();
-        mockedGetInstalledDependencies.mockClear();
-        mockedInstallPackage.mockClear();
-        mockedUninstallPackage.mockClear();
-    }
 
     beforeEach(() => {
         mockStdout.mockReset();
@@ -180,22 +125,19 @@ describe('AddRemoveCommand test', () => {
         await pluginRegistryService.init(context);
         await stderrService.init(context);
 
+        await addCommand.run({ name: 'b' }, context);
+        expect(mockedInstallPackage).toBeCalledTimes(1);
+        expect(mockedInstallPackage).toHaveBeenCalledWith('/plugins',
+            { name: 'b', version: '2.0.0', tarballUri: 'registry/b/b-2.0.0.tgz' });
+
+        await addCommand.run({ name: '@foo/a' }, context);
+        expect(mockedInstallPackage).toBeCalledTimes(2);
+        expect(mockedInstallPackage).toHaveBeenCalledWith('/plugins',
+            { name: '@foo/a', version: '1.0.0', tarballUri: 'registry/@foo/a/a-1.0.0.tgz' });
+
         await addCommand.run({ name: 'd' }, context);
-        expect(mockedInstallPackage).toHaveBeenCalledWith('/plugins',
-            { name: 'd', version: '4.0.0', tarballUri: 'registry/d/d-4.0.0.tgz' });
-
-        clearMocks();
-
-        await addCommand.run({ name: 'e' }, context);
-        expect(mockedInstallPackage).toHaveBeenCalledWith('/plugins',
-            { name: 'e', version: '5.0.0', tarballUri: 'registry/e/e-5.0.0.tgz' });
-        expect(mockedInstallPackage).toHaveBeenCalledWith('/plugins',
-            { name: 'f', version: '6.0.0', tarballUri: 'registry/f/f-6.0.0.tgz' });
-
-        clearMocks();
-
-        // This should throw an error as NpmPackageUtils doesn't support multiple package versions i.e. == lame.
-        await expect(addCommand.run({ name: 'g' }, context)).rejects.toThrowError();
+        // should not have been called again as d was already installed
+        expect(mockedInstallPackage).toBeCalledTimes(2);
     });
 
     test('Remove command invokes expected package functions', async () => {
@@ -220,11 +162,20 @@ describe('AddRemoveCommand test', () => {
         const context = getContext(cliConfig, [stderrService, pluginRegistryService], [], new Map(), configMap);
 
         await pluginRegistryService.init(context);
+        await stderrService.init(context);
 
-        await removeCommand.run({ name: 'h' }, context);
+        await removeCommand.run({ name: 'd' }, context);
+        expect(mockedUninstallPackage).toBeCalledTimes(1);
         expect(mockedUninstallPackage).toHaveBeenCalledWith('/plugins',
-            { name: 'h', tarballUri: 'registry/h/h-8.0.0.tgz', version: '8.0.0' });
+            { name: 'd', version: '2.0.0' });
+
+        await removeCommand.run({ name: '@foo/c' }, context);
+        expect(mockedUninstallPackage).toBeCalledTimes(2);
         expect(mockedUninstallPackage).toHaveBeenCalledWith('/plugins',
-            { name: 'i', tarballUri: 'registry/i/i-9.0.0.tgz', version: '9.0.0' });
+            { name: '@foo/c', version: '1.0.0' });
+
+        await removeCommand.run({ name: 'b' }, context);
+        // should not have been called again as b wasn't installed
+        expect(mockedUninstallPackage).toBeCalledTimes(2);
     });
 });

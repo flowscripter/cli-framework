@@ -243,7 +243,8 @@ export class PluginRegistryService implements Service, PluginRegistry {
         let i = 0;
         for await (const serviceFactory of this.makeServiceFactoryIterator(this.pluginManager)) {
             const services = Array.from(serviceFactory.getServices());
-            for (const service of services.sort((a, b) => (a.initPriority >= b.initPriority ? 1 : 0))) {
+            services.sort((a, b) => (a.initPriority >= b.initPriority ? 1 : 0));
+            for (const service of services) {
 
                 // add to the service registry
                 context.serviceRegistry.addService(service);
