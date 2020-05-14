@@ -4,7 +4,7 @@ import _ from 'lodash';
 import leven from 'leven';
 import { CommandArgs } from '../../api/Command';
 import Context from '../../api/Context';
-import Printer, { Icon, STDOUT_PRINTER_SERVICE } from '../service/PrinterService';
+import Printer, { Icon, STDOUT_PRINTER_SERVICE, STDERR_PRINTER_SERVICE } from '../service/PrinterService';
 import SubCommand from '../../api/SubCommand';
 import GlobalCommand from '../../api/GlobalCommand';
 import Option from '../../api/Option';
@@ -485,16 +485,20 @@ class CommonHelpCommand {
     }
 
     /**
-     * Prints usage help for specified command. Expects an implementation of [[Printer]] registered with the
-     * [[STDOUT_PRINTER_SERVICE]] ID in the provided [[Context]].
+     * Prints usage help for specified command. Expects implementation of [[Printer]] registered with the
+     * [[STDOUT_PRINTER_SERVICE]] and [[STDERR_PRINTER_SERVICE]] ID in the provided [[Context]].
      *
      * @param context the [[Context]] in which to run.
      * @param commandName name of the command for which to show help.
      */
     public printUsageHelp(context: Context, commandName: string): void {
-        const printer = context.serviceRegistry.getServiceById(STDOUT_PRINTER_SERVICE) as unknown as Printer;
-        if (!printer) {
+        const stdoutPrinter = context.serviceRegistry.getServiceById(STDOUT_PRINTER_SERVICE) as unknown as Printer;
+        if (!stdoutPrinter) {
             throw new Error('STDOUT_PRINTER_SERVICE not available in context');
+        }
+        const stderrPrinter = context.serviceRegistry.getServiceById(STDERR_PRINTER_SERVICE) as unknown as Printer;
+        if (!stderrPrinter) {
+            throw new Error('STDERR_PRINTER_SERVICE not available in context');
         }
 
         const groupCommands = Array.from(context.commandRegistry.getGroupCommands());
@@ -505,12 +509,12 @@ class CommonHelpCommand {
 
         if (_.isUndefined(subCommand)) {
 
-            printer.error(`Unknown command: ${printer.red(commandName)}\n`, Icon.FAILURE);
+            stderrPrinter.error(`Unknown command: ${stdoutPrinter.red(commandName)}\n`, Icon.FAILURE);
 
             // look for other possible matches
             const possibleCommandNames = this.findPossibleCommandNames(commandName, groupCommands, subCommands);
             if (!_.isEmpty(possibleCommandNames)) {
-                printer.info(`Possible matches: ${possibleCommandNames.join(', ')}\n`, Icon.INFORMATION);
+                stderrPrinter.info(`Possible matches: ${possibleCommandNames.join(', ')}\n`, Icon.INFORMATION);
             }
             this.printGenericHelp(context);
             return;
@@ -519,7 +523,7 @@ class CommonHelpCommand {
         // display command help
         const helpSections = this.getSpecificHelpSections(_.isUndefined(groupCommand)
             ? subCommand.name : `${groupCommand.name}:${subCommand.name}`, subCommand);
-        this.printSections(printer, helpSections);
+        this.printSections(stdoutPrinter, helpSections);
     }
 
     /**

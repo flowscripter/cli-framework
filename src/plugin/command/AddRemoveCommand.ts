@@ -10,7 +10,7 @@ import Context from '../../api/Context';
 import SubCommand from '../../api/SubCommand';
 import Positional from '../../api/Positional';
 import Option from '../../api/Option';
-import Printer, { Icon, STDERR_PRINTER_SERVICE } from '../../core/service/PrinterService';
+import Printer, { Icon, STDERR_PRINTER_SERVICE, STDOUT_PRINTER_SERVICE } from '../../core/service/PrinterService';
 import PluginRegistry, { PLUGIN_REGISTRY_SERVICE } from '../service/PluginRegistryService';
 import {
     getInstalledPackages,
@@ -24,7 +24,9 @@ export const REMOVE_COMMAND_NAME = 'remove';
 
 abstract class AbstractPluginCommand {
 
-    protected printer: Printer | undefined;
+    protected stderrPrinter: Printer | undefined;
+
+    protected stdoutPrinter: Printer | undefined;
 
     protected remoteModuleRegistry: string | undefined;
 
@@ -38,6 +40,8 @@ abstract class AbstractPluginCommand {
      * `https://registry.npmjs.org/`
      * * an implementation of [[Printer]] service registered with the [[STDERR_PRINTER_SERVICE]] ID in the
      * provided [[Context]].
+     * * an implementation of [[Printer]] service registered with the [[STDOUT_PRINTER_SERVICE]] ID in the
+     * provided [[Context]].
      * * an implementation of [[PluginRegistry]] service registered with the [[PLUGIN_REGISTRY_SERVICE]] ID in the
      * provided [[Context]].
      */
@@ -47,17 +51,18 @@ abstract class AbstractPluginCommand {
         if (_.isUndefined(config)) {
             throw new Error(`No command config provided for command: ${name}!`);
         }
-
         this.remoteModuleRegistry = config.remoteModuleRegistry as string | undefined;
         if (_.isUndefined(this.remoteModuleRegistry) || !_.isString(this.remoteModuleRegistry)) {
             throw new Error('Missing "remoteModuleRegistry" configuration or it is not a string!');
         }
-
-        this.printer = context.serviceRegistry.getServiceById(STDERR_PRINTER_SERVICE) as unknown as Printer;
-        if (!this.printer) {
+        this.stderrPrinter = context.serviceRegistry.getServiceById(STDERR_PRINTER_SERVICE) as unknown as Printer;
+        if (!this.stderrPrinter) {
             throw new Error('STDERR_PRINTER_SERVICE not available in context');
         }
-
+        this.stdoutPrinter = context.serviceRegistry.getServiceById(STDOUT_PRINTER_SERVICE) as unknown as Printer;
+        if (!this.stdoutPrinter) {
+            throw new Error('STDOUT_PRINTER_SERVICE not available in context');
+        }
         this.pluginRegistry = context.serviceRegistry.getServiceById(PLUGIN_REGISTRY_SERVICE) as unknown as
             PluginRegistry;
         if (!this.pluginRegistry) {
@@ -106,7 +111,7 @@ export class AddCommand extends AbstractPluginCommand implements SubCommand {
                 name = `${this.pluginRegistry!.moduleScope}/${name}`;
             }
 
-            this.printer!.showSpinner(`Adding: ${name}`);
+            this.stderrPrinter!.showSpinner(`Adding: ${name}`);
 
             const packageSpecToInstall = await resolvePackageSpec(this.remoteModuleRegistry!, { name, version });
 
@@ -122,18 +127,21 @@ export class AddCommand extends AbstractPluginCommand implements SubCommand {
                         packageSpecToInstall.name}@${packageSpecToInstall.version}, Installed: ${
                         found.name}@${found.version}`);
                 }
+                this.stdoutPrinter!.info(`${
+                    this.stdoutPrinter!.gray('Already added:')} ${
+                    packageSpecToInstall.name}@${packageSpecToInstall.version}\n`, Icon.SUCCESS);
                 return;
             }
             // install package
             await installPackage(packageLocation, packageSpecToInstall);
 
-            this.printer!.info(`${
-                this.printer!.gray('Added:')} ${
-                packageSpecToInstall.name}@${packageSpecToInstall.version}`, Icon.SUCCESS);
+            this.stdoutPrinter!.info(`${
+                this.stdoutPrinter!.gray('Added:')} ${
+                packageSpecToInstall.name}@${packageSpecToInstall.version}\n`, Icon.SUCCESS);
         } catch (err) {
             throw new Error(`Unable to add plugin ${commandArgs.name}: ${err.message}`);
         } finally {
-            this.printer!.hideSpinner();
+            this.stderrPrinter!.hideSpinner();
         }
     }
 }
@@ -171,7 +179,7 @@ export class RemoveCommand extends AbstractPluginCommand implements SubCommand {
                 name = `${this.pluginRegistry!.moduleScope}/${name}`;
             }
 
-            this.printer!.showSpinner(`Removing: ${name}`);
+            this.stderrPrinter!.showSpinner(`Removing: ${name}`);
 
             const packageLocation = this.pluginRegistry!.pluginLocation!;
 
@@ -189,11 +197,12 @@ export class RemoveCommand extends AbstractPluginCommand implements SubCommand {
             // uninstall package
             await uninstallPackage(packageLocation, found);
 
-            this.printer!.info(`${this.printer!.gray('Removed:')} ${found.name}@${found.version}`, Icon.SUCCESS);
+            this.stdoutPrinter!.info(`${this.stdoutPrinter!.gray('Removed:')} ${found.name}@${found.version}\n`,
+                Icon.SUCCESS);
         } catch (err) {
             throw new Error(`Unable to remove plugin ${commandArgs.name}: ${err.message}`);
         } finally {
-            this.printer!.hideSpinner();
+            this.stderrPrinter!.hideSpinner();
         }
     }
 }
