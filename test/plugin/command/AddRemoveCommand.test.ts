@@ -7,7 +7,7 @@ import { AddCommand, RemoveCommand } from '../../../src/plugin/command/AddRemove
 import { getContext } from '../../fixtures/Context';
 import { getCliConfig } from '../../fixtures/CLIConfig';
 import { CommandArgs } from '../../../src';
-import { StderrPrinterService } from '../../../src/core/service/PrinterService';
+import { StderrPrinterService, StdoutPrinterService } from '../../../src/core/service/PrinterService';
 import { PluginRegistryService } from '../../../src/plugin/service/PluginRegistryService';
 import {
     getInstalledPackages,
@@ -108,6 +108,7 @@ describe('AddRemoveCommand test', () => {
 
         const addCommand = new AddCommand();
         const stderrService = new StderrPrinterService(100);
+        const stdoutService = new StdoutPrinterService(100);
         const pluginRegistryService = new PluginRegistryService(90);
 
         const cliConfig = getCliConfig({
@@ -120,10 +121,12 @@ describe('AddRemoveCommand test', () => {
             remoteModuleRegistry: 'registry'
         });
 
-        const context = getContext(cliConfig, [stderrService, pluginRegistryService], [], new Map(), configMap);
+        const context = getContext(cliConfig, [stderrService, stdoutService, pluginRegistryService],
+            [], new Map(), configMap);
 
         await pluginRegistryService.init(context);
         await stderrService.init(context);
+        await stdoutService.init(context);
 
         await addCommand.run({ name: 'b' }, context);
         expect(mockedInstallPackage).toBeCalledTimes(1);
@@ -147,6 +150,7 @@ describe('AddRemoveCommand test', () => {
 
         const removeCommand = new RemoveCommand();
         const stderrService = new StderrPrinterService(100);
+        const stdoutService = new StdoutPrinterService(100);
         const pluginRegistryService = new PluginRegistryService(90);
 
         const cliConfig = getCliConfig({
@@ -159,10 +163,12 @@ describe('AddRemoveCommand test', () => {
             remoteModuleRegistry: 'registry'
         });
 
-        const context = getContext(cliConfig, [stderrService, pluginRegistryService], [], new Map(), configMap);
+        const context = getContext(cliConfig, [stderrService, stdoutService, pluginRegistryService],
+            [], new Map(), configMap);
 
         await pluginRegistryService.init(context);
         await stderrService.init(context);
+        await stdoutService.init(context);
 
         await removeCommand.run({ name: 'd' }, context);
         expect(mockedUninstallPackage).toBeCalledTimes(1);
