@@ -1,6 +1,7 @@
-import { mockProcessStdout } from 'jest-mock-process';
+// eslint-disable-next-line max-classes-per-file
+import { mockProcessStdout, mockProcessStderr } from 'jest-mock-process';
 import { HelpGlobalCommand, HelpSubCommand } from '../../../src/core/command/HelpCommand';
-import { StdoutPrinterService } from '../../../src/core/service/PrinterService';
+import { StdoutPrinterService, StderrPrinterService } from '../../../src/core/service/PrinterService';
 import { SubCommandA } from '../../fixtures/CommandFactoryA';
 import { getContext } from '../../fixtures/Context';
 import { getCliConfig } from '../../fixtures/CLIConfig';
@@ -9,6 +10,7 @@ import { CommandArgs } from '../../../src';
 import Context from '../../../src/api/Context';
 
 const mockStdout = mockProcessStdout();
+const mockStderr = mockProcessStderr();
 
 class OtherCommand1 implements SubCommand {
     readonly name = 'other1';
@@ -82,9 +84,11 @@ describe('HelpCommand test', () => {
         const help = new HelpGlobalCommand();
         const commandA = new SubCommandA();
         const stdoutService = new StdoutPrinterService(100);
+        const stderrService = new StderrPrinterService(100);
         stdoutService.colorEnabled = false;
-        const context = getContext(getCliConfig(), [stdoutService], [help, commandA]);
+        const context = getContext(getCliConfig(), [stdoutService, stderrService], [help, commandA]);
         stdoutService.init(context);
+        stderrService.init(context);
 
         await help.run({ command: 'command_a' }, context);
         expect(mockStdout).toHaveBeenCalledWith(expect.not.stringContaining('foo bar'));
@@ -97,9 +101,11 @@ describe('HelpCommand test', () => {
         const help = new HelpSubCommand();
         const commandA = new SubCommandA();
         const stdoutService = new StdoutPrinterService(100);
+        const stderrService = new StderrPrinterService(100);
         stdoutService.colorEnabled = false;
-        const context = getContext(getCliConfig(), [stdoutService], [help, commandA]);
+        const context = getContext(getCliConfig(), [stdoutService, stderrService], [help, commandA]);
         stdoutService.init(context);
+        stderrService.init(context);
 
         await help.run({ command: 'command_a' }, context);
         expect(mockStdout).toHaveBeenCalledWith(expect.not.stringContaining('foo bar'));
@@ -111,12 +117,14 @@ describe('HelpCommand test', () => {
     test('HelpGlobalCommand with unknown command specified error warning and generic help', async () => {
         const help = new HelpGlobalCommand();
         const stdoutService = new StdoutPrinterService(100);
+        const stderrService = new StderrPrinterService(100);
         stdoutService.colorEnabled = false;
-        const context = getContext(getCliConfig(), [stdoutService], [help]);
+        const context = getContext(getCliConfig(), [stdoutService, stderrService], [help]);
         stdoutService.init(context);
+        stderrService.init(context);
 
         await help.run({ command: 'hello' }, context);
-        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Unknown command: hello'));
+        expect(mockStderr).toHaveBeenCalledWith(expect.stringContaining('Unknown command: hello'));
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('foo bar'));
         expect(mockStdout).toHaveBeenCalledWith(expect.not.stringContaining('Usage'));
     });
@@ -124,12 +132,14 @@ describe('HelpCommand test', () => {
     test('HelpSubCommand with unknown command specified displays error and generic help', async () => {
         const help = new HelpSubCommand();
         const stdoutService = new StdoutPrinterService(100);
+        const stderrService = new StderrPrinterService(100);
         stdoutService.colorEnabled = false;
-        const context = getContext(getCliConfig(), [stdoutService], [help]);
+        const context = getContext(getCliConfig(), [stdoutService, stderrService], [help]);
         stdoutService.init(context);
+        stderrService.init(context);
 
         await help.run({ command: 'hello' }, context);
-        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Unknown command: hello'));
+        expect(mockStderr).toHaveBeenCalledWith(expect.stringContaining('Unknown command: hello'));
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('foo bar'));
         expect(mockStdout).toHaveBeenCalledWith(expect.not.stringContaining('Usage'));
     });
@@ -138,14 +148,16 @@ describe('HelpCommand test', () => {
         const help = new HelpSubCommand();
         const commandA = new SubCommandA();
         const stdoutService = new StdoutPrinterService(100);
+        const stderrService = new StderrPrinterService(100);
         stdoutService.colorEnabled = false;
-        const context = getContext(getCliConfig(), [stdoutService], [new OtherCommand1(), help,
-            commandA, new OtherCommand2()]);
+        const context = getContext(getCliConfig(), [stdoutService, stderrService], [
+            new OtherCommand1(), help, commandA, new OtherCommand2()]);
         stdoutService.init(context);
+        stderrService.init(context);
 
         await help.run({ command: 'command_b' }, context);
-        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Possible matches: command_a'));
-        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Unknown command: command_b'));
+        expect(mockStderr).toHaveBeenCalledWith(expect.stringContaining('Possible matches: command_a'));
+        expect(mockStderr).toHaveBeenCalledWith(expect.stringContaining('Unknown command: command_b'));
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('foo bar'));
         expect(mockStdout).toHaveBeenCalledWith(expect.not.stringContaining('Usage'));
     });
