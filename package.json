@@ -55,9 +55,9 @@
         "@types/gunzip-maybe": "1.4.0",
         "@types/jest": "25.2.3",
         "@types/js-yaml": "3.12.4",
-        "@types/lodash": "4.14.151",
+        "@types/lodash": "4.14.152",
         "@types/mock-fs": "4.10.0",
-        "@types/node": "13.13.7",
+        "@types/node": "13.13.8",
         "@types/prompts": "2.0.8",
         "@types/semver": "7.2.0",
         "@types/tar-fs": "2.0.0",
@@ -88,7 +88,7 @@
         "ts-jest": "26.0.0",
         "typedoc": "0.17.7",
         "typedoc-plugin-external-module-name": "3.1.0",
-        "typescript": "3.9.2"
+        "typescript": "3.9.3"
     },
     "dependencies": {
         "@flowscripter/esm-dynamic-plugins": "1.5.6",
