@@ -453,6 +453,8 @@ this framework.
 
 ## Development
 
+**NOTE**: End-to-end testing is only performed on MacOS and Linux (not Windows).
+
 Firstly:
 
 ```
