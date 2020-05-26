@@ -27,6 +27,6 @@ describe('VersionCommand test', () => {
         const versionCommand = new VersionCommand();
 
         await versionCommand.run({}, context);
-        expect(mockStdout).toHaveBeenLastCalledWith('1.2.3');
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('1.2.3'));
     });
 });
