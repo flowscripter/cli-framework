@@ -17,6 +17,11 @@ export const PROMPTER_SERVICE = '@flowscripter/cli-framework/prompter-service';
 export default interface Prompter {
 
     /**
+     * The Readable used for input. Can be used for direct input of binary data etc.
+     */
+    readable: Readable | undefined;
+
+    /**
      * Prompt the user to enter a boolean value.
      *
      * @param message the prompt for the user.
@@ -75,7 +80,14 @@ export class PrompterService implements Service, Prompter {
 
     private writable: Writable | undefined;
 
-    private readable: Readable | undefined;
+    protected readonlyReadable: Readable | undefined;
+
+    get readable(): Readable {
+        if (_.isUndefined(this.readonlyReadable)) {
+            throw new Error('readable is undefined, has init() been called?"');
+        }
+        return this.readonlyReadable;
+    }
 
     /**
      * Create a [[Prompter]] service.
@@ -104,7 +116,7 @@ export class PrompterService implements Service, Prompter {
             throw new Error('Provided context is missing property: "cliConfig.stdin: Readable"');
         }
         this.writable = context.cliConfig.stdout;
-        this.readable = context.cliConfig.stdin;
+        this.readonlyReadable = context.cliConfig.stdin;
     }
 
     /**
