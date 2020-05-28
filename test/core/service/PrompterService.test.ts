@@ -29,6 +29,33 @@ describe('PrompterService test', () => {
         expect(new PrompterService(1)).toBeInstanceOf(PrompterService);
     });
 
+    test('Error thrown for init requirements', async () => {
+        const ps = new PrompterService(100);
+
+        let context = getContext({
+            stdout: process.stdout
+        }, [ps], []);
+        expect(() => ps.init(context)).toThrowError();
+
+        context = getContext({
+            stdin: process.stdin
+        }, [ps], []);
+        expect(() => ps.init(context)).toThrowError();
+    });
+
+    test('Error thrown before init called', async () => {
+        const ps = new PrompterService(100);
+
+        await expect(() => ps.readable).toThrowError();
+
+        const context = getContext({
+            stdin: process.stdin,
+            stdout: process.stdout
+        }, [ps], []);
+        ps.init(context);
+        expect(ps.readable).not.toBeNull();
+    });
+
     test('Readable accessible', async () => {
         const ps = new PrompterService(100);
         const context = getContext({
