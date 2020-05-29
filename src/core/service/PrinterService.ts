@@ -44,7 +44,7 @@ export default interface Printer {
     colorEnabled: boolean;
 
     /**
-     * The Writable used for output. Can be used for directly outputting binary data etc.
+     * The Writable used for output. Can be used for direct output of binary data etc.
      */
     writable: Writable | undefined;
 

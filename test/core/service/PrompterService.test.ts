@@ -3,6 +3,7 @@ import mockProcessStdIn from 'mock-stdin';
 import kleur from 'kleur';
 
 import { PrompterService } from '../../../src/core/service/PrompterService';
+import { getContext } from '../../fixtures/Context';
 
 const mockStdout = mockProcessStdout();
 const mockStdIn = mockProcessStdIn.stdin();
@@ -28,8 +29,60 @@ describe('PrompterService test', () => {
         expect(new PrompterService(1)).toBeInstanceOf(PrompterService);
     });
 
+    test('Error thrown for init requirements', async () => {
+        const ps = new PrompterService(100);
+
+        let context = getContext({
+            stdout: process.stdout
+        }, [ps], []);
+        expect(() => ps.init(context)).toThrowError();
+
+        context = getContext({
+            stdin: process.stdin
+        }, [ps], []);
+        expect(() => ps.init(context)).toThrowError();
+    });
+
+    test('Error thrown before init called', async () => {
+        const ps = new PrompterService(100);
+
+        await expect(() => ps.readable).toThrowError();
+
+        const context = getContext({
+            stdin: process.stdin,
+            stdout: process.stdout
+        }, [ps], []);
+        ps.init(context);
+        expect(ps.readable).not.toBeNull();
+    });
+
+    test('Readable accessible', async () => {
+        const ps = new PrompterService(100);
+        const context = getContext({
+            stdout: process.stdout,
+            stdin: process.stdin
+        }, [ps], []);
+        ps.init(context);
+
+        process.nextTick(() => {
+            mockStdIn.send('bar\r');
+        });
+
+        const response = await new Promise((resolve) => {
+            ps.readable.once('data', (data) => {
+                resolve(data.toString().trim());
+            });
+        });
+        expect(response).toEqual('bar');
+    });
+
     test('Text prompt works', async () => {
         const ps = new PrompterService(100);
+        const context = getContext({
+            stdout: process.stdout,
+            stdin: process.stdin
+        }, [ps], []);
+        ps.init(context);
 
         process.nextTick(() => {
             mockStdIn.send('bar\r');
@@ -44,6 +97,11 @@ describe('PrompterService test', () => {
 
     test('Number prompt works for integer', async () => {
         const ps = new PrompterService(100);
+        const context = getContext({
+            stdout: process.stdout,
+            stdin: process.stdin
+        }, [ps], []);
+        ps.init(context);
 
         process.nextTick(() => {
             mockStdIn.send('11\r');
@@ -58,6 +116,11 @@ describe('PrompterService test', () => {
 
     test('Number prompt works for float with default rounding', async () => {
         const ps = new PrompterService(100);
+        const context = getContext({
+            stdout: process.stdout,
+            stdin: process.stdin
+        }, [ps], []);
+        ps.init(context);
 
         process.nextTick(() => {
             mockStdIn.send('1.123\r');
@@ -72,6 +135,11 @@ describe('PrompterService test', () => {
 
     test('Number prompt works for float with non-default rounding', async () => {
         const ps = new PrompterService(100);
+        const context = getContext({
+            stdout: process.stdout,
+            stdin: process.stdin
+        }, [ps], []);
+        ps.init(context);
 
         process.nextTick(() => {
             mockStdIn.send('1.1236\r');
@@ -86,6 +154,11 @@ describe('PrompterService test', () => {
 
     test('Boolean prompt works', async () => {
         const ps = new PrompterService(100);
+        const context = getContext({
+            stdout: process.stdout,
+            stdin: process.stdin
+        }, [ps], []);
+        ps.init(context);
 
         process.nextTick(() => {
             mockStdIn.send('y\r');
@@ -100,6 +173,11 @@ describe('PrompterService test', () => {
 
     test('Password prompt works', async () => {
         const ps = new PrompterService(100);
+        const context = getContext({
+            stdout: process.stdout,
+            stdin: process.stdin
+        }, [ps], []);
+        ps.init(context);
 
         process.nextTick(() => {
             mockStdIn.send('secret\r');
@@ -114,6 +192,11 @@ describe('PrompterService test', () => {
 
     test('Select prompt works', async () => {
         const ps = new PrompterService(100);
+        const context = getContext({
+            stdout: process.stdout,
+            stdin: process.stdin
+        }, [ps], []);
+        ps.init(context);
 
         process.nextTick(() => {
             mockStdIn.send('\r');

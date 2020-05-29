@@ -36,6 +36,6 @@ export default class VersionCommand implements GlobalCommand {
         if (_.isUndefined(context.cliConfig) || !_.isString(context.cliConfig.version)) {
             throw new Error('Provided context is missing property: "cliConfig.version: string"');
         }
-        printer.info(context.cliConfig.version);
+        printer.info(`${context.cliConfig.version}\n`);
     }
 }
