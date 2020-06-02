@@ -11,6 +11,7 @@ export { default as CLIConfig, PluginManagerConfig } from './api/CLIConfig';
 export { default as ServiceFactory } from './api/ServiceFactory';
 export { default as ServiceRegistry } from './api/ServiceRegistry';
 export { default as Service } from './api/Service';
+export { ArgumentValueTypeName, ArgumentSingleValueType, ArgumentValueType } from './api/ArgumentValueType';
 export { default as Argument } from './api/Argument';
 export { default as SubCommandArgument } from './api/SubCommandArgument';
 export { default as Positional } from './api/Positional';
