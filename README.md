@@ -447,6 +447,9 @@ this framework.
 [js-example-cli-plugin](https://github.com/flowscripter/js-example-cli-plugin) is a demo Javascript command plugin based on
 this framework.
 
+The Flowscripter [cli](https://github.com/flowscripter/cli) provides a more complex real world scenario use case. This implements
+amongst other things commands for a REPL and a script executor.
+
 ## Code Documentation
 
 [Typescript documentation](https://flowscripter.github.io/cli-framework)
