@@ -452,7 +452,7 @@ class CommonHelpCommand {
         const helpSections: HelpSection[] = [];
 
         helpSections.push({
-            title: this.appDescription || '',
+            title: printer.blue(this.appDescription || ''),
             entries: [
                 {
                     syntax: 'version',
