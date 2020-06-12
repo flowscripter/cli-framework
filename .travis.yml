@@ -23,7 +23,7 @@ jobs:
   - script: npm run lint
     name: lint
   - stage: analysis
-    script: npm test -- --coverage --maxWorkers=4 && npm run lint -- -f json -o reports/eslint.json && npx gulp sonar
+    script: npm test -- --coverage --maxWorkers=4 && npm run lint -- -f json -o reports/eslint.json && npx gulp -f gulpfile.cjs sonar
     name: sonar
     addons:
       sonarcloud:
