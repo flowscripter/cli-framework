@@ -6,7 +6,6 @@ import ServiceFactory from '../api/ServiceFactory';
 import Service from '../api/Service';
 import { PluginRegistryService } from './service/PluginRegistryService';
 
-
 /**
  * Provides a [[PluginRegistry]] [[Service]].
  */
