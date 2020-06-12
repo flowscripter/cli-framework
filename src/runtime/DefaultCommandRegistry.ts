@@ -108,7 +108,6 @@ export default class DefaultCommandRegistry implements CommandRegistry {
         throw new Error('Unsupported command type provided');
     }
 
-
     /**
      * @inheritdoc
      */
