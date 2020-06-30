@@ -207,19 +207,20 @@ export class ConfigurationService implements Service, Configuration {
 
         const fileContents = fs.readFileSync(this.configurationLocation, 'utf8');
         try {
-            const data = yaml.safeLoad(fileContents);
-
-            if (!_.isUndefined(data.serviceConfigs) && !_.isEmpty(data.serviceConfigs)) {
-                Object.keys(data.serviceConfigs).forEach((id) => {
-                    config.serviceConfigs.set(id, data.serviceConfigs[id]);
-                });
-                this.log(`Loaded ${config.serviceConfigs.size} serviceConfig(s)`);
-            }
-            if (!_.isUndefined(data.commandConfigs) && !_.isEmpty(data.commandConfigs)) {
-                Object.keys(data.commandConfigs).forEach((name) => {
-                    config.commandConfigs.set(name, data.commandConfigs[name]);
-                });
-                this.log(`Loaded ${config.commandConfigs.size} commandConfigs(s)`);
+            const data = yaml.load(fileContents);
+            if (!_.isUndefined(data)) {
+                if (!_.isUndefined(data.serviceConfigs) && !_.isEmpty(data.serviceConfigs)) {
+                    Object.keys(data.serviceConfigs).forEach((id) => {
+                        config.serviceConfigs.set(id, data.serviceConfigs[id]);
+                    });
+                    this.log(`Loaded ${config.serviceConfigs.size} serviceConfig(s)`);
+                }
+                if (!_.isUndefined(data.commandConfigs) && !_.isEmpty(data.commandConfigs)) {
+                    Object.keys(data.commandConfigs).forEach((name) => {
+                        config.commandConfigs.set(name, data.commandConfigs[name]);
+                    });
+                    this.log(`Loaded ${config.commandConfigs.size} commandConfigs(s)`);
+                }
             }
         } catch (err) {
             throw new Error(`configFile: ${this.configurationLocation} failed to parse: ${err}`);
