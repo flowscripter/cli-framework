@@ -34,8 +34,6 @@ export default class BaseCLI implements CLI {
 
     private readonly cliConfig: CLIConfig;
 
-    private readonly coreServiceFactory: CoreServiceFactory;
-
     private readonly coreCommandFactory: CoreCommandFactory;
 
     public readonly commandFactories: CommandFactory[] = [];
@@ -47,34 +45,50 @@ export default class BaseCLI implements CLI {
     private readonly commandConfigs: Map<string, CommandArgs>;
 
     /**
-     * Constructor which adds the following factories by default: [[CoreServiceFactory]] and [[CoreCommandFactory]]
-     *
-     * If a [[PluginManagerConfig]] is defined in the provided [[CLIConfig]] a [[PluginServiceFactory]] and
-     * [[PluginCommandFactory]] are also added.
+     * If no arguments are provided for [[serviceFactories]] and [[commandFactories]],
+     * the following factories will be added by default: [[CoreServiceFactory]] and [[CoreCommandFactory]].
+     * Additionally if a [[PluginManagerConfig]] is defined in the
+     * provided [[CLIConfig]], a [[PluginServiceFactory]] and [[PluginCommandFactory]] will also be added.
+     * This behaviour can be avoided by passing in empty arrays for these two arguments.
      *
      * @param cliConfig a CLI configuration object which will be made available in the [[Context]].
      * @param serviceConfigs an optional [[Service]] configuration map where the keys are [[Service.id]] values and
      * the values are generic configuration objects.
      * @param commandConfigs an optional [[Command]] configuration map where the keys are [[Command.name]] values and
      * the values are in the form of [[CommandArgs]].
+     * @param serviceFactories an optional array of [[ServiceFactory]] implementations to be added to the CLI.
+     * @param commandFactories an optional array of [[CommandFactory]] implementations to be added to the CLI.
      */
     public constructor(cliConfig: CLIConfig, serviceConfigs?: Map<string, any>,
-        commandConfigs?: Map<string, CommandArgs>) {
+        commandConfigs?: Map<string, CommandArgs>,
+        serviceFactories?: ServiceFactory[], commandFactories?: CommandFactory[]) {
 
         this.cliConfig = cliConfig;
 
-        this.coreServiceFactory = new CoreServiceFactory();
         this.coreCommandFactory = new CoreCommandFactory();
 
         this.serviceConfigs = serviceConfigs || new Map<string, any>();
         this.commandConfigs = commandConfigs || new Map<string, CommandArgs>();
 
-        this.addServiceFactory(this.coreServiceFactory);
-        this.addCommandFactory(this.coreCommandFactory);
+        if (_.isUndefined(serviceFactories) && _.isUndefined(commandFactories)) {
+            this.addServiceFactory(new CoreServiceFactory());
+            this.addCommandFactory(this.coreCommandFactory);
 
-        if (!_.isUndefined(cliConfig.pluginManagerConfig)) {
-            this.addServiceFactory(new PluginServiceFactory());
-            this.addCommandFactory(new PluginCommandFactory());
+            if (!_.isUndefined(cliConfig.pluginManagerConfig)) {
+                this.addServiceFactory(new PluginServiceFactory());
+                this.addCommandFactory(new PluginCommandFactory());
+            }
+        } else {
+            if (!_.isUndefined(serviceFactories)) {
+                serviceFactories.forEach((serviceFactory) => {
+                    this.addServiceFactory(serviceFactory);
+                });
+            }
+            if (!_.isUndefined(commandFactories)) {
+                commandFactories.forEach((commandFactory) => {
+                    this.addCommandFactory(commandFactory);
+                });
+            }
         }
     }
 

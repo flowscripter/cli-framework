@@ -49,6 +49,40 @@ describe('BaseCLI test', () => {
         expect(cli.serviceFactories).toHaveLength(2);
     });
 
+    test('Custom factories added', () => {
+        const cliConfig = {
+            name: 'cli',
+            description: 'good',
+            version: '1.2.3',
+            stdin: process.stdin,
+            stdout: process.stdout,
+            stderr: process.stderr,
+        };
+        const serviceFactory = new ServiceFactoryA();
+        const commandFactory = new CommandFactoryA();
+        const cli = new BaseCLI(cliConfig, new Map(), new Map(), [serviceFactory], [commandFactory]);
+
+        expect(cli.serviceFactories).toHaveLength(1);
+        expect(cli.serviceFactories[0]).toEqual(serviceFactory);
+        expect(cli.commandFactories).toHaveLength(1);
+        expect(cli.commandFactories[0]).toEqual(commandFactory);
+    });
+
+    test('No default factories added', () => {
+        const cliConfig = {
+            name: 'cli',
+            description: 'good',
+            version: '1.2.3',
+            stdin: process.stdin,
+            stdout: process.stdout,
+            stderr: process.stderr,
+        };
+        const cli = new BaseCLI(cliConfig, new Map(), new Map(), [], []);
+
+        expect(cli.serviceFactories).toHaveLength(0);
+        expect(cli.commandFactories).toHaveLength(0);
+    });
+
     test('CommandFactory is registered', () => {
         const cliConfig = {
             name: 'cli',
