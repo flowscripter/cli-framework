@@ -8,18 +8,14 @@
 
 import { NodePluginManager } from '@flowscripter/esm-dynamic-plugins';
 import path from 'path';
-import fs from 'fs';
 import debug from 'debug';
-import BaseCLI from './BaseCLI';
 import { CommandArgs } from '../api/Command';
-import { RunResult } from '../api/Runner';
-
-const packageInfo = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+import AbstractNodeCLI, { packageInfo } from './AbstractNodeCLI';
 
 /**
  * Node command line process implementation of a [[CLI]].
  */
-export default class NodeCLI extends BaseCLI {
+export default class NodeCLI extends AbstractNodeCLI {
 
     protected readonly log: debug.Debugger = debug('NodeCLI');
 
@@ -56,26 +52,5 @@ export default class NodeCLI extends BaseCLI {
                 pluginLocation: path.join(process.cwd(), 'node_modules')
             }
         }, serviceConfigs, commandConfigs);
-    }
-
-    /**
-     * Execute the CLI.
-     *
-     * Obtains arguments for parsing from the Node process arguments and drops the first two
-     * which will be the node executable and the main entry module.
-     *
-     * Calls system exit with an exit code of `0` on a [[RunResult]] of `SUCCESS` and `1` otherwise.
-     */
-    public async execute(): Promise<RunResult> {
-        let runResult: RunResult;
-        try {
-            runResult = await super.execute(process.argv.slice(2));
-            process.exit(runResult === RunResult.Success ? 0 : 1);
-        } catch (err) {
-            this.log(`execution error: ${err.message}`);
-            process.exit(1);
-            runResult = RunResult.GeneralError;
-        }
-        return runResult;
     }
 }

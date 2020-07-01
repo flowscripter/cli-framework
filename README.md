@@ -430,8 +430,11 @@ The `BaseCLI` implementation ensures that the core commands and services are ava
 provided a `CLIConfig` object containing the CLI application's name, version and description together with streams to
 use for `stdout` and `stderr`.
 
-The `NodeCLI` implementation is a simple extension to the `BaseCLI` which provides the name, version and description from
+The `SimpleNodeCLI` implementation is a simple extension to the `BaseCLI` which provides the name, version and description from
 the current project's `package.json` and uses the NodeJS provided `process.stdout` and `process.stderr` streams.
+
+The `NodeCLI` implementation is a more advanced extension than the `SimpleNodeCLI` which supports a configuration file,
+logging level control, control of color output and plugin management.
 
 ## Example Projects
 

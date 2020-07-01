@@ -20,7 +20,9 @@ export { default as GlobalCommandArgument } from './api/GlobalCommandArgument';
 export { default as Parser } from './api/Parser';
 export { default as Runner, RunResult } from './api/Runner';
 export { default as BaseCLI } from './cli/BaseCLI';
+export { default as AbstractNodeCLI } from './cli/AbstractNodeCLI';
 export { default as NodeCLI } from './cli/NodeCLI';
+export { default as SimpleNodeCLI } from './cli/SimpleNodeCLI';
 
 export {
     isGroupCommand,
