@@ -26,7 +26,7 @@ export default class NodeCLI extends BaseCLI {
     /**
      * Constructor taking an optional name.
      *
-     * An [[CLIConfig]] will be created with the following properties:
+     * A [[CLIConfig]] will be created with the following properties:
      *
      * * `name`: taken from the `package.json` file if the optional name is not specified.
      * * `description`: taken from the `package.json` file.
