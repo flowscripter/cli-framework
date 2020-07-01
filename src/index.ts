@@ -29,10 +29,38 @@ export {
     isGlobalCommand
 } from './api/CommandTypeGuards';
 
-export { default as Configuration, CONFIGURATION_SERVICE } from './core/service/ConfigurationService';
-export { default as Printer, STDOUT_PRINTER_SERVICE, STDERR_PRINTER_SERVICE } from './core/service/PrinterService';
-export { default as Prompter, PROMPTER_SERVICE } from './core/service/PrompterService';
-export { default as PluginRegistry, PLUGIN_REGISTRY_SERVICE } from './plugin/service/PluginRegistryService';
+export { default as VersionCommand } from './core/command/VersionCommand';
+export { HelpSubCommand, HelpGlobalCommand } from './core/command/HelpCommand';
+export { default as UsageCommand } from './core/command/UsageCommand';
+export { default as LogLevelCommand } from './core/command/LogLevelCommand';
+export { default as ConfigCommand } from './core/command/ConfigCommand';
+export { ColorCommand, NoColorCommand } from './core/command/ColorCommand';
+
+export {
+    default as Configuration,
+    ConfigurationService,
+    CONFIGURATION_SERVICE
+} from './core/service/ConfigurationService';
+
+export {
+    default as Printer,
+    StdoutPrinterService,
+    StderrPrinterService,
+    STDOUT_PRINTER_SERVICE,
+    STDERR_PRINTER_SERVICE
+} from './core/service/PrinterService';
+
+export {
+    default as Prompter,
+    PrompterService,
+    PROMPTER_SERVICE
+} from './core/service/PrompterService';
+
+export {
+    default as PluginRegistry,
+    PluginRegistryService,
+    PLUGIN_REGISTRY_SERVICE
+} from './plugin/service/PluginRegistryService';
 
 export {
     SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID,
