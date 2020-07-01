@@ -9,7 +9,7 @@ import { PrompterService } from './service/PrompterService';
 import { ConfigurationService } from './service/ConfigurationService';
 
 /**
- * Provides core commands.
+ * Provides core services.
  */
 export default class CoreServiceFactory implements ServiceFactory {
 
