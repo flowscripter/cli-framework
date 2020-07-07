@@ -1,5 +1,5 @@
 import DefaultContext from '../../src/runtime/DefaultContext';
-import { CommandArgs } from '../../src';
+import { CommandArgs } from '../../src/api/Command';
 import DefaultCommandRegistry from '../../src/runtime/DefaultCommandRegistry';
 import DefaultServiceRegistry from '../../src/runtime/DefaultServiceRegistry';
 import { getCliConfig } from '../fixtures/CLIConfig';

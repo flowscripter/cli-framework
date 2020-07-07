@@ -1,3 +1,7 @@
+/**
+ * @module @flowscripter/cli-framework
+ */
+
 /* eslint-disable max-classes-per-file,class-methods-use-this */
 
 import _ from 'lodash';
@@ -14,10 +18,6 @@ import GlobalModifierCommand from '../../api/GlobalModifierCommand';
 import GroupCommand from '../../api/GroupCommand';
 import { ArgumentValueTypeName } from '../../api/ArgumentValueType';
 import GlobalCommandArgument from '../../api/GlobalCommandArgument';
-
-/**
- * @module @flowscripter/cli-framework
- */
 
 interface HelpEntry {
     readonly syntax: string;

@@ -1,13 +1,19 @@
-import _ from 'lodash';
-import GroupCommand from '../../api/GroupCommand';
-import SubCommand from '../../api/SubCommand';
-import { ADD_COMMAND_NAME, REMOVE_COMMAND_NAME, AddCommand, RemoveCommand } from './AddRemoveCommand';
-import Context from '../../api/Context';
-import { CommandArgs } from '../..';
-
 /**
  * @module @flowscripter/cli-framework
  */
+
+import _ from 'lodash';
+import GroupCommand from '../../api/GroupCommand';
+import SubCommand from '../../api/SubCommand';
+import {
+    ADD_COMMAND_NAME,
+    REMOVE_COMMAND_NAME,
+    AddCommand,
+    RemoveCommand
+} from './AddRemoveCommand';
+import Context from '../../api/Context';
+import { CommandArgs } from '../..';
+
 export default class PluginCommand implements GroupCommand {
 
     public readonly name = 'plugin';

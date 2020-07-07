@@ -1,12 +1,12 @@
+/**
+ * @module @flowscripter/cli-framework
+ */
+
 // eslint-disable-next-line max-classes-per-file
 import { CommandArgs } from '../../api/Command';
 import Context from '../../api/Context';
 import Printer, { STDOUT_PRINTER_SERVICE, STDERR_PRINTER_SERVICE } from '../service/PrinterService';
 import GlobalModifierCommand from '../../api/GlobalModifierCommand';
-
-/**
- * @module @flowscripter/cli-framework
- */
 
 /**
  * Abstract base class for color commands.
@@ -58,7 +58,7 @@ export class ColorCommand extends BaseColorCommand implements GlobalModifierComm
      * [[STDERR_PRINTER_SERVICE]] IDs in the provided [[Context]].
      */
     public async run(commandArgs: CommandArgs, context: Context): Promise<void> {
-        this.doRun(true, context);
+        return this.doRun(true, context);
     }
 }
 
@@ -74,6 +74,6 @@ export class NoColorCommand extends BaseColorCommand implements GlobalModifierCo
      * Disables color output.
      */
     public async run(commandArgs: CommandArgs, context: Context): Promise<void> {
-        this.doRun(false, context);
+        return this.doRun(false, context);
     }
 }

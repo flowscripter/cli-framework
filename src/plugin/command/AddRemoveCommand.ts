@@ -1,8 +1,8 @@
-/* eslint-disable max-classes-per-file,@typescript-eslint/no-non-null-assertion,no-await-in-loop */
-
 /**
  * @module @flowscripter/cli-framework
  */
+
+/* eslint-disable max-classes-per-file,@typescript-eslint/no-non-null-assertion,no-await-in-loop */
 
 import _ from 'lodash';
 import { CommandArgs } from '../../api/Command';

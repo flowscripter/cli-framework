@@ -8,6 +8,7 @@ import { ConfigurationService } from '../../../src/core/service/ConfigurationSer
 import { CommandArgs } from '../../../src';
 import Context from '../../../src/api/Context';
 import { getContext } from '../../fixtures/Context';
+import CLIConfig from '../../../src/api/CLIConfig';
 
 const mockStdout = mockProcessStdout();
 const mockStderr = mockProcessStderr();
@@ -69,7 +70,7 @@ describe('ConfigurationService test', () => {
             name: 'cli',
             description: 'my cli',
             version: '1.2.3'
-        }, [], []);
+        } as unknown as CLIConfig, [], []);
         expect(configuration.configurationLocation).toBeUndefined();
         configuration.init(context);
         expect(configuration.configurationLocation).toEqual(`${os.homedir()}/.cli.yaml`);
@@ -89,7 +90,7 @@ describe('ConfigurationService test', () => {
             name: 'cli',
             description: 'my cli',
             version: '1.2.3'
-        }, [], []);
+        } as unknown as CLIConfig, [], []);
 
         context.serviceConfigs.set(configuration.id, {
             configFilePath: '/foo.yaml'
@@ -110,7 +111,7 @@ describe('ConfigurationService test', () => {
             name: 'cli',
             description: 'my cli',
             version: '1.2.3'
-        }, [], []);
+        } as unknown as CLIConfig, [], []);
         expect(configuration.configurationLocation).toBeUndefined();
         configuration.init(context);
         expect(configuration.configurationLocation).toEqual(`${os.homedir()}/.${context.cliConfig.name}.yaml`);
@@ -125,7 +126,7 @@ describe('ConfigurationService test', () => {
             name: 'cli',
             description: 'my cli',
             version: '1.2.3'
-        }, [], []);
+        } as unknown as CLIConfig, [], []);
         context.serviceConfigs.set(configuration.id, {
             configFilePath: '/foo.yaml'
         });
@@ -147,7 +148,7 @@ describe('ConfigurationService test', () => {
             name: 'cli',
             description: 'my cli',
             version: '1.2.3'
-        }, [], []);
+        } as unknown as CLIConfig, [], []);
         configuration.init(context);
         expect(context.serviceConfigs.size).toEqual(0);
         expect(context.commandConfigs.size).toEqual(0);
@@ -165,7 +166,7 @@ describe('ConfigurationService test', () => {
             name: 'cli',
             description: 'my cli',
             version: '1.2.3'
-        }, [], []);
+        } as unknown as CLIConfig, [], []);
         const commandArgs: CommandArgs = { foo: 'bar' };
         configuration.init(context);
         configuration.setCommandConfig('command', commandArgs);
@@ -184,7 +185,7 @@ describe('ConfigurationService test', () => {
             name: 'cli',
             description: 'my cli',
             version: '1.2.3'
-        }, [], []);
+        } as unknown as CLIConfig, [], []);
         const serviceConfig = { foo: 'bar' };
         configuration.init(context);
         configuration.setServiceConfig('serviceA', serviceConfig);
@@ -200,7 +201,7 @@ describe('ConfigurationService test', () => {
             name: 'cli',
             description: 'my cli',
             version: '1.2.3'
-        }, [], []);
+        } as unknown as CLIConfig, [], []);
         configuration.init(context);
 
         configuration.configurationLocation = '/foo.yaml';
@@ -223,7 +224,7 @@ describe('ConfigurationService test', () => {
             name: 'cli',
             description: 'my cli',
             version: '1.2.3'
-        }, [], []);
+        } as unknown as CLIConfig, [], []);
         configuration.init(context);
 
         expect(configuration.getConfig().serviceConfigs.size).toEqual(0);

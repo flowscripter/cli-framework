@@ -40,13 +40,18 @@ export default class DefaultCommandRegistry implements CommandRegistry {
 
     private readonly groupCommands = new Array<GroupCommand>();
 
-    private nonGlobalCommandsByName: Map<string, Command> = new Map();
+    private readonly groupCommandsByName: Map<string, GroupCommand> = new Map();
+
+    private readonly nonGlobalCommandsByName: Map<string, Command> = new Map();
 
     /**
      * Validate specified command against all others validated so far.
      *
-     * @throws *Error* if the [[Command]] is not a [[GlobalCommand]] and its name duplicates an already validated
-     * [[Command]] name.
+     * @throws *Error* if:
+     * * the [[Command]] is a [[GlobalCommand]] and its name duplicates an already validated
+     * [[GlobalCommand]] name.
+     * * the [[Command]] is not a [[GlobalCommand]] and its name duplicates an already validated
+     * non [[GlobalCommand]] name.
      */
     private validateWithOtherCommands(command: Command): void {
 
@@ -55,10 +60,14 @@ export default class DefaultCommandRegistry implements CommandRegistry {
             if (this.nonGlobalCommandsByName.has(command.name)) {
                 throw new Error(`Command name: ${command.name} duplicates the name of an existing command`);
             }
-        }
 
-        // store command by name for future validation against new commands
-        this.nonGlobalCommandsByName.set(command.name, command);
+            // store command by name for future validation against new commands
+            this.nonGlobalCommandsByName.set(command.name, command);
+        } else if (this.globalOrGlobalModifierCommandsByName.has(command.name)) {
+            throw new Error(`Command name: ${command.name} duplicates the name of an existing command`);
+
+            // storage of command by name is done within the addCommand function
+        }
     }
 
     /**
@@ -101,6 +110,7 @@ export default class DefaultCommandRegistry implements CommandRegistry {
 
         // group commands
         if (isGroupCommand(command)) {
+            this.groupCommandsByName.set(command.name, command);
             this.groupCommands.push(command);
             return;
         }
@@ -148,6 +158,13 @@ export default class DefaultCommandRegistry implements CommandRegistry {
      */
     public getSubCommandByName(name: string): SubCommand | undefined {
         return this.subCommandsByName.get(name);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public getGroupCommandByName(name: string): GroupCommand | undefined {
+        return this.groupCommandsByName.get(name);
     }
 
     /**

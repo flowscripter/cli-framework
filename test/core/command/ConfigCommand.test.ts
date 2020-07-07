@@ -6,7 +6,7 @@ import mockFs from 'mock-fs';
 import { mockProcessStderr, mockProcessStdout } from 'jest-mock-process';
 import ConfigCommand from '../../../src/core/command/ConfigCommand';
 import { StderrPrinterService } from '../../../src/core/service/PrinterService';
-import { CommandArgs } from '../../../src';
+import { CommandArgs } from '../../../src/api/Command';
 import { ConfigurationService } from '../../../src/core/service/ConfigurationService';
 import { getContext } from '../../fixtures/Context';
 import { getCliConfig } from '../../fixtures/CLIConfig';

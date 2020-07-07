@@ -10,12 +10,13 @@ import GlobalModifierCommand from '../../src/api/GlobalModifierCommand';
 import GroupCommand from '../../src/api/GroupCommand';
 import { getContext } from '../fixtures/Context';
 import { StderrPrinterService } from '../../src/core/service/PrinterService';
-import { RunResult } from '../../src';
+import { RunResult } from '../../src/api/Runner';
+import CLIConfig from '../../src/api/CLIConfig';
 
 const mockStdout = mockProcessStdout();
 const mockStderr = mockProcessStderr();
 
-function getSubCommand<S_ID>(name: string, options: Option[], positionals: Positional[]): SubCommand {
+function getSubCommand(name: string, options: Option[], positionals: Positional[]): SubCommand {
     return {
         name,
         options,
@@ -26,7 +27,7 @@ function getSubCommand<S_ID>(name: string, options: Option[], positionals: Posit
     };
 }
 
-function getGlobalCommand<S_ID>(name: string, shortAlias: string, argument?: GlobalCommandArgument): GlobalCommand {
+function getGlobalCommand(name: string, shortAlias: string, argument?: GlobalCommandArgument): GlobalCommand {
     return {
         name,
         shortAlias,
@@ -37,7 +38,7 @@ function getGlobalCommand<S_ID>(name: string, shortAlias: string, argument?: Glo
     };
 }
 
-function getGlobalModifierCommand<S_ID>(name: string, shortAlias: string, runPriority: number,
+function getGlobalModifierCommand(name: string, shortAlias: string, runPriority: number,
     argument?: GlobalCommandArgument): GlobalModifierCommand {
     return {
         name,
@@ -50,7 +51,7 @@ function getGlobalModifierCommand<S_ID>(name: string, shortAlias: string, runPri
     };
 }
 
-function getGroupCommand<S_ID>(name: string, memberSubCommands: SubCommand[]): GroupCommand {
+function getGroupCommand(name: string, memberSubCommands: SubCommand[]): GroupCommand {
     return {
         name,
         memberSubCommands,
@@ -79,7 +80,7 @@ describe('DefaultRunner test', () => {
     test('Check valid default command type', async () => {
         const stderrService = new StderrPrinterService(90);
         const subCommand = getSubCommand('command', [], []);
-        const context = getContext({}, [stderrService], [subCommand]);
+        const context = getContext({} as CLIConfig, [stderrService], [subCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
         await expect(runner.run(['command'], context,
@@ -105,7 +106,7 @@ describe('DefaultRunner test', () => {
 
         command.run = async (): Promise<void> => { hasRun = true; };
 
-        const context = getContext({}, [stderrService], [command]);
+        const context = getContext({} as CLIConfig, [stderrService], [command]);
         const runner = new DefaultRunner(new DefaultParser());
 
         const runResult = await runner.run(['command', '--foo', 'bar'], context);
@@ -126,7 +127,7 @@ describe('DefaultRunner test', () => {
         globalModifierCommand.run = async (): Promise<void> => { modifierHasRun = true; };
         subCommand.run = async (): Promise<void> => { subHasRun = true; };
 
-        const context = getContext({}, [stderrService], [globalModifierCommand, subCommand]);
+        const context = getContext({} as CLIConfig, [stderrService], [globalModifierCommand, subCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
         let runResult = await runner.run(['--modifierCommand=bar', 'subCommand'], context);
@@ -153,7 +154,7 @@ describe('DefaultRunner test', () => {
 
         command.run = async (): Promise<void> => { hasRun = true; };
 
-        const context = getContext({}, [stderrService], [command]);
+        const context = getContext({} as CLIConfig, [stderrService], [command]);
         const runner = new DefaultRunner(new DefaultParser());
 
         let runResult = await runner.run(['--command=bar'], context);
@@ -178,7 +179,7 @@ describe('DefaultRunner test', () => {
         subCommand.run = async (): Promise<void> => { subHasRun = true; };
         command.run = async (): Promise<void> => { groupHasRun = true; };
 
-        const context = getContext({}, [stderrService], [command]);
+        const context = getContext({} as CLIConfig, [stderrService], [command]);
         const runner = new DefaultRunner(new DefaultParser());
 
         let runResult = await runner.run(['group', 'command'], context);
@@ -209,7 +210,7 @@ describe('DefaultRunner test', () => {
         modifierCommand.run = async (): Promise<void> => { modifierHasRun = true; };
         subCommand.run = async (): Promise<void> => { subHasRun = true; };
 
-        const context = getContext({}, [stderrService], [modifierCommand, subCommand]);
+        const context = getContext({} as CLIConfig, [stderrService], [modifierCommand, subCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
         const runResult = await runner.run(['--modifier=bar', 'command', '--foo', 'bar'], context);
@@ -233,7 +234,7 @@ describe('DefaultRunner test', () => {
         modifierCommand.run = async (): Promise<void> => { modifierHasRun = true; };
         globalCommand.run = async (): Promise<void> => { globalHasRun = true; };
 
-        const context = getContext({}, [stderrService], [modifierCommand, globalCommand]);
+        const context = getContext({} as CLIConfig, [stderrService], [modifierCommand, globalCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
         const runResult = await runner.run(['--modifier=bar', '-g', 'bar'], context);
@@ -262,7 +263,8 @@ describe('DefaultRunner test', () => {
         modifierCommand2.run = async (): Promise<void> => { modifier2HasRun = true; };
         globalCommand.run = async (): Promise<void> => { globalHasRun = true; };
 
-        const context = getContext({}, [stderrService], [modifierCommand1, modifierCommand2, globalCommand]);
+        const context = getContext({} as CLIConfig,
+            [stderrService], [modifierCommand1, modifierCommand2, globalCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
         const runResult = await runner.run(['--modifier1=bar', '-g', 'bar', '--modifier2=bar'], context);
@@ -285,7 +287,7 @@ describe('DefaultRunner test', () => {
         modifierCommand.run = async (): Promise<void> => { modifierHasRun = true; };
         globalCommand.run = async (): Promise<void> => { defaultHasRun = true; };
 
-        const context = getContext({}, [stderrService], [modifierCommand, globalCommand]);
+        const context = getContext({} as CLIConfig, [stderrService], [modifierCommand, globalCommand]);
         const runner = new DefaultRunner(new DefaultParser());
 
         const runResult = await runner.run(['--modifier=bar'], context, globalCommand);
@@ -307,7 +309,8 @@ describe('DefaultRunner test', () => {
         modifierCommand.run = async (): Promise<void> => { modifierHasRun = true; };
         globalCommand.run = async (): Promise<void> => { defaultHasRun = true; };
 
-        const context = getContext({ stderr: process.stderr }, [stderrService], [modifierCommand, globalCommand]);
+        const context = getContext({ stderr: process.stderr } as unknown as CLIConfig,
+            [stderrService], [modifierCommand, globalCommand]);
         stderrService.init(context);
         const runner = new DefaultRunner(new DefaultParser());
 
@@ -329,7 +332,7 @@ describe('DefaultRunner test', () => {
 
         subCommand.run = async (): Promise<void> => { subHasRun = true; };
 
-        const context = getContext({}, [stderrService], []);
+        const context = getContext({} as CLIConfig, [stderrService], []);
         const runner = new DefaultRunner(new DefaultParser());
 
         const runResult = await runner.run(['--foo=bar'], context, subCommand);
@@ -347,7 +350,7 @@ describe('DefaultRunner test', () => {
 
         subCommand.run = async (): Promise<void> => { throw new Error(); };
 
-        const context = getContext({ stderr: process.stderr }, [stderrService], [subCommand]);
+        const context = getContext({ stderr: process.stderr } as unknown as CLIConfig, [stderrService], [subCommand]);
         stderrService.init(context);
         const runner = new DefaultRunner(new DefaultParser());
 
@@ -363,7 +366,8 @@ describe('DefaultRunner test', () => {
 
         globalCommand.run = async (): Promise<void> => { throw new Error('d34db33f'); };
 
-        const context = getContext({ stderr: process.stderr }, [stderrService], [globalCommand]);
+        const context = getContext({ stderr: process.stderr } as unknown as CLIConfig,
+            [stderrService], [globalCommand]);
         stderrService.init(context);
         const runner = new DefaultRunner(new DefaultParser());
 
@@ -383,7 +387,8 @@ describe('DefaultRunner test', () => {
         globalModifierCommand.run = async (): Promise<void> => { throw new Error('d34db33f'); };
         globalCommand.run = async (): Promise<void> => { globalHasRun = true; };
 
-        const context = getContext({ stderr: process.stderr }, [stderrService], [globalCommand, globalModifierCommand]);
+        const context = getContext({ stderr: process.stderr } as unknown as CLIConfig,
+            [stderrService], [globalCommand, globalModifierCommand]);
         stderrService.init(context);
         const runner = new DefaultRunner(new DefaultParser());
 
@@ -406,7 +411,7 @@ describe('DefaultRunner test', () => {
 
         subCommand.run = async (): Promise<void> => { hasRun = true; };
 
-        const context = getContext({ stderr: process.stderr }, [stderrService], [subCommand]);
+        const context = getContext({ stderr: process.stderr } as unknown as CLIConfig, [stderrService], [subCommand]);
         stderrService.init(context);
         const runner = new DefaultRunner(new DefaultParser());
 
@@ -427,7 +432,7 @@ describe('DefaultRunner test', () => {
 
         subCommand.run = async (): Promise<void> => { hasRun = true; };
 
-        const context = getContext({ stderr: process.stderr }, [stderrService], [subCommand]);
+        const context = getContext({ stderr: process.stderr } as unknown as CLIConfig, [stderrService], [subCommand]);
         stderrService.init(context);
         const runner = new DefaultRunner(new DefaultParser());
 
@@ -445,7 +450,7 @@ describe('DefaultRunner test', () => {
 
         subCommand.run = async (): Promise<void> => { hasRun = true; };
 
-        const context = getContext({ stderr: process.stderr }, [stderrService], [subCommand]);
+        const context = getContext({ stderr: process.stderr } as unknown as CLIConfig, [stderrService], [subCommand]);
         stderrService.init(context);
         const runner = new DefaultRunner(new DefaultParser());
 
@@ -464,7 +469,7 @@ describe('DefaultRunner test', () => {
 
         globalCommand.run = async (): Promise<void> => { hasRun = true; };
 
-        const context = getContext({ stderr: process.stderr }, [stderrService], []);
+        const context = getContext({ stderr: process.stderr } as unknown as CLIConfig, [stderrService], []);
         stderrService.init(context);
         const runner = new DefaultRunner(new DefaultParser());
 
@@ -480,7 +485,7 @@ describe('DefaultRunner test', () => {
 
         globalCommand.run = async (): Promise<void> => { throw new Error('d34db33f'); };
 
-        const context = getContext({ stderr: process.stderr }, [stderrService], []);
+        const context = getContext({ stderr: process.stderr } as unknown as CLIConfig, [stderrService], []);
         stderrService.init(context);
         const runner = new DefaultRunner(new DefaultParser());
 
@@ -503,7 +508,8 @@ describe('DefaultRunner test', () => {
         subCommand1.run = async (): Promise<void> => { hasRun = true; };
         const subCommand2 = getSubCommand('command2', [], []);
 
-        const context = getContext({ stderr: process.stderr }, [stderrService], [subCommand1, subCommand2]);
+        const context = getContext({ stderr: process.stderr } as unknown as CLIConfig,
+            [stderrService], [subCommand1, subCommand2]);
         stderrService.init(context);
         const runner = new DefaultRunner(new DefaultParser());
 
@@ -531,7 +537,8 @@ describe('DefaultRunner test', () => {
         modifier2Command.run = async (): Promise<void> => { hasRun.push(modifier2Command.name); };
         globalCommand.run = async (): Promise<void> => { hasRun.push(globalCommand.name); };
 
-        const context = getContext({}, [stderrService], [globalCommand, modifier1Command, modifier2Command]);
+        const context = getContext({} as CLIConfig,
+            [stderrService], [globalCommand, modifier1Command, modifier2Command]);
         const runner = new DefaultRunner(new DefaultParser());
 
         const runResult = await runner.run(['--modifier2=foo', '-g', 'bar', '--modifier1=bar'], context);
@@ -551,7 +558,7 @@ describe('DefaultRunner test', () => {
         };
         const subCommand = getSubCommand('command', [option], []);
 
-        const context = getContext({ stderr: process.stderr }, [stderrService], [subCommand]);
+        const context = getContext({ stderr: process.stderr } as unknown as CLIConfig, [stderrService], [subCommand]);
         stderrService.init(context);
         const runner = new DefaultRunner(new DefaultParser());
         const runResult = await runner.run(['blah', 'command', '--foo', 'bar'], context);
@@ -568,7 +575,7 @@ describe('DefaultRunner test', () => {
         };
         const subCommand = getSubCommand('command', [option], []);
 
-        const context = getContext({ stderr: process.stderr }, [stderrService], [subCommand]);
+        const context = getContext({ stderr: process.stderr } as unknown as CLIConfig, [stderrService], [subCommand]);
         stderrService.init(context);
         const runner = new DefaultRunner(new DefaultParser());
         const runResult = await runner.run(['command', '--foo', 'bar', 'blah'], context);

@@ -128,8 +128,6 @@ export class PrompterService implements Service, Prompter {
             type: name,
             name,
             message,
-            // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
-            // @ts-ignore
             stdin: this.readable,
             stdout: this.writable
         });
@@ -147,8 +145,6 @@ export class PrompterService implements Service, Prompter {
             message,
             float: isFloat,
             round: fractionalDigits,
-            // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
-            // @ts-ignore
             stdin: this.readable,
             stdout: this.writable
         });
@@ -164,8 +160,6 @@ export class PrompterService implements Service, Prompter {
             type: name,
             name,
             message,
-            // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
-            // @ts-ignore
             stdin: this.readable,
             stdout: this.writable
         });
@@ -181,8 +175,6 @@ export class PrompterService implements Service, Prompter {
             type: name,
             name,
             message,
-            // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
-            // @ts-ignore
             stdin: this.readable,
             stdout: this.writable
         });
@@ -202,8 +194,6 @@ export class PrompterService implements Service, Prompter {
             name,
             message,
             choices,
-            // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
-            // @ts-ignore
             stdin: this.readable,
             stdout: this.writable
         });

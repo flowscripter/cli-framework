@@ -2,6 +2,7 @@ import { mockProcessStdout } from 'jest-mock-process';
 
 import { Level, StdoutPrinterService } from '../../../src/core/service/PrinterService';
 import { getContext } from '../../fixtures/Context';
+import CLIConfig from '../../../src/api/CLIConfig';
 
 const mockStdout = mockProcessStdout();
 
@@ -24,7 +25,7 @@ describe('PrinterService test', () => {
         ps.colorEnabled = false;
         const context = getContext({
             stdout: process.stdout
-        }, [ps], []);
+        } as unknown as CLIConfig, [ps], []);
         ps.init(context);
 
         ps.info(`hello ${ps.dim('world')}`);
@@ -38,7 +39,7 @@ describe('PrinterService test', () => {
         ps.colorEnabled = false;
         const context = getContext({
             stdout: process.stdout
-        }, [ps], []);
+        } as unknown as CLIConfig, [ps], []);
         ps.init(context);
 
         ps.info(`hello ${ps.green(ps.blue(ps.gray(ps.yellow(ps.cyan(ps.red('world'))))))}`);
@@ -52,7 +53,7 @@ describe('PrinterService test', () => {
         ps.colorEnabled = false;
         const context = getContext({
             stdout: process.stdout
-        }, [ps], []);
+        } as unknown as CLIConfig, [ps], []);
         ps.init(context);
 
         ps.writable.write('hello world');
@@ -66,7 +67,7 @@ describe('PrinterService test', () => {
         ps.colorEnabled = false;
         const context = getContext({
             stdout: process.stdout
-        }, [ps], []);
+        } as unknown as CLIConfig, [ps], []);
         ps.init(context);
 
         ps.info('hello info 1');

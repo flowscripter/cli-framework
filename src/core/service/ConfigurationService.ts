@@ -312,6 +312,7 @@ export class ConfigurationService implements Service, Configuration {
      * * [[configurationLocation]] is a directory or cannot be written to
      * * the existing contents of [[configurationLocation]] cannot be parsed
      */
+    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
     public setServiceConfig(id: string, serviceConfig: any): void {
         const config = this.getConfig();
         config.serviceConfigs.set(id, serviceConfig);

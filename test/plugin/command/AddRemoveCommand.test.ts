@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-empty-function */
+/* eslint-disable @typescript-eslint/no-empty-function, @typescript-eslint/no-explicit-any */
 
 import mockFs from 'mock-fs';
 import { mockProcessStdout, mockProcessStderr } from 'jest-mock-process';
@@ -6,7 +6,7 @@ import { NodePluginManager } from '@flowscripter/esm-dynamic-plugins';
 import { AddCommand, RemoveCommand } from '../../../src/plugin/command/AddRemoveCommand';
 import { getContext } from '../../fixtures/Context';
 import { getCliConfig } from '../../fixtures/CLIConfig';
-import { CommandArgs } from '../../../src';
+import { CommandArgs } from '../../../src/api/Command';
 import { StderrPrinterService, StdoutPrinterService } from '../../../src/core/service/PrinterService';
 import { PluginRegistryService } from '../../../src/plugin/service/PluginRegistryService';
 import {
@@ -16,6 +16,15 @@ import {
     uninstallPackage,
     PackageSpec
 } from '../../../src/plugin/command/NpmPackageUtils';
+import Context from '../../../src/api/Context';
+import {
+    COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID,
+    handleLoadedCommandFactory
+} from '../../../src/plugin/CommandFactory';
+import {
+    handleLoadedServiceFactory,
+    SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID
+} from '../../../src/plugin/ServiceFactory';
 
 jest.mock('../../../src/plugin/command/NpmPackageUtils');
 
@@ -86,9 +95,15 @@ describe('AddRemoveCommand test', () => {
 
     test('Commands expect correct config in context', async () => {
         const stderrService = new StderrPrinterService(100);
-        const pluginRegistryService = new PluginRegistryService(90);
+        const pluginRegistryService = new PluginRegistryService(90, new Map([
+            [SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID,
+                handleLoadedServiceFactory as (extension: any, context: Context) => Promise<void>],
+            [COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID,
+                handleLoadedCommandFactory as (extension: any, context: Context) => Promise<void>]
+        ]));
 
-        const cliConfig = getCliConfig({
+        const serviceConfigs = new Map<string, any>();
+        serviceConfigs.set(pluginRegistryService.id, {
             pluginManager: NodePluginManager,
             pluginLocation: '/plugins'
         });
@@ -96,7 +111,8 @@ describe('AddRemoveCommand test', () => {
         const addCommand = new AddCommand();
         const removeCommand = new RemoveCommand();
 
-        const context = getContext(cliConfig, [stderrService, pluginRegistryService], [], new Map(), new Map());
+        const context = getContext(getCliConfig(), [stderrService, pluginRegistryService], [],
+            serviceConfigs, new Map());
         await expect(addCommand.run({}, context)).rejects.toThrowError();
         await expect(removeCommand.run({}, context)).rejects.toThrowError();
     });
@@ -109,20 +125,26 @@ describe('AddRemoveCommand test', () => {
         const addCommand = new AddCommand();
         const stderrService = new StderrPrinterService(100);
         const stdoutService = new StdoutPrinterService(100);
-        const pluginRegistryService = new PluginRegistryService(90);
+        const pluginRegistryService = new PluginRegistryService(90, new Map([
+            [SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID,
+                handleLoadedServiceFactory as (extension: any, context: Context) => Promise<void>],
+            [COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID,
+                handleLoadedCommandFactory as (extension: any, context: Context) => Promise<void>]
+        ]));
 
-        const cliConfig = getCliConfig({
+        const serviceConfigs = new Map<string, any>();
+        serviceConfigs.set(pluginRegistryService.id, {
             pluginManager: NodePluginManager,
             pluginLocation: '/plugins'
         });
 
-        const configMap = new Map<string, CommandArgs>();
-        configMap.set(addCommand.name, {
+        const commandConfigs = new Map<string, CommandArgs>();
+        commandConfigs.set(addCommand.name, {
             remoteModuleRegistry: 'registry'
         });
 
-        const context = getContext(cliConfig, [stderrService, stdoutService, pluginRegistryService],
-            [], new Map(), configMap);
+        const context = getContext(getCliConfig(), [stderrService, stdoutService, pluginRegistryService],
+            [], serviceConfigs, commandConfigs);
 
         await pluginRegistryService.init(context);
         await stderrService.init(context);
@@ -151,20 +173,26 @@ describe('AddRemoveCommand test', () => {
         const removeCommand = new RemoveCommand();
         const stderrService = new StderrPrinterService(100);
         const stdoutService = new StdoutPrinterService(100);
-        const pluginRegistryService = new PluginRegistryService(90);
+        const pluginRegistryService = new PluginRegistryService(90, new Map([
+            [SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID,
+                handleLoadedServiceFactory as (extension: any, context: Context) => Promise<void>],
+            [COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID,
+                handleLoadedCommandFactory as (extension: any, context: Context) => Promise<void>]
+        ]));
 
-        const cliConfig = getCliConfig({
+        const serviceConfigs = new Map<string, any>();
+        serviceConfigs.set(pluginRegistryService.id, {
             pluginManager: NodePluginManager,
             pluginLocation: '/plugins'
         });
 
-        const configMap = new Map<string, CommandArgs>();
-        configMap.set(removeCommand.name, {
+        const commandConfigs = new Map<string, CommandArgs>();
+        commandConfigs.set(removeCommand.name, {
             remoteModuleRegistry: 'registry'
         });
 
-        const context = getContext(cliConfig, [stderrService, stdoutService, pluginRegistryService],
-            [], new Map(), configMap);
+        const context = getContext(getCliConfig(), [stderrService, stdoutService, pluginRegistryService],
+            [], serviceConfigs, commandConfigs);
 
         await pluginRegistryService.init(context);
         await stderrService.init(context);

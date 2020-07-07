@@ -2,11 +2,11 @@
 import { mockProcessStdout, mockProcessStderr } from 'jest-mock-process';
 import { HelpGlobalCommand, HelpSubCommand } from '../../../src/core/command/HelpCommand';
 import { StdoutPrinterService, StderrPrinterService } from '../../../src/core/service/PrinterService';
-import { SubCommandA } from '../../fixtures/CommandFactoryA';
+import SubCommandA from '../../fixtures/SubCommandA';
 import { getContext } from '../../fixtures/Context';
 import { getCliConfig } from '../../fixtures/CLIConfig';
 import SubCommand from '../../../src/api/SubCommand';
-import { CommandArgs } from '../../../src';
+import { CommandArgs } from '../../../src/api/Command';
 import Context from '../../../src/api/Context';
 
 const mockStdout = mockProcessStdout();

@@ -1,14 +1,21 @@
 import { mockProcessExit, mockProcessStderr, mockProcessStdout } from 'jest-mock-process';
-import SimpleNodeCLI from '../../src/cli/SimpleNodeCLI';
-import Command, { CommandArgs } from '../../src/api/Command';
+import BaseNodeCLI from '../../src/cli/BaseNodeCLI';
+import { CommandArgs } from '../../src/api/Command';
 import Context from '../../src/api/Context';
-import { Printer, STDOUT_PRINTER_SERVICE } from '../../src';
 import SubCommand from '../../src/api/SubCommand';
+import UsageCommand from '../../src/core/command/UsageCommand';
+import { HelpGlobalCommand, HelpSubCommand } from '../../src/core/command/HelpCommand';
+import Printer, {
+    StderrPrinterService,
+    StdoutPrinterService,
+    STDOUT_PRINTER_SERVICE
+} from '../../src/core/service/PrinterService';
+import VersionCommand from '../../src/core/command/VersionCommand';
 
 const mockStdout = mockProcessStdout();
 const mockStderr = mockProcessStderr();
 
-describe('SimpleNodeCLI test', () => {
+describe('BaseNodeCLI test', () => {
 
     beforeEach(() => {
         mockStdout.mockReset();
@@ -20,8 +27,8 @@ describe('SimpleNodeCLI test', () => {
         mockStderr.mockRestore();
     });
 
-    test('SimpleNodeCLI is instantiable', () => {
-        expect(new SimpleNodeCLI()).toBeInstanceOf(SimpleNodeCLI);
+    test('BaseNodeCLI is instantiable', () => {
+        expect(new BaseNodeCLI([], [], new Map(), new Map(), 'foo')).toBeInstanceOf(BaseNodeCLI);
     });
 
     test('Basic execution works', async () => {
@@ -43,11 +50,10 @@ describe('SimpleNodeCLI test', () => {
         process.argv = ['node', 'node.js', 'greeter', 'hello', 'world'];
 
         const mockExit = mockProcessExit();
-        const cli = new SimpleNodeCLI();
-
-        cli.addCommandFactory({
-            getCommands: (): Iterable<Command> => [subCommand]
-        });
+        const cli = new BaseNodeCLI([
+            new StderrPrinterService(1),
+            new StdoutPrinterService(1)
+        ], [subCommand], new Map(), new Map(), 'foo');
         await cli.execute();
 
         expect(mockStdout).toHaveBeenLastCalledWith('hello world');
@@ -58,7 +64,10 @@ describe('SimpleNodeCLI test', () => {
         process.argv = ['node', 'node.js', 'greeter', 'hello', 'world'];
 
         const mockExit = mockProcessExit();
-        const cli = new SimpleNodeCLI('foo1');
+        const cli = new BaseNodeCLI([
+            new StderrPrinterService(1),
+            new StdoutPrinterService(1)
+        ], [], new Map(), new Map(), 'foo1', new UsageCommand(new HelpGlobalCommand()));
 
         await cli.execute();
 
@@ -71,7 +80,11 @@ describe('SimpleNodeCLI test', () => {
         process.argv = ['node', 'node.js'];
 
         const mockExit = mockProcessExit();
-        const cli = new SimpleNodeCLI();
+        const cli = new BaseNodeCLI([
+            new StderrPrinterService(1),
+            new StdoutPrinterService(1)
+        ], [], new Map(), new Map(), 'foo', new VersionCommand(),
+        new UsageCommand(new HelpGlobalCommand()));
 
         await cli.execute();
         expect(mockExit).toHaveBeenCalledWith(0);
@@ -82,18 +95,16 @@ describe('SimpleNodeCLI test', () => {
         process.argv = ['node', 'node.js', '--help'];
 
         const mockExit = mockProcessExit();
-        const cli = new SimpleNodeCLI();
+        const cli = new BaseNodeCLI([
+            new StderrPrinterService(1),
+            new StdoutPrinterService(1)
+        ], [new HelpGlobalCommand()], new Map(), new Map(), 'foo');
 
         await cli.execute();
         expect(mockExit).toHaveBeenCalledWith(0);
     });
 
     test('Basic execution with sub-command help and help subject', async () => {
-
-        process.argv = ['node', 'node.js', 'help', 'greeter'];
-
-        const mockExit = mockProcessExit();
-        const cli = new SimpleNodeCLI();
 
         const subCommand: SubCommand = {
             name: 'greeter',
@@ -122,9 +133,13 @@ describe('SimpleNodeCLI test', () => {
             }
         };
 
-        cli.addCommandFactory({
-            getCommands: (): Iterable<Command> => [subCommand]
-        });
+        process.argv = ['node', 'node.js', 'help', 'greeter'];
+
+        const mockExit = mockProcessExit();
+        const cli = new BaseNodeCLI([
+            new StderrPrinterService(1),
+            new StdoutPrinterService(1)
+        ], [subCommand, new HelpSubCommand()], new Map(), new Map(), 'foo');
 
         await cli.execute();
         expect(mockExit).toHaveBeenCalledWith(0);
@@ -135,9 +150,12 @@ describe('SimpleNodeCLI test', () => {
         process.argv = ['node', 'node.js', 'blah'];
 
         const mockExit = mockProcessExit();
-        const cli = new SimpleNodeCLI();
+        const cli = new BaseNodeCLI([
+            new StderrPrinterService(1),
+            new StdoutPrinterService(1)
+        ], [], new Map(), new Map(), 'foo');
 
         await cli.execute();
-        expect(mockExit).toHaveBeenCalledWith(0);
+        expect(mockExit).toHaveBeenCalledWith(1);
     });
 });
