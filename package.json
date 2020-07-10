@@ -57,7 +57,7 @@
         "@types/js-yaml": "3.12.5",
         "@types/lodash": "4.14.157",
         "@types/mock-fs": "4.10.0",
-        "@types/node": "13.13.13",
+        "@types/node": "13.13.14",
         "@types/prompts": "2.0.8",
         "@types/semver": "7.3.1",
         "@types/tar-fs": "2.0.0",
