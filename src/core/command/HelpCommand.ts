@@ -221,14 +221,16 @@ function getCommandArgsAndExampleHelpSections(context: Context, subCommand: SubC
     return helpSections;
 }
 
-function getMultiCommandGenericHelpSections(
+function getGenericHelpSections(
     globalModifierCommands: GlobalModifierCommand[],
     globalCommands: GlobalCommand[],
     groupCommands: GroupCommand[],
-    subCommands: SubCommand[]
+    subCommands: SubCommand[],
+    isSingleCommandApp: boolean
 ): HelpSection[] {
 
-    const globalPrefix = ((groupCommands.length > 0) || (subCommands.length > 0)) ? 'Global ' : '';
+    const globalPrefix = ((groupCommands.length > 0) || (subCommands.length > 0)
+        || isSingleCommandApp) ? 'Global ' : '';
     const helpSections: HelpSection[] = [];
     if (globalModifierCommands.length > 0) {
         helpSections.push(getGlobalCommandsHelpSection(`${globalPrefix}Options`, globalModifierCommands));
@@ -300,92 +302,16 @@ function getMultiCommandGenericHelpSections(
     return helpSections;
 }
 
-function getSingleCommandGenericHelpSections(
-    globalModifierCommands: GlobalModifierCommand[],
-    globalCommands: GlobalCommand[],
-    groupCommands: GroupCommand[],
-    subCommands: SubCommand[]
-): HelpSection[] {
-
-    const helpSections: HelpSection[] = [];
-    if (globalModifierCommands.length > 0) {
-        helpSections.push(getGlobalCommandsHelpSection('Global Options', globalModifierCommands));
-    }
-    if (globalCommands.length > 0) {
-        helpSections.push(getGlobalCommandsHelpSection('Global Commands', globalCommands));
-    }
-    groupCommands.forEach((groupCommand) => {
-        const topicSection: HelpSection = {
-            title: `${groupCommand.name.charAt(0).toUpperCase() + groupCommand.name.slice(1)} Commands`,
-            entries: []
-        };
-        groupCommand.memberSubCommands.forEach((memberCommand) => {
-            topicSection.entries.push({
-                syntax: `${groupCommand.name}:${memberCommand.name}`,
-                description: memberCommand.description
-            });
-        });
-        topicSection.entries.sort((a, b) => a.syntax.localeCompare(b.syntax));
-        helpSections.push(topicSection);
-    });
-    if (subCommands.length > 0) {
-        const subCommandsByTopic = new Map<string, SubCommand[]>();
-        const otherSubCommands: SubCommand[] = [];
-
-        subCommands.forEach((subCommand) => {
-            if (_.isUndefined(subCommand.topic)) {
-                otherSubCommands.push(subCommand);
-            } else {
-                const commands = subCommandsByTopic.get(subCommand.topic) || [];
-                commands.push(subCommand);
-                subCommandsByTopic.set(subCommand.topic, commands);
-            }
-        });
-
-        for (const key of subCommandsByTopic.keys()) {
-            const topicCommands = subCommandsByTopic.get(key);
-            if (!_.isUndefined(topicCommands)) {
-                const topicSection: HelpSection = {
-                    title: `${key.charAt(0).toUpperCase() + key.slice(1)} Commands`,
-                    entries: []
-                };
-                topicCommands.sort((a, b) => a.name.localeCompare(b.name));
-                topicCommands.forEach((subCommand) => {
-                    topicSection.entries.push({
-                        syntax: subCommand.name,
-                        description: subCommand.description
-                    });
-                });
-                helpSections.push(topicSection);
-            }
-        }
-
-        if (otherSubCommands.length > 0) {
-            const topicSection: HelpSection = {
-                title: 'Other Commands',
-                entries: []
-            };
-            otherSubCommands.sort((a, b) => a.name.localeCompare(b.name));
-            otherSubCommands.forEach((subCommand) => {
-                topicSection.entries.push({
-                    syntax: subCommand.name,
-                    description: subCommand.description
-                });
-            });
-            helpSections.push(topicSection);
-        }
-    }
-    return helpSections;
-}
-
-function getMultiCommandAppSyntax(
+function getCommandAppSyntax(
     context: Context,
     globalModifierCommands: GlobalModifierCommand[],
     globalCommands: GlobalCommand[],
     groupCommands: GroupCommand[],
-    subCommands: SubCommand[]
+    subCommands: SubCommand[],
+    isSingleCommandApp: boolean
 ): string {
-    const globalPrefix = ((groupCommands.length > 0) || (subCommands.length > 0)) ? 'global_' : '';
+    const globalPrefix = ((groupCommands.length > 0) || (subCommands.length > 0)
+        || isSingleCommandApp) ? 'global_' : '';
     let syntax = context.cliConfig.name || '';
     if (globalModifierCommands.length > 0) {
         syntax += ` [<${globalPrefix}option>`;
@@ -475,108 +401,11 @@ function getMultiCommandAppSyntax(
                 subSyntax += '...';
             }
         }
-        syntax += ` ${subSyntax}`;
-    }
-    return syntax;
-}
-
-function getSingleCommandAppSyntax(
-    context: Context,
-    globalModifierCommands: GlobalModifierCommand[],
-    globalCommands: GlobalCommand[],
-    groupCommands: GroupCommand[],
-    subCommands: SubCommand[]
-): string {
-    let syntax = context.cliConfig.name || '';
-    if (globalModifierCommands.length > 0) {
-        syntax += ' [<global_option>';
-        // dont render global_option arg if none defined
-        const noArg = globalModifierCommands.every((modifier) => _.isUndefined(modifier.argument));
-        if (!noArg) {
-            // render global_option arg in [] if all modifiers have non-optional, non-boolean arg with no default
-            const optionArgMandatory = globalModifierCommands.every((modifier) => !_.isUndefined(modifier.argument)
-                && !modifier.argument.isOptional
-                && _.isUndefined(modifier.argument.defaultValue)
-                && modifier.argument.type !== ArgumentValueTypeName.Boolean);
-            syntax += optionArgMandatory ? ' <value>' : ' [<value>]';
+        if (isSingleCommandApp) {
+            syntax += ` [${subSyntax}]`;
+        } else {
+            syntax += ` ${subSyntax}`;
         }
-        syntax += ']';
-    }
-    if (globalModifierCommands.length > 1) {
-        syntax += '...';
-    }
-    let arg = false;
-    let argOptional = false;
-    let argValueOptional = false;
-    let multipleArg = false;
-    const commandClauses = [];
-    if (globalCommands.length > 0) {
-        commandClauses.push('<global_command>');
-        arg = globalCommands.some((globalCommand) => !_.isUndefined(globalCommand.argument));
-        if (arg) {
-            argOptional = globalCommands.some((globalCommand) => !_.isUndefined(globalCommand.argument)
-                && ((!_.isUndefined(globalCommand.argument.isOptional)
-                    && globalCommand.argument.isOptional) || !_.isUndefined(globalCommand.argument.defaultValue)));
-            argValueOptional = globalCommands.some((globalCommand) =>
-                !_.isUndefined(globalCommand.argument)
-                && (globalCommand.argument.type === ArgumentValueTypeName.Boolean));
-        }
-    }
-    if ((groupCommands.length > 0) || (subCommands.length > 0)) {
-        commandClauses.push('<command>');
-        arg = arg || groupCommands.some((groupCommand) =>
-            groupCommand.memberSubCommands.some((memberCommand) =>
-                memberCommand.options.length > 0 || memberCommand.positionals.length > 0))
-            || subCommands.some((subCommand) =>
-                subCommand.options.length > 0 || subCommand.positionals.length > 0);
-        if (arg) {
-            argOptional = argOptional || groupCommands.some((groupCommand) =>
-                groupCommand.memberSubCommands.some((memberCommand) =>
-                    memberCommand.options.some((option) =>
-                        (!_.isUndefined(option.isOptional) && option.isOptional) || !_.isUndefined(option.defaultValue))
-                        || memberCommand.positionals.some((positional) =>
-                            (!_.isUndefined(positional.isVarArgOptional) && positional.isVarArgOptional))))
-                || subCommands.some((subCommand) =>
-                    subCommand.options.some((option) =>
-                        (!_.isUndefined(option.isOptional) && option.isOptional)
-                        || !_.isUndefined(option.defaultValue))
-                    || subCommand.positionals.some((positional) =>
-                        (!_.isUndefined(positional.isVarArgOptional) && positional.isVarArgOptional)));
-            argValueOptional = argValueOptional || groupCommands.some((groupCommand) =>
-                groupCommand.memberSubCommands.some((memberCommand) =>
-                    memberCommand.options.some((option) => option.type === ArgumentValueTypeName.Boolean
-                        || memberCommand.positionals.some((positional) =>
-                            positional.type === ArgumentValueTypeName.Boolean))))
-                || subCommands.some((subCommand) =>
-                    subCommand.options.some((option) => option.type
-                        === ArgumentValueTypeName.Boolean)
-                    || subCommand.positionals.some((positional) =>
-                        positional.type === ArgumentValueTypeName.Boolean));
-            multipleArg = multipleArg || groupCommands.some((groupCommand) =>
-                groupCommand.memberSubCommands.some((memberCommand) =>
-                    memberCommand.options.some((option) => option.isArray)
-                    || memberCommand.positionals.some((positional) => positional.isVarArgMultiple)))
-                || subCommands.some((subCommand) =>
-                    subCommand.options.some((option) => option.isArray)
-                    || subCommand.positionals.some((positional) => positional.isVarArgMultiple));
-        }
-    }
-    if (commandClauses.length > 0) {
-        let subSyntax = `${commandClauses.join('|')}`;
-        // dont render arg if none defined (no global arg or no option/positional)
-        if (arg) {
-            let argSyntax = '<arg>';
-            // render arg value in [] if some are optional
-            argSyntax += argValueOptional ? ' [<value>]' : ' <value>';
-            // dont render arg in [] if none are optional and have no default
-            // eslint-disable-next-line no-nested-ternary
-            subSyntax += argOptional ? ` [${argSyntax}]` : multipleArg ? ` <${argSyntax}>` : ` ${argSyntax}`;
-            // check to render multiple arg
-            if (multipleArg) {
-                subSyntax += '...';
-            }
-        }
-        syntax += ` [${subSyntax}]`;
     }
     return syntax;
 }
@@ -613,6 +442,39 @@ function printHelpSections(printer: Printer, sections: HelpSection[]): void {
             printer.info('\n');
         }
     });
+}
+
+function checkContext(context: Context) {
+    if (_.isUndefined(context.cliConfig) || !_.isString(context.cliConfig.name)) {
+        throw new Error('Provided context is missing property: "cliConfig.name: string"');
+    }
+    if (_.isUndefined(context.cliConfig) || !_.isString(context.cliConfig.description)) {
+        throw new Error('Provided context is missing property: "cliConfig.description: string"');
+    }
+    if (_.isUndefined(context.cliConfig) || !_.isString(context.cliConfig.version)) {
+        throw new Error('Provided context is missing property: "cliConfig.version: string"');
+    }
+}
+
+function getGenericHelpInitialSections(context: Context, stdoutPrinter: Printer): HelpSection[] {
+    const helpSections: HelpSection[] = [];
+    helpSections.push({
+        title: stdoutPrinter.blue(context.cliConfig.description || ''),
+        entries: [
+            {
+                syntax: 'version',
+                description: context.cliConfig.version
+            }
+        ]
+    });
+    const configuration = context.serviceRegistry.getServiceById(CONFIGURATION_SERVICE) as unknown as Configuration;
+    if (configuration && (!_.isUndefined(configuration.configurationLocation))) {
+        helpSections[0].entries.push({
+            syntax: 'config',
+            description: configuration.configurationLocation
+        });
+    }
+    return helpSections;
 }
 
 /**
@@ -679,43 +541,24 @@ class MultiCommandCommonHelpCommand {
      * @param stdoutPrinter the [[Printer]] implementation to use.
      */
     public printGenericHelp(context: Context, stdoutPrinter: Printer): void {
+
+        const helpSections = getGenericHelpInitialSections(context, stdoutPrinter);
         const globalModifierCommands = Array.from(context.commandRegistry.getGlobalModifierCommands());
         const globalCommands = Array.from(context.commandRegistry.getGlobalCommands());
         const groupCommands = Array.from(context.commandRegistry.getGroupCommands());
         const subCommands = Array.from(context.commandRegistry.getSubCommands());
-
-        // display generic help
-        const helpSections: HelpSection[] = [];
-
-        helpSections.push({
-            title: stdoutPrinter.blue(context.cliConfig.description || ''),
-            entries: [
-                {
-                    syntax: 'version',
-                    description: context.cliConfig.version
-                }
-            ]
-        });
-        const configuration = context.serviceRegistry.getServiceById(CONFIGURATION_SERVICE) as unknown as Configuration;
-        if (configuration && (!_.isUndefined(configuration.configurationLocation))) {
-            helpSections[0].entries.push({
-                syntax: 'config',
-                description: configuration.configurationLocation
-            });
-        }
-
         helpSections.push({
             title: 'Usage',
             entries: [
                 {
-                    syntax: getMultiCommandAppSyntax(context, globalModifierCommands, globalCommands, groupCommands,
-                        subCommands)
+                    syntax: getCommandAppSyntax(context, globalModifierCommands, globalCommands, groupCommands,
+                        subCommands, false)
                 }
             ]
         });
 
         helpSections.push(
-            ...getMultiCommandGenericHelpSections(globalModifierCommands, globalCommands, groupCommands, subCommands)
+            ...getGenericHelpSections(globalModifierCommands, globalCommands, groupCommands, subCommands, false)
         );
 
         printHelpSections(stdoutPrinter, helpSections);
@@ -780,16 +623,6 @@ class MultiCommandCommonHelpCommand {
      * [[STDOUT_PRINTER_SERVICE]] and [[STDERR_PRINTER_SERVICE]] ID in the provided [[Context]].
      */
     public run(commandArgs: CommandArgs, context: Context): void {
-
-        if (_.isUndefined(context.cliConfig) || !_.isString(context.cliConfig.name)) {
-            throw new Error('Provided context is missing property: "cliConfig.name: string"');
-        }
-        if (_.isUndefined(context.cliConfig) || !_.isString(context.cliConfig.description)) {
-            throw new Error('Provided context is missing property: "cliConfig.description: string"');
-        }
-        if (_.isUndefined(context.cliConfig) || !_.isString(context.cliConfig.version)) {
-            throw new Error('Provided context is missing property: "cliConfig.version: string"');
-        }
         const stdoutPrinter = context.serviceRegistry.getServiceById(STDOUT_PRINTER_SERVICE) as unknown as Printer;
         if (!stdoutPrinter) {
             throw new Error('STDOUT_PRINTER_SERVICE not available in context');
@@ -860,32 +693,14 @@ class SingleCommandCommonHelpCommand {
         if (!this.defaultCommand) {
             throw new Error('defaultCommand property must be set before invoking run()!');
         }
+
+        const helpSections = getGenericHelpInitialSections(context, stdoutPrinter);
         const globalModifierCommands = Array.from(context.commandRegistry.getGlobalModifierCommands());
         const globalCommands = Array.from(context.commandRegistry.getGlobalCommands());
         const groupCommands = Array.from(context.commandRegistry.getGroupCommands());
         const subCommands = Array.from(context.commandRegistry.getSubCommands());
-
-        // display generic help
-        const helpSections: HelpSection[] = [];
-
-        helpSections.push({
-            title: stdoutPrinter.blue(context.cliConfig.description || ''),
-            entries: [
-                {
-                    syntax: 'version',
-                    description: context.cliConfig.version
-                }
-            ]
-        });
-        const configuration = context.serviceRegistry.getServiceById(CONFIGURATION_SERVICE) as unknown as Configuration;
-        if (configuration && (!_.isUndefined(configuration.configurationLocation))) {
-            helpSections[0].entries.push({
-                syntax: 'config',
-                description: configuration.configurationLocation
-            });
-        }
-        const globalSyntax = getSingleCommandAppSyntax(context, globalModifierCommands, globalCommands, groupCommands,
-            subCommands);
+        const globalSyntax = getCommandAppSyntax(context, globalModifierCommands, globalCommands, groupCommands,
+            subCommands, true);
         helpSections.push({
             title: 'Usage',
             entries: [{
@@ -897,7 +712,7 @@ class SingleCommandCommonHelpCommand {
             ...getCommandArgsAndExampleHelpSections(context, this.defaultCommand)
         );
         helpSections.push(
-            ...getSingleCommandGenericHelpSections(globalModifierCommands, globalCommands, groupCommands, subCommands)
+            ...getGenericHelpSections(globalModifierCommands, globalCommands, groupCommands, subCommands, true)
         );
 
         printHelpSections(stdoutPrinter, helpSections);
@@ -911,15 +726,7 @@ class SingleCommandCommonHelpCommand {
      */
     public run(commandArgs: CommandArgs, context: Context): void {
 
-        if (_.isUndefined(context.cliConfig) || !_.isString(context.cliConfig.name)) {
-            throw new Error('Provided context is missing property: "cliConfig.name: string"');
-        }
-        if (_.isUndefined(context.cliConfig) || !_.isString(context.cliConfig.description)) {
-            throw new Error('Provided context is missing property: "cliConfig.description: string"');
-        }
-        if (_.isUndefined(context.cliConfig) || !_.isString(context.cliConfig.version)) {
-            throw new Error('Provided context is missing property: "cliConfig.version: string"');
-        }
+        checkContext(context);
         const stdoutPrinter = context.serviceRegistry.getServiceById(STDOUT_PRINTER_SERVICE) as unknown as Printer;
         if (!stdoutPrinter) {
             throw new Error('STDOUT_PRINTER_SERVICE not available in context');
