@@ -6,14 +6,14 @@
 
 import debug from 'debug';
 import BaseNodeCLI from './BaseNodeCLI';
-import { HelpGlobalCommand, HelpSubCommand } from '../core/command/HelpCommand';
+import { MultiCommandHelpGlobalCommand, MultiCommandHelpSubCommand } from '../core/command/HelpCommand';
 import UsageCommand from '../core/command/UsageCommand';
 import { PrompterService } from '../core/service/PrompterService';
 import { StderrPrinterService, StdoutPrinterService } from '../core/service/PrinterService';
 import VersionCommand from '../core/command/VersionCommand';
 import Command from '../api/Command';
 
-const helpGlobalCommand = new HelpGlobalCommand();
+const helpGlobalCommand = new MultiCommandHelpGlobalCommand();
 const usageCommand = new UsageCommand(helpGlobalCommand);
 
 /**
@@ -39,8 +39,8 @@ export default class SimpleMultiCommandNodeCLI extends BaseNodeCLI {
             new StdoutPrinterService(90),
             new PrompterService(90)
         ], [
-            new HelpGlobalCommand(),
-            new HelpSubCommand(),
+            helpGlobalCommand,
+            new MultiCommandHelpSubCommand(),
             new VersionCommand(),
             ...commands
         ], new Map(), new Map(), name, usageCommand, usageCommand);

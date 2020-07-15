@@ -4,7 +4,7 @@ import { CommandArgs } from '../../src/api/Command';
 import Context from '../../src/api/Context';
 import SubCommand from '../../src/api/SubCommand';
 import UsageCommand from '../../src/core/command/UsageCommand';
-import { HelpGlobalCommand, HelpSubCommand } from '../../src/core/command/HelpCommand';
+import { MultiCommandHelpGlobalCommand, MultiCommandHelpSubCommand } from '../../src/core/command/HelpCommand';
 import Printer, {
     StderrPrinterService,
     StdoutPrinterService,
@@ -67,7 +67,7 @@ describe('BaseNodeCLI test', () => {
         const cli = new BaseNodeCLI([
             new StderrPrinterService(1),
             new StdoutPrinterService(1)
-        ], [], new Map(), new Map(), 'foo1', new UsageCommand(new HelpGlobalCommand()));
+        ], [], new Map(), new Map(), 'foo1', new UsageCommand(new MultiCommandHelpGlobalCommand()));
 
         await cli.execute();
 
@@ -84,7 +84,7 @@ describe('BaseNodeCLI test', () => {
             new StderrPrinterService(1),
             new StdoutPrinterService(1)
         ], [], new Map(), new Map(), 'foo', new VersionCommand(),
-        new UsageCommand(new HelpGlobalCommand()));
+        new UsageCommand(new MultiCommandHelpGlobalCommand()));
 
         await cli.execute();
         expect(mockExit).toHaveBeenCalledWith(0);
@@ -98,7 +98,7 @@ describe('BaseNodeCLI test', () => {
         const cli = new BaseNodeCLI([
             new StderrPrinterService(1),
             new StdoutPrinterService(1)
-        ], [new HelpGlobalCommand()], new Map(), new Map(), 'foo');
+        ], [new MultiCommandHelpGlobalCommand()], new Map(), new Map(), 'foo');
 
         await cli.execute();
         expect(mockExit).toHaveBeenCalledWith(0);
@@ -139,7 +139,7 @@ describe('BaseNodeCLI test', () => {
         const cli = new BaseNodeCLI([
             new StderrPrinterService(1),
             new StdoutPrinterService(1)
-        ], [subCommand, new HelpSubCommand()], new Map(), new Map(), 'foo');
+        ], [subCommand, new MultiCommandHelpSubCommand()], new Map(), new Map(), 'foo');
 
         await cli.execute();
         expect(mockExit).toHaveBeenCalledWith(0);

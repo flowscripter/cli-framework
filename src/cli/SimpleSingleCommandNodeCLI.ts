@@ -9,13 +9,14 @@
 import debug from 'debug';
 import BaseNodeCLI from './BaseNodeCLI';
 import VersionCommand from '../core/command/VersionCommand';
-import { HelpGlobalCommand } from '../core/command/HelpCommand';
+import { SingleCommandHelpGlobalCommand, SingleCommandHelpSubCommand } from '../core/command/HelpCommand';
 import { PrompterService } from '../core/service/PrompterService';
 import { StderrPrinterService, StdoutPrinterService } from '../core/service/PrinterService';
 import UsageCommand from '../core/command/UsageCommand';
-import GlobalCommand from '../api/GlobalCommand';
+import SubCommand from '../api/SubCommand';
 
-const helpGlobalCommand = new HelpGlobalCommand();
+const helpGlobalCommand = new SingleCommandHelpGlobalCommand();
+const helpSubCommand = new SingleCommandHelpSubCommand();
 const usageCommand = new UsageCommand(helpGlobalCommand);
 
 /**
@@ -27,23 +28,26 @@ export default class SimpleSingleCommandNodeCLI extends BaseNodeCLI {
     protected readonly log: debug.Debugger = debug('SimpleSingleCommandNodeCLI');
 
     /**
-     * Constructor taking the single [[GlobalCommand]] instance to be executed
+     * Constructor taking the single [[SubCommand]] instance to be executed
      * and an optional name.
      *
      * Configures the CLI with `stdout` and `stderr` [[PrinterService]] implementations,
      * a [[PrompterService]] implementation and help, usage and version support.
      *
-     * @param globalCommand the single [[GlobalCommand]] to be run as default when the CLI is run.
+     * @param subCommand the single [[SubCommand]] to be run as default when the CLI is run.
      * @param name an optional name for the CLI. If not specified it will be taken from the `package.json` file.
      */
-    public constructor(globalCommand: GlobalCommand, name?: string) {
+    public constructor(subCommand: SubCommand, name?: string) {
         super([
             new StderrPrinterService(90),
             new StdoutPrinterService(90),
             new PrompterService(90)
         ], [
-            new HelpGlobalCommand(),
+            helpGlobalCommand,
+            helpSubCommand,
             new VersionCommand()
-        ], new Map(), new Map(), name, globalCommand, usageCommand);
+        ], new Map(), new Map(), name, subCommand, usageCommand);
+        helpGlobalCommand.defaultCommand = subCommand;
+        helpSubCommand.defaultCommand = subCommand;
     }
 }

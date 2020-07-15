@@ -10,7 +10,7 @@ import path from 'path';
 import debug from 'debug';
 import { NodePluginManager } from '@flowscripter/esm-dynamic-plugins';
 import BaseNodeCLI from './BaseNodeCLI';
-import { HelpGlobalCommand, HelpSubCommand } from '../core/command/HelpCommand';
+import { MultiCommandHelpGlobalCommand, MultiCommandHelpSubCommand } from '../core/command/HelpCommand';
 import UsageCommand from '../core/command/UsageCommand';
 import { PrompterService } from '../core/service/PrompterService';
 import { ConfigurationService } from '../core/service/ConfigurationService';
@@ -32,7 +32,7 @@ import {
 } from '../plugin/ServiceFactory';
 import Command, { CommandArgs } from '../api/Command';
 
-const helpGlobalCommand = new HelpGlobalCommand();
+const helpGlobalCommand = new MultiCommandHelpGlobalCommand();
 const usageCommand = new UsageCommand(helpGlobalCommand);
 
 /**
@@ -81,8 +81,8 @@ export default class AdvancedMultiCommandNodeCLI extends BaseNodeCLI {
             ])),
             ...services
         ], [
-            new HelpGlobalCommand(),
-            new HelpSubCommand(),
+            helpGlobalCommand,
+            new MultiCommandHelpSubCommand(),
             new VersionCommand(),
             new ConfigCommand(100),
             new LogLevelCommand(90),

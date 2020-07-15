@@ -15,7 +15,7 @@ describe('DefaultContext test', () => {
         const context = new DefaultContext(getCliConfig(), new DefaultServiceRegistry(),
             new DefaultCommandRegistry(), new Map(), new Map());
 
-        expect(context.cliConfig.name).toEqual('foo');
+        expect(context.cliConfig.name).toEqual('foobar');
     });
 
     test('Service configs is populated', () => {

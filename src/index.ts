@@ -37,11 +37,16 @@ export { default as AdvancedMultiCommandNodeCLI } from './cli/AdvancedMultiComma
 /* Command implementations */
 
 export { default as VersionCommand } from './core/command/VersionCommand';
-export { HelpSubCommand, HelpGlobalCommand } from './core/command/HelpCommand';
 export { default as UsageCommand } from './core/command/UsageCommand';
 export { default as LogLevelCommand } from './core/command/LogLevelCommand';
 export { default as ConfigCommand } from './core/command/ConfigCommand';
 export { ColorCommand, NoColorCommand } from './core/command/ColorCommand';
+export {
+    MultiCommandHelpSubCommand,
+    MultiCommandHelpGlobalCommand,
+    SingleCommandHelpSubCommand,
+    SingleCommandHelpGlobalCommand
+} from './core/command/HelpCommand';
 
 /* Service implementations */
 
