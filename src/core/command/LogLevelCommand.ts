@@ -1,12 +1,13 @@
+/**
+ * @module @flowscripter/cli-framework
+ */
+
 import { CommandArgs } from '../../api/Command';
 import Context from '../../api/Context';
 import Printer, { Level, STDOUT_PRINTER_SERVICE, STDERR_PRINTER_SERVICE } from '../service/PrinterService';
 import GlobalModifierCommand from '../../api/GlobalModifierCommand';
 import GlobalCommandArgument from '../../api/GlobalCommandArgument';
 
-/**
- * @module @flowscripter/cli-framework
- */
 export default class LogLevelCommand implements GlobalModifierCommand {
 
     readonly name = 'loglevel';

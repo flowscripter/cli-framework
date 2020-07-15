@@ -1,5 +1,6 @@
+/* API */
+
 export { default as CLI } from './api/CLI';
-export { default as CommandFactory } from './api/CommandFactory';
 export { default as CommandRegistry } from './api/CommandRegistry';
 export { default as Command, CommandArgs } from './api/Command';
 export { default as SubCommand, UsageExample } from './api/SubCommand';
@@ -7,8 +8,7 @@ export { default as GlobalCommand } from './api/GlobalCommand';
 export { default as GlobalModifierCommand } from './api/GlobalModifierCommand';
 export { default as GroupCommand } from './api/GroupCommand';
 export { default as Context } from './api/Context';
-export { default as CLIConfig, PluginManagerConfig } from './api/CLIConfig';
-export { default as ServiceFactory } from './api/ServiceFactory';
+export { default as CLIConfig } from './api/CLIConfig';
 export { default as ServiceRegistry } from './api/ServiceRegistry';
 export { default as Service } from './api/Service';
 export { ArgumentValueTypeName, ArgumentSingleValueType, ArgumentValueType } from './api/ArgumentValueType';
@@ -19,11 +19,6 @@ export { default as Option } from './api/Option';
 export { default as GlobalCommandArgument } from './api/GlobalCommandArgument';
 export { default as Parser } from './api/Parser';
 export { default as Runner, RunResult } from './api/Runner';
-export { default as BaseCLI } from './cli/BaseCLI';
-export { default as AbstractNodeCLI } from './cli/AbstractNodeCLI';
-export { default as NodeCLI } from './cli/NodeCLI';
-export { default as SimpleNodeCLI } from './cli/SimpleNodeCLI';
-
 export {
     isGroupCommand,
     isSubCommand,
@@ -31,12 +26,29 @@ export {
     isGlobalCommand
 } from './api/CommandTypeGuards';
 
+/* CLI implementations */
+
+export { default as BaseCLI } from './cli/BaseCLI';
+export { default as BaseNodeCLI } from './cli/BaseNodeCLI';
+export { default as SimpleSingleCommandNodeCLI } from './cli/SimpleSingleCommandNodeCLI';
+export { default as SimpleMultiCommandNodeCLI } from './cli/SimpleMultiCommandNodeCLI';
+export { default as AdvancedMultiCommandNodeCLI } from './cli/AdvancedMultiCommandNodeCLI';
+
+/* Command implementations */
+
 export { default as VersionCommand } from './core/command/VersionCommand';
-export { HelpSubCommand, HelpGlobalCommand } from './core/command/HelpCommand';
 export { default as UsageCommand } from './core/command/UsageCommand';
 export { default as LogLevelCommand } from './core/command/LogLevelCommand';
 export { default as ConfigCommand } from './core/command/ConfigCommand';
 export { ColorCommand, NoColorCommand } from './core/command/ColorCommand';
+export {
+    MultiCommandHelpSubCommand,
+    MultiCommandHelpGlobalCommand,
+    SingleCommandHelpSubCommand,
+    SingleCommandHelpGlobalCommand
+} from './core/command/HelpCommand';
+
+/* Service implementations */
 
 export {
     default as Configuration,
@@ -58,13 +70,26 @@ export {
     PROMPTER_SERVICE
 } from './core/service/PrompterService';
 
-export {
-    default as PluginRegistry,
-    PluginRegistryService,
-    PLUGIN_REGISTRY_SERVICE
-} from './plugin/service/PluginRegistryService';
+/* Plugin support */
 
 export {
+    default as PluginRegistry,
+    PLUGIN_REGISTRY_SERVICE,
+    PluginManagerConfig,
+    PluginRegistryService,
+    PluginManagerClass
+} from './plugin/service/PluginRegistryService';
+
+export { default as PluginCommand } from './plugin/command/PluginCommand';
+
+export {
+    default as CommandFactory,
+    COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID,
+    handleLoadedCommandFactory
+} from './plugin/CommandFactory';
+
+export {
+    default as ServiceFactory,
     SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID,
-    COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID
-} from './plugin/PluginExtensionPoints';
+    handleLoadedServiceFactory
+} from './plugin/ServiceFactory';

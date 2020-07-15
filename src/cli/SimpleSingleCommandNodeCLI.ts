@@ -1,0 +1,53 @@
+/**
+ * @module @flowscripter/cli-framework
+ */
+
+/** global process */
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+import debug from 'debug';
+import BaseNodeCLI from './BaseNodeCLI';
+import VersionCommand from '../core/command/VersionCommand';
+import { SingleCommandHelpGlobalCommand, SingleCommandHelpSubCommand } from '../core/command/HelpCommand';
+import { PrompterService } from '../core/service/PrompterService';
+import { StderrPrinterService, StdoutPrinterService } from '../core/service/PrinterService';
+import UsageCommand from '../core/command/UsageCommand';
+import SubCommand from '../api/SubCommand';
+
+const helpGlobalCommand = new SingleCommandHelpGlobalCommand();
+const helpSubCommand = new SingleCommandHelpSubCommand();
+const usageCommand = new UsageCommand(helpGlobalCommand);
+
+/**
+ * Node command line process implementation of a [[CLI]] configured for a single
+ * command application with simple features.
+ */
+export default class SimpleSingleCommandNodeCLI extends BaseNodeCLI {
+
+    protected readonly log: debug.Debugger = debug('SimpleSingleCommandNodeCLI');
+
+    /**
+     * Constructor taking the single [[SubCommand]] instance to be executed
+     * and an optional name.
+     *
+     * Configures the CLI with `stdout` and `stderr` [[PrinterService]] implementations,
+     * a [[PrompterService]] implementation and help, usage and version support.
+     *
+     * @param subCommand the single [[SubCommand]] to be run as default when the CLI is run.
+     * @param name an optional name for the CLI. If not specified it will be taken from the `package.json` file.
+     */
+    public constructor(subCommand: SubCommand, name?: string) {
+        super([
+            new StderrPrinterService(90),
+            new StdoutPrinterService(90),
+            new PrompterService(90)
+        ], [
+            helpGlobalCommand,
+            helpSubCommand,
+            new VersionCommand()
+        ], new Map(), new Map(), name, subCommand, usageCommand);
+        helpGlobalCommand.defaultCommand = subCommand;
+        helpSubCommand.defaultCommand = subCommand;
+    }
+}

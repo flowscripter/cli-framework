@@ -1,7 +1,8 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /**
  * @module @flowscripter/cli-framework
  */
+
+/* eslint-disable @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-explicit-any, no-await-in-loop */
 
 import _ from 'lodash';
 import * as fs from 'fs';
@@ -9,14 +10,13 @@ import debug from 'debug';
 import { PluginManager } from '@flowscripter/esm-dynamic-plugins';
 import Service from '../../api/Service';
 import Context from '../../api/Context';
-import {
-    COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID,
-    SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID
-} from '../PluginExtensionPoints';
-import ServiceFactory from '../../api/ServiceFactory';
-import CommandFactory from '../../api/CommandFactory';
 
 export const PLUGIN_REGISTRY_SERVICE = '@flowscripter/cli-framework/plugin-registry-service';
+
+/**
+ * Type alias for a PluginManager class
+ */
+export type PluginManagerClass = new (paths: Array<string>) => PluginManager<string>;
 
 /**
  * Interface to be implemented by a [[Service]] allowing management of plugins.
@@ -36,14 +36,30 @@ export default interface PluginRegistry {
 
     /**
      * Scan for any available plugins which have not already been registered and register them.
-     * Any plugins discovered for:
-     *
-     * * the [[COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID]] extension point will be added as
-     * new [[Command]] implementations in the provided [[Context]].
-     * * the [[SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID]] extension point will be added as
-     * new [[Service]] implementations in the provided [[Context]].
      */
     scan(context: Context): void;
+}
+
+/**
+ * Interface specifying esm-dynamic-plugins PluginManager related configuration for [[PluginRegistryService]].
+ */
+export interface PluginManagerConfig {
+
+    /**
+     * An esm-dynamic-plugins PluginManager implementation class definition.
+     */
+    readonly pluginManager: PluginManagerClass;
+
+    /**
+     * A base storage location for plugins.
+     */
+    readonly pluginLocation: string;
+
+    /**
+     * A scope string for plugin modules e.g. if a scope of `@foo` is configured and a module
+     * name `bar` is specified then the module name used will be `@foo/bar`.
+     */
+    readonly moduleScope?: string;
 }
 
 /**
@@ -63,156 +79,143 @@ export class PluginRegistryService implements Service, PluginRegistry {
 
     public moduleScope: string | undefined;
 
+    public extensionHandlersByExtensionPoints: Map<string, (extension: any, context: Context) => Promise<void>>;
+
     /**
-     * Create a [[PluginRegistry]] service using the provided esm-dynamic-modules PluginManager.
+     * Create a [[PluginRegistry]] service using a wrapped esm-dynamic-modules PluginManager.
      *
      * @param initPriority to determine the relative order in which multiple [[Service]] instances are initialised.
+     * @param extensionHandlersByExtensionPoints a map of extension point IDs (which should be registered with
+     * the PluginManager instance) and their associated extension handlers (which will be executed with each extension
+     * which is loaded by the PluginManager).
      */
-    public constructor(initPriority: number) {
+    public constructor(initPriority: number,
+        extensionHandlersByExtensionPoints: Map<string, (extension: any, context: Context) => Promise<void>>) {
         this.initPriority = initPriority;
-    }
-
-    /**
-     * @param pluginManager an esm-dynamic-modules PluginManager to use
-     */
-    private async* makeServiceFactoryIterator(pluginManager: PluginManager<string>): AsyncIterable<ServiceFactory> {
-        for (const extensionInfo of pluginManager.getExtensions(SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID)) {
-            this.log(`Extension for ${
-                SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID} has data: ${extensionInfo.extensionData}`);
-            this.log(`Plugin for ${
-                SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID} has data: ${extensionInfo.pluginData}`);
-
-            yield pluginManager.instantiate(extensionInfo.extensionHandle, this.id);
-        }
-    }
-
-    /**
-     * @param pluginManager an esm-dynamic-modules PluginManager to use
-     */
-    private async* makeCommandFactoryIterator(pluginManager: PluginManager<string>): AsyncIterable<CommandFactory> {
-        for (const extensionInfo of pluginManager.getExtensions(COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID)) {
-            this.log(`Extension for ${
-                COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID} has data: ${extensionInfo.extensionData}`);
-            this.log(`Plugin for ${
-                COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID} has data: ${extensionInfo.pluginData}`);
-
-            yield pluginManager.instantiate(extensionInfo.extensionHandle, this.id);
-        }
+        this.extensionHandlersByExtensionPoints = extensionHandlersByExtensionPoints;
     }
 
     /**
      * @inheritdoc
      *
-     * Instantiates the esm-dynamic-plugins PluginManager implementation provided in the [[Context]]
-     * `cliConfig.pluginManagerConfig.pluginManager` property with the plugin location provided in the [[Context]]
-     * `cliConfig.pluginManagerConfig.pluginLocation` property.
+     * Expects the provided [[Context]] to contain a [[PluginManagerConfig]] instance for the service's config.
      *
-     * If a `pluginLocation` property is provided in the service's config this will be used
-     * in preference to that provided in the `cliConfig.pluginManagerConfig.pluginLocation` property.
+     * Instantiates the esm-dynamic-plugins PluginManager implementation specified in the [[PluginManagerConfig]]
+     * from the service's config.
      *
-     * If the specified `pluginLocation` does not exist, it will be created.
+     * If the specified `pluginLocation` in the [[PluginManagerConfig]] does not exist, it will be created.
      *
-     * If a `cliConfig.pluginManagerConfig.moduleScope` property is provided in the [[Context]] this will also
-     * be set. If a `moduleScope` property is provided in the service's config this will be used
-     * in preference.
+     * If a `moduleScope` property is provided in the [[PluginManagerConfig]] this will also
+     * be set.
      *
-     * Once the PluginManager is initialised, the extensions [[SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID]] and
-     * [[COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID]] will be registered. Following this, [[scan]] will be invoked.
+     * Once the PluginManager is initialised, [[scan]] will be invoked.
      *
-     * @throws *Error* if a non-default plugin location is specified in the service's configuration and it
-     * cannot be read or is not a folder, if the parent of the specified plugin location does not exist or if
-     * the plugin location does not exist and it cannot be created.
+     * @throws *Error* if:
+     * * the parent of the specified plugin location does not exist
+     * * the plugin location does not exist and it cannot be created
+     * * the specified location is not readable or is a file not a directory
      */
     public async init(context: Context): Promise<void> {
-        if (_.isUndefined(context.cliConfig.pluginManagerConfig)) {
-            throw new Error('Provided context is missing property: "cliConfig.pluginManagerConfig"');
+
+        const pluginServiceConfig = context.serviceConfigs.get(this.id) as PluginManagerConfig;
+        if (_.isUndefined(pluginServiceConfig)) {
+            throw new Error('No [[PluginManagerConfig]] provided as a service config in the context for service!');
         }
 
-        let customLocation = false;
-
-        // determine actual plugin location
-        const pluginServiceConfig = context.serviceConfigs.get(this.id);
-        if (!_.isUndefined(pluginServiceConfig) && !_.isUndefined(pluginServiceConfig.pluginLocation)) {
-            if (!_.isString(pluginServiceConfig.pluginLocation)) {
-                throw new Error('The configured "pluginLocation" is not a string!');
-            }
-            this.pluginLocation = pluginServiceConfig.pluginLocation;
-            customLocation = true;
-        } else {
-            this.pluginLocation = context.cliConfig.pluginManagerConfig.pluginLocation;
+        // determine plugin location
+        if (!_.isString(pluginServiceConfig.pluginLocation)) {
+            throw new Error('The configured "pluginLocation" is not a string!');
         }
+        this.pluginLocation = pluginServiceConfig.pluginLocation;
         this.log(`Using pluginLocation: ${this.pluginLocation}`);
 
         try {
-            fs.accessSync(this.pluginLocation!, fs.constants.F_OK);
+            fs.accessSync(this.pluginLocation, fs.constants.F_OK);
         } catch (err) {
             this.log(`pluginLocation: ${this.pluginLocation} doesn't exist - creating it`);
             try {
-                fs.mkdirSync(this.pluginLocation!);
+                fs.mkdirSync(this.pluginLocation);
             } catch (err2) {
                 throw new Error(`Unable to create folder for pluginLocation: ${this.pluginLocation} : ${err.message}`);
             }
         }
 
-        let locationExists = false;
         try {
-            fs.accessSync(this.pluginLocation!, fs.constants.R_OK);
-            locationExists = true;
+            fs.accessSync(this.pluginLocation, fs.constants.R_OK);
         } catch (err) {
-            if (customLocation) {
-                throw new Error(`pluginLocation: ${this.pluginLocation} is not readable!`);
-            } else {
-                this.log(`pluginLocation: ${this.pluginLocation} is not readable - ignoring`);
-            }
+            throw new Error(`pluginLocation: ${this.pluginLocation} is not readable!`);
         }
 
-        if (locationExists) {
-            const stats = fs.statSync(this.pluginLocation!);
-            if (!stats.isDirectory()) {
-                if (customLocation) {
-                    throw new Error(`pluginLocation: ${this.pluginLocation!} is not a directory!`);
-                } else {
-                    this.log(`pluginLocation: ${
-                        this.pluginLocation} is not a directory - ignoring, no plugins will be loaded`);
-                }
-            }
+        const stats = fs.statSync(this.pluginLocation);
+        if (!stats.isDirectory()) {
+            throw new Error(`pluginLocation: ${this.pluginLocation} is not a directory!`);
         }
 
-        // determine actual plugin module scope
-        if (!_.isUndefined(pluginServiceConfig)) {
-            this.moduleScope = pluginServiceConfig.moduleScope;
-        }
-        this.moduleScope = this.moduleScope || context.cliConfig.pluginManagerConfig.moduleScope;
-        if (!_.isUndefined(this.moduleScope)) {
-            if (!_.isString(this.moduleScope)) {
+        // determine plugin module scope
+        if (!_.isUndefined(pluginServiceConfig.moduleScope)) {
+            if (!_.isString(pluginServiceConfig.moduleScope)) {
                 throw new Error('The configured "moduleScope" is not a string!');
             }
-            if (!this.moduleScope.startsWith('@')) {
-                throw new Error(`The configured "moduleScope" must start with "@": ${this.moduleScope}!`);
+            if (!pluginServiceConfig.moduleScope.startsWith('@')) {
+                throw new Error(`The configured "moduleScope" must start with "@": ${pluginServiceConfig.moduleScope}`);
             }
-            if (this.moduleScope.length < 2) {
+            if (pluginServiceConfig.moduleScope.length < 2) {
                 throw new Error('The configured "moduleScope" must be more than "@"!');
             }
+            this.moduleScope = pluginServiceConfig.moduleScope;
             this.log(`Using moduleScope: ${this.moduleScope}`);
         }
 
-        if (locationExists) {
-            // eslint-disable-next-line new-cap
-            this.pluginManager = new context.cliConfig.pluginManagerConfig.pluginManager([this.pluginLocation!]);
+        if (_.isUndefined(pluginServiceConfig.pluginManager)) {
+            throw new Error('"pluginManager" was not specified!');
+        }
 
-            if (_.isUndefined(this.pluginManager)) {
-                throw new Error('Logic error: this.pluginManager is undefined!');
+        // eslint-disable-next-line new-cap
+        this.pluginManager = new pluginServiceConfig.pluginManager([this.pluginLocation]);
+
+        for (const extensionPointId of this.extensionHandlersByExtensionPoints.keys()) {
+            this.log(`Registering Extension Point ID: ${extensionPointId} with PluginManager`);
+            this.pluginManager.registerExtensionPoint(extensionPointId);
+        }
+        const registerPromises: Array<Promise<void>> = [];
+        for (const extensionPointId of this.extensionHandlersByExtensionPoints.keys()) {
+            this.log(`Registering Plugins for Extension Point ID: ${extensionPointId}`);
+            let registerPromise: Promise<number>;
+            if (!_.isUndefined(this.moduleScope)) {
+                registerPromise = this.pluginManager.registerPluginsByModuleScopeAndExtensionPoint(this.moduleScope,
+                    extensionPointId);
+            } else {
+                registerPromise = this.pluginManager.registerPluginsByExtensionPoint(extensionPointId);
             }
+            registerPromises.push(registerPromise.then((pluginCount) => {
+                this.log(`Registered ${pluginCount} plugins(s)`);
+            }));
+        }
+        await Promise.all(registerPromises);
 
-            this.pluginManager.registerExtensionPoint(SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID);
-            this.pluginManager.registerExtensionPoint(COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID);
+        await this.scan(context);
+    }
 
-            await this.scan(context);
+    /**
+     * @param pluginManager an esm-dynamic-modules PluginManager to use
+     * @param extensionPointId the extension point ID to load extensions for
+     */
+    private async* makeExtensionIterator(pluginManager: PluginManager<string>, extensionPointId: string):
+        AsyncIterable<any> {
+        for (const extensionInfo of pluginManager.getExtensions(extensionPointId)) {
+            this.log(`Extension for ${extensionPointId} has data: ${extensionInfo.extensionData}`);
+            this.log(`Plugin for ${extensionPointId} has data: ${extensionInfo.pluginData}`);
+
+            yield pluginManager.instantiate(extensionInfo.extensionHandle, this.id);
         }
     }
 
     /**
      * @inheritdoc
+     *
+     * This implementation performs the following for each tuple in the provided [[extensionHandlersByExtensionPoints]]:
+     * * get any extensions from the PluginManager for this extension point ID
+     * * pass each extension to the provided extension handler function associated with the extension point ID
      *
      * @throws *Error* if there is an issue while scanning.
      */
@@ -222,52 +225,15 @@ export class PluginRegistryService implements Service, PluginRegistry {
             throw new Error('"pluginManager" is undefined, has init() been invoked?');
         }
 
-        let pluginCount = 0;
-        if (!_.isUndefined(this.moduleScope)) {
-            pluginCount += await
-            this.pluginManager.registerPluginsByModuleScopeAndExtensionPoint(
-                this.moduleScope, SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID
-            );
-            pluginCount += await
-            this.pluginManager.registerPluginsByModuleScopeAndExtensionPoint(
-                this.moduleScope, COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID
-            );
-        } else {
-            pluginCount += await
-            this.pluginManager.registerPluginsByExtensionPoint(SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID);
-            pluginCount += await
-            this.pluginManager.registerPluginsByExtensionPoint(COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID);
-        }
-        this.log(`Registered ${pluginCount} new plugins(s)`);
-
-        let i = 0;
-        for await (const serviceFactory of this.makeServiceFactoryIterator(this.pluginManager)) {
-            const services = Array.from(serviceFactory.getServices());
-            services.sort((a, b) => (a.initPriority >= b.initPriority ? 1 : 0));
-            for (const service of services) {
-
-                // add to the service registry
-                context.serviceRegistry.addService(service);
-
-                this.log(`Initialising service: ${service.id}`);
-                // eslint-disable-next-line no-await-in-loop
-                await service.init(context);
-
-                i += 1;
+        for (const extensionPointId of this.extensionHandlersByExtensionPoints.keys()) {
+            for await (const extension of this.makeExtensionIterator(this.pluginManager, extensionPointId)) {
+                const extensionHandler = this.extensionHandlersByExtensionPoints.get(extensionPointId);
+                if (_.isUndefined(extensionHandler)) {
+                    throw new Error('Logic error: extensionHandler is undefined for '
+                        + `extensionPointId: ${extensionPointId}`);
+                }
+                await extensionHandler(extension, context);
             }
         }
-        this.log(`Registered ${i} new services(s)`);
-
-        i = 0;
-        for await (const commandFactory of this.makeCommandFactoryIterator(this.pluginManager)) {
-            for (const command of commandFactory.getCommands()) {
-
-                // add to the command registry
-                context.commandRegistry.addCommand(command);
-
-                i += 1;
-            }
-        }
-        this.log(`Registered ${i} new command(s)`);
     }
 }

@@ -1,14 +1,14 @@
 import { mockProcessExit, mockProcessStderr, mockProcessStdout } from 'jest-mock-process';
-import NodeCLI from '../../src/cli/NodeCLI';
-import Command, { CommandArgs } from '../../src/api/Command';
+import SimpleMultiCommandNodeCLI from '../../src/cli/SimpleMultiCommandNodeCLI';
+import { CommandArgs } from '../../src/api/Command';
 import Context from '../../src/api/Context';
-import { Printer, STDOUT_PRINTER_SERVICE } from '../../src';
 import SubCommand from '../../src/api/SubCommand';
+import Printer, { STDOUT_PRINTER_SERVICE } from '../../src/core/service/PrinterService';
 
 const mockStdout = mockProcessStdout();
 const mockStderr = mockProcessStderr();
 
-describe('NodeCLI test', () => {
+describe('SimpleMultiCommandNodeCLI test', () => {
 
     beforeEach(() => {
         mockStdout.mockReset();
@@ -20,8 +20,19 @@ describe('NodeCLI test', () => {
         mockStderr.mockRestore();
     });
 
-    test('NodeCLI is instantiable', () => {
-        expect(new NodeCLI()).toBeInstanceOf(NodeCLI);
+    test('SimpleMultiCommandNodeCLI is instantiable', () => {
+        expect(new SimpleMultiCommandNodeCLI([], 'foo')).toBeInstanceOf(SimpleMultiCommandNodeCLI);
+    });
+
+    test('Default command execution works', async () => {
+        process.argv = ['node', 'node.js'];
+
+        const mockExit = mockProcessExit();
+        const cli = new SimpleMultiCommandNodeCLI([], 'foo');
+        await cli.execute();
+
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('foo --help'));
+        expect(mockExit).toHaveBeenCalledWith(0);
     });
 
     test('Basic execution works', async () => {
@@ -43,37 +54,10 @@ describe('NodeCLI test', () => {
         process.argv = ['node', 'node.js', 'greeter', 'hello', 'world'];
 
         const mockExit = mockProcessExit();
-        const cli = new NodeCLI();
-
-        cli.addCommandFactory({
-            getCommands: (): Iterable<Command> => [subCommand]
-        });
+        const cli = new SimpleMultiCommandNodeCLI([subCommand], 'foo');
         await cli.execute();
 
         expect(mockStdout).toHaveBeenLastCalledWith('hello world');
-        expect(mockExit).toHaveBeenCalledWith(0);
-    });
-
-    test('Basic execution works with custom name', async () => {
-        process.argv = ['node', 'node.js', 'greeter', 'hello', 'world'];
-
-        const mockExit = mockProcessExit();
-        const cli = new NodeCLI('foo1');
-
-        await cli.execute();
-
-        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('foo1 --help'));
-        expect(mockExit).toHaveBeenCalledWith(0);
-    });
-
-    test('Basic execution with no command exits with 0', async () => {
-
-        process.argv = ['node', 'node.js'];
-
-        const mockExit = mockProcessExit();
-        const cli = new NodeCLI();
-
-        await cli.execute();
         expect(mockExit).toHaveBeenCalledWith(0);
     });
 
@@ -82,18 +66,12 @@ describe('NodeCLI test', () => {
         process.argv = ['node', 'node.js', '--help'];
 
         const mockExit = mockProcessExit();
-        const cli = new NodeCLI();
-
+        const cli = new SimpleMultiCommandNodeCLI([], 'foo');
         await cli.execute();
         expect(mockExit).toHaveBeenCalledWith(0);
     });
 
     test('Basic execution with sub-command help and help subject', async () => {
-
-        process.argv = ['node', 'node.js', 'help', 'greeter'];
-
-        const mockExit = mockProcessExit();
-        const cli = new NodeCLI();
 
         const subCommand: SubCommand = {
             name: 'greeter',
@@ -122,22 +100,24 @@ describe('NodeCLI test', () => {
             }
         };
 
-        cli.addCommandFactory({
-            getCommands: (): Iterable<Command> => [subCommand]
-        });
+        process.argv = ['node', 'node.js', 'help', 'greeter'];
+
+        const mockExit = mockProcessExit();
+        const cli = new SimpleMultiCommandNodeCLI([subCommand], 'foo');
 
         await cli.execute();
         expect(mockExit).toHaveBeenCalledWith(0);
     });
 
-    test('Basic execution with invalid command exits with 1', async () => {
+    test('Basic execution with invalid command', async () => {
 
         process.argv = ['node', 'node.js', 'blah'];
 
         const mockExit = mockProcessExit();
-        const cli = new NodeCLI();
+        const cli = new SimpleMultiCommandNodeCLI([], 'foo');
 
         await cli.execute();
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('foo --help'));
         expect(mockExit).toHaveBeenCalledWith(0);
     });
 });

@@ -1,3 +1,7 @@
+/**
+ * @module @flowscripter/cli-framework
+ */
+
 import * as fs from 'fs';
 import _ from 'lodash';
 import { CommandArgs } from '../../api/Command';
@@ -7,9 +11,6 @@ import Configuration, { CONFIGURATION_SERVICE } from '../service/ConfigurationSe
 import Printer, { STDERR_PRINTER_SERVICE } from '../service/PrinterService';
 import GlobalCommandArgument from '../../api/GlobalCommandArgument';
 
-/**
- * @module @flowscripter/cli-framework
- */
 export default class ConfigCommand implements GlobalModifierCommand {
 
     readonly name = 'config';

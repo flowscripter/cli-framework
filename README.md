@@ -16,10 +16,11 @@ This project provides a Javascript framework for developing Command Line Interfa
 * ES2015 module based
 * Written in Typescript
 * Minimal dependencies
-* Support for building CLIs with either:
-    * Global command arguments e.g. `executable --<global_command_name> [argument]`
-    * Sub-command based arguments e.g. `executable <sub_command_name> [sub_command_arguments]`
-    * Grouped sub-command based arguments e.g. `executable <group_command_name> <member_sub_command_name> [member_sub_command_arguments]`
+* Support for building:
+    * Single command CLIs with global arguments e.g. `executable --<global_modifier_command_name> [argument]`
+    * Multiple command CLIs with sub-command based arguments e.g. `executable <sub_command_name> [sub_command_arguments]`
+    * Multiple command CLIs with grouped sub-command based arguments e.g. `executable <group_command_name> <member_sub_command_name> [member_sub_command_arguments]`
+    * A mix of the above!
 * Support for both optional and positional arguments e.g. `executable <sub_command_name> --<option_name>=<option_value> <positional_value>`
 * Support for multiple value options e.g. `executable <sub_command_name> --<option_name>=<option_value_1> --<option_name>=<option_value_2>`
 * Support for multiple value positionals ("varargs") e.g. `executable <sub_command_name> <positional_value_1> <positional_value_2>`
@@ -39,11 +40,11 @@ The key concepts are:
     * maintaining a *ServiceRegistry* and ensuring the *Services* it provides are available in a *Context*.
     * running the specified *Command* providing it with the parsed arguments and a *Context*.
 * Dynamic plugins (enabled by [@flowscripter/esm-dynamic-plugins](https://github.com/flowscripter/esm-dynamic-plugins)
-which makes use ES2015 Dynamic Module Imports) are used by:
-    * *PluginCommandFactory* (an instance of a *CommandFactory*) which allows for the dynamic load and import of a
-    *CommandFactory* providing one or more *Command* implementations.
-    * *PluginServiceFactory* (an instance of a *ServiceFactory*) which allows for the dynamic load and import of a
-    *ServicesFactory* providing one or more *Service* implementations.
+which makes use of ES2015 Dynamic Module Imports) are used to allow:
+    * dynamic load and import of one or more
+    *CommandFactory* implementations providing one or more *Command* implementations.
+    * dynamic load and import of one or more
+    *ServiceFactory* implementations providing one or more *Service* implementations.
 
 The following high level class diagram illustrates these relationships:
 
@@ -249,7 +250,7 @@ determining which *Command* to run and then running it.
 
 The provided default implementation of *Runner* (*DefaultRunner*) supports specification of a default command which
 should be run if no command names are parsed on the command line. In this scenario, any arguments provided will be
-parsed as possible arguments for the default command.
+parsed as possible arguments for the default command as well as potential Global Modifier Commands.
 
 #### Logic Overview
 
@@ -400,11 +401,11 @@ a command if it was specified as an argument.
 ## Plugin Support
 
 Dynamic discovery and registration of [@flowscripter/esm-dynamic-plugins](https://github.com/flowscripter/esm-dynamic-plugins) plugins
-providing `Command` and `Service` implementations is available if configured in the `CLIConfig` configuration.
+providing `Command` and `Service` implementations is supported.
 
 #### Plugin Registry Service
 The `PluginRegistryService` is responsible for instantiating a [@flowscripter/esm-dynamic-plugins](https://github.com/flowscripter/esm-dynamic-plugins)
-`PluginManager` which is then used to discover available command and service plugins and add these to `ServiceRegistry` and `CommandRegistry`.
+`PluginManager` which can then be used to discover available command and service plugins and add these to the `ServiceRegistry` and `CommandRegistry`.
 
 #### Plugin Command
 The `PluginCommand` is a group command providing `AddCommand` and `RemoveCommand`. These implement a VERY BASIC
@@ -426,15 +427,15 @@ or by another process!
 **NOTE:** If this basic implementation doesn't suffice you can always use `npm` or `yarn` to install plugin packages.
 
 ## Node CLI
-The `BaseCLI` implementation ensures that the core commands and services are available to the CLI. It expects to be
-provided a `CLIConfig` object containing the CLI application's name, version and description together with streams to
-use for `stdout` and `stderr`.
+The `BaseCLI` expects to be provided a `CLIConfig` object containing the CLI application's name, version and
+description together with streams to use for `stdout` and `stderr`.
 
-The `SimpleNodeCLI` implementation is a simple extension to the `BaseCLI` which provides the name, version and description from
+The `BaseNodeCLI` implementation is a simple extension to the `BaseCLI` which provides the name, version and description from
 the current project's `package.json` and uses the NodeJS provided `process.stdout` and `process.stderr` streams.
 
-The `NodeCLI` implementation is a more advanced extension than the `SimpleNodeCLI` which supports a configuration file,
-logging level control, control of color output and plugin management.
+`SimpleSingleCommandNodeCLI`, `SimpleMultiCommandNodeCLI` and `AdvancedMultiCommandNodeCLI` provide ready to go
+CLI classes with increasing levels of complexity. These can be used by simply implementing a `Command` interface
+and passing this into the constructor.
 
 ## Example Projects
 
@@ -450,8 +451,10 @@ this framework.
 [js-example-cli-plugin](https://github.com/flowscripter/js-example-cli-plugin) is a demo Javascript command plugin based on
 this framework.
 
-The Flowscripter [cli](https://github.com/flowscripter/cli) provides a more complex real world scenario use case. This implements
-amongst other things commands for a REPL and a script executor.
+The [plantuml-proxy-cli](https://github.com/vectronic/plantuml-proxy-cli) provides a simple real world single command CLI use case.
+
+The Flowscripter [cli](https://github.com/flowscripter/cli) provides a complex real world multiple command CLI use case. This implements
+custom commands for a REPL and a script executor.
 
 ## Code Documentation
 

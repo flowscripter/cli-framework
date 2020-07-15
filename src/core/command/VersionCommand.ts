@@ -1,12 +1,12 @@
+/**
+ * @module @flowscripter/cli-framework
+ */
+
 import _ from 'lodash';
 import Context from '../../api/Context';
 import Printer, { STDOUT_PRINTER_SERVICE } from '../service/PrinterService';
 import GlobalCommand from '../../api/GlobalCommand';
 import { CommandArgs } from '../../api/Command';
-
-/**
- * @module @flowscripter/cli-framework
- */
 
 /**
  * Implementation of [[GlobalCommand]] which outputs the version of the CLI.

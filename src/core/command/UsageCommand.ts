@@ -1,12 +1,13 @@
+/**
+ * @module @flowscripter/cli-framework
+ */
+
 import _ from 'lodash';
 import { CommandArgs } from '../../api/Command';
 import Context from '../../api/Context';
 import Printer, { STDOUT_PRINTER_SERVICE } from '../service/PrinterService';
 import GlobalCommand from '../../api/GlobalCommand';
 
-/**
- * @module @flowscripter/cli-framework
- */
 export default class UsageCommand implements GlobalCommand {
 
     readonly name = 'usage';

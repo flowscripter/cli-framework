@@ -4,6 +4,7 @@ import kleur from 'kleur';
 
 import { PrompterService } from '../../../src/core/service/PrompterService';
 import { getContext } from '../../fixtures/Context';
+import CLIConfig from '../../../src/api/CLIConfig';
 
 const mockStdout = mockProcessStdout();
 const mockStdIn = mockProcessStdIn.stdin();
@@ -34,12 +35,12 @@ describe('PrompterService test', () => {
 
         let context = getContext({
             stdout: process.stdout
-        }, [ps], []);
+        } as unknown as CLIConfig, [ps], []);
         expect(() => ps.init(context)).toThrowError();
 
         context = getContext({
             stdin: process.stdin
-        }, [ps], []);
+        } as unknown as CLIConfig, [ps], []);
         expect(() => ps.init(context)).toThrowError();
     });
 
@@ -51,7 +52,7 @@ describe('PrompterService test', () => {
         const context = getContext({
             stdin: process.stdin,
             stdout: process.stdout
-        }, [ps], []);
+        } as unknown as CLIConfig, [ps], []);
         ps.init(context);
         expect(ps.readable).not.toBeNull();
     });
@@ -61,7 +62,7 @@ describe('PrompterService test', () => {
         const context = getContext({
             stdout: process.stdout,
             stdin: process.stdin
-        }, [ps], []);
+        } as unknown as CLIConfig, [ps], []);
         ps.init(context);
 
         process.nextTick(() => {
@@ -81,7 +82,7 @@ describe('PrompterService test', () => {
         const context = getContext({
             stdout: process.stdout,
             stdin: process.stdin
-        }, [ps], []);
+        } as unknown as CLIConfig, [ps], []);
         ps.init(context);
 
         process.nextTick(() => {
@@ -100,7 +101,7 @@ describe('PrompterService test', () => {
         const context = getContext({
             stdout: process.stdout,
             stdin: process.stdin
-        }, [ps], []);
+        } as unknown as CLIConfig, [ps], []);
         ps.init(context);
 
         process.nextTick(() => {
@@ -119,7 +120,7 @@ describe('PrompterService test', () => {
         const context = getContext({
             stdout: process.stdout,
             stdin: process.stdin
-        }, [ps], []);
+        } as unknown as CLIConfig, [ps], []);
         ps.init(context);
 
         process.nextTick(() => {
@@ -138,7 +139,7 @@ describe('PrompterService test', () => {
         const context = getContext({
             stdout: process.stdout,
             stdin: process.stdin
-        }, [ps], []);
+        } as unknown as CLIConfig, [ps], []);
         ps.init(context);
 
         process.nextTick(() => {
@@ -157,7 +158,7 @@ describe('PrompterService test', () => {
         const context = getContext({
             stdout: process.stdout,
             stdin: process.stdin
-        }, [ps], []);
+        } as unknown as CLIConfig, [ps], []);
         ps.init(context);
 
         process.nextTick(() => {
@@ -176,7 +177,7 @@ describe('PrompterService test', () => {
         const context = getContext({
             stdout: process.stdout,
             stdin: process.stdin
-        }, [ps], []);
+        } as unknown as CLIConfig, [ps], []);
         ps.init(context);
 
         process.nextTick(() => {
@@ -195,7 +196,7 @@ describe('PrompterService test', () => {
         const context = getContext({
             stdout: process.stdout,
             stdin: process.stdin
-        }, [ps], []);
+        } as unknown as CLIConfig, [ps], []);
         ps.init(context);
 
         process.nextTick(() => {

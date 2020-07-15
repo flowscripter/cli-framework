@@ -2,14 +2,12 @@
 
 import PluginCommand from '../../../src/plugin/command/PluginCommand';
 import {
-    AddCommand,
-    RemoveCommand,
     ADD_COMMAND_NAME,
     REMOVE_COMMAND_NAME
 } from '../../../src/plugin/command/AddRemoveCommand';
 import { getContext } from '../../fixtures/Context';
 import { getCliConfig } from '../../fixtures/CLIConfig';
-import { CommandArgs } from '../../../src';
+import { CommandArgs } from '../../../src/api/Command';
 
 describe('PluginCommand test', () => {
 

@@ -35,11 +35,6 @@ export default interface CommandRegistry {
     getSubCommands(): Iterable<SubCommand>;
 
     /**
-     * Get a registered [[SubCommand]] by name.
-     */
-    getSubCommandByName(name: string): SubCommand | undefined;
-
-    /**
      * Return all [[GlobalCommand]] instances registered.
      *
      * @return iterable of [[GlobalCommand]] instances
@@ -52,6 +47,16 @@ export default interface CommandRegistry {
      * @return iterable of [[GlobalModifierCommand]] instances
      */
     getGlobalModifierCommands(): Iterable<GlobalModifierCommand>;
+
+    /**
+     * Get a registered [[SubCommand]] by name.
+     */
+    getSubCommandByName(name: string): SubCommand | undefined;
+
+    /**
+     * Get a registered [[GroupCommand]] by name.
+     */
+    getGroupCommandByName(name: string): GroupCommand | undefined;
 
     /**
      * Get a registered [[GlobalCommand]] or [[GlobalModifierCommand]] by name.
