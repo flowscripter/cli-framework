@@ -1,7 +1,8 @@
 import { mockProcessExit, mockProcessStderr, mockProcessStdout } from 'jest-mock-process';
 import { CommandArgs } from '../../src/api/Command';
 import Context from '../../src/api/Context';
-import { Printer, STDOUT_PRINTER_SERVICE } from '../../src';
+import Printer, { STDOUT_PRINTER_SERVICE } from '../../src/core/service/PrinterService';
+import { PluginManagerConfig, PLUGIN_REGISTRY_SERVICE } from '../../src/plugin/service/PluginRegistryService';
 import SubCommand from '../../src/api/SubCommand';
 import AdvancedMultiCommandNodeCLI from '../../src/cli/AdvancedMultiCommandNodeCLI';
 
@@ -68,6 +69,23 @@ describe('SimpleNodeCLI test', () => {
 
         const mockExit = mockProcessExit();
         const cli = new AdvancedMultiCommandNodeCLI([], [], new Map(), new Map(), 'foo');
+        await cli.execute();
+        expect(mockExit).toHaveBeenCalledWith(0);
+    });
+
+    test('Basic execution with customised plugin registry config', async () => {
+
+        process.argv = ['node', 'node.js', '--help'];
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const serviceConfigs = new Map<string, any>();
+        serviceConfigs.set(PLUGIN_REGISTRY_SERVICE, {
+            moduleScope: '@flowscripter',
+            pluginLocation: '/tmp/plugins'
+        } as PluginManagerConfig);
+
+        const mockExit = mockProcessExit();
+        const cli = new AdvancedMultiCommandNodeCLI([], [], serviceConfigs, new Map(), 'foo');
         await cli.execute();
         expect(mockExit).toHaveBeenCalledWith(0);
     });

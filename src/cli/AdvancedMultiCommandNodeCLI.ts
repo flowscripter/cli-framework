@@ -89,9 +89,17 @@ export default class AdvancedMultiCommandNodeCLI extends BaseNodeCLI {
             new ColorCommand(80),
             new NoColorCommand(80),
             ...commands
-        ], serviceConfigs.has(PLUGIN_REGISTRY_SERVICE) ? serviceConfigs : serviceConfigs.set(PLUGIN_REGISTRY_SERVICE, {
-            pluginManager: NodePluginManager,
-            pluginLocation: path.join(process.cwd(), 'node_modules')
-        }), commandConfigs, name, usageCommand, usageCommand);
+        ], serviceConfigs.has(PLUGIN_REGISTRY_SERVICE)
+            ? serviceConfigs.set(PLUGIN_REGISTRY_SERVICE, {
+                pluginManager: serviceConfigs.get(PLUGIN_REGISTRY_SERVICE).pluginManager
+                    || NodePluginManager,
+                pluginLocation: serviceConfigs.get(PLUGIN_REGISTRY_SERVICE).moduleScope
+                    || path.join(process.cwd(), 'node_modules'),
+                moduleScope: serviceConfigs.get(PLUGIN_REGISTRY_SERVICE).moduleScope
+            })
+            : serviceConfigs.set(PLUGIN_REGISTRY_SERVICE, {
+                pluginManager: NodePluginManager,
+                pluginLocation: path.join(process.cwd(), 'node_modules')
+            }), commandConfigs, name, usageCommand, usageCommand);
     }
 }
