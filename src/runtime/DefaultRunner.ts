@@ -196,7 +196,7 @@ export default class DefaultRunner implements Runner {
         });
 
         // store an overall list of unused args
-        const overallUnusedArgs: string[] = [];
+        let overallUnusedArgs: string[] = [];
 
         // if no command found yet, and a default is specified, create a potential default clause using args
         // which weren't used in clauses so far
@@ -244,7 +244,7 @@ export default class DefaultRunner implements Runner {
                 // eslint-disable-next-line no-await-in-loop
                 await modifierCommand.run(modifierCommandArgs, context);
             } catch (err) {
-                printer.error(`Error running ${modifierMessage}: ${printer.red(err.message)}\n`, Icon.FAILURE);
+                printer.error(`Error running ${modifierMessage}:\n  ${printer.red(err.message)}\n`, Icon.FAILURE);
                 return RunResult.CommandError;
             }
         }
@@ -297,16 +297,33 @@ export default class DefaultRunner implements Runner {
 
         // no command found yet, check if default with no args is valid
         if ((parseResult === undefined) && defaultCommand) {
-            this.log('No default command parsed from arguments, attempting to parse with config only');
-            const potentialCommandClause: CommandClause = {
+            this.log('Attempting to parse default command with all unused args');
+            let potentialCommandClause: CommandClause = {
                 command: defaultCommand,
-                potentialArgs: []
+                potentialArgs: overallUnusedArgs
             };
             const config = context.commandConfigs.get(defaultCommand.name);
-            const potentialDefaultParseResult = this.parser.parseCommandClause(potentialCommandClause, config);
-            if (potentialDefaultParseResult.invalidArgs.length > 0) {
-                DefaultRunner.printParseResultError(printer, potentialDefaultParseResult);
-                return RunResult.ParseError;
+            const parseResultWithArgs = this.parser.parseCommandClause(potentialCommandClause, config);
+
+            // if we parsed successfully, store unused args
+            if (parseResultWithArgs.invalidArgs.length === 0) {
+                parseResult = parseResultWithArgs;
+                overallUnusedArgs = parseResultWithArgs.unusedArgs;
+            } else {
+                this.log('Attempting to parse default command with config only');
+                potentialCommandClause = {
+                    command: defaultCommand,
+                    potentialArgs: []
+                };
+                // if we parsed successfully, unused args remains as it was
+                const parseResultWithNoArgs = this.parser.parseCommandClause(potentialCommandClause, config);
+                if (parseResultWithNoArgs.invalidArgs.length === 0) {
+                    parseResult = parseResultWithNoArgs;
+                } else {
+                    // reached the end of the road here... report on the error when we tried to use the args
+                    DefaultRunner.printParseResultError(printer, parseResultWithArgs);
+                    return RunResult.ParseError;
+                }
             }
         }
 
@@ -339,7 +356,7 @@ export default class DefaultRunner implements Runner {
             this.log(`Running ${message}`);
             await command.run(commandArgs, context);
         } catch (err) {
-            printer.error(`Error running ${message}: ${printer.red(err.message)}\n`, Icon.FAILURE);
+            printer.error(`Error running ${message}:\n  ${printer.red(err.message)}\n`, Icon.FAILURE);
             return RunResult.CommandError;
         }
 
