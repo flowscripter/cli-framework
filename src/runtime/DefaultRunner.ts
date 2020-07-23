@@ -96,7 +96,7 @@ export default class DefaultRunner implements Runner {
             const argsString = parseResult.invalidArgs.map(
                 (arg) => printer.yellow(DefaultRunner.getInvalidArgString(arg,
                     isGlobalModifierCommand(parseResult.command) || isGlobalCommand(parseResult.command)))
-            ).join(' ');
+            ).join(', ');
             errorString = `${errorString}${argsString}`;
         }
         printer.error(`${errorString}\n`, Icon.FAILURE);
