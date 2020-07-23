@@ -87,7 +87,7 @@ export default class DefaultRunner implements Runner {
             + parseResult.command.name
         )}`;
         if (parseResult.invalidArgs.length > 0) {
-            errorString = `${errorString} and`;
+            errorString = `${errorString} with`;
             if (parseResult.invalidArgs.length === 1) {
                 errorString = `${errorString} arg `;
             } else {
@@ -96,7 +96,7 @@ export default class DefaultRunner implements Runner {
             const argsString = parseResult.invalidArgs.map(
                 (arg) => printer.yellow(DefaultRunner.getInvalidArgString(arg,
                     isGlobalModifierCommand(parseResult.command) || isGlobalCommand(parseResult.command)))
-            ).join(' ');
+            ).join(', ');
             errorString = `${errorString}${argsString}`;
         }
         printer.error(`${errorString}\n`, Icon.FAILURE);
@@ -120,7 +120,7 @@ export default class DefaultRunner implements Runner {
         commandString = `${commandString}${printer.yellow(command.name)}`;
         const keys = Object.keys(commandArgs);
         if (keys.length > 0) {
-            commandString = `${commandString} and`;
+            commandString = `${commandString} with`;
             if (keys.length === 1) {
                 commandString = `${commandString} arg `;
             } else {
@@ -136,80 +136,6 @@ export default class DefaultRunner implements Runner {
             }).join(', ');
         }
         return commandString;
-    }
-
-    /**
-     * Attempt to successfully parse a non-modifier [[Command]] clause from the potential
-     * non-modifier and default clauses provided.
-     *
-     * @param nonModifierClause potential non-modifier [[CommandClause]] instances.
-     * @param potentialDefaultClauses potential default [[CommandClause]] instances.
-     * @param overallUnusedArgs current list of unused args. This will be appended to during this parsing operation.
-     * @param context the [[Context]] for the CLI invocation.
-     * @param defaultCommand optional [[Command]] implementation.
-     * @return a [[ParseResult]] for a successfully parsed [[CommandClause]] or a parse error,
-     * or *undefined* if no clause was parsed.
-     * @throws *Error* if there is a parsing error
-     */
-    private getNonModifierParseResult(nonModifierClause: CommandClause | undefined, potentialDefaultClauses:
-        CommandClause[], overallUnusedArgs: string[], context: Context, defaultCommand?: Command): ParseResult
-        | undefined {
-
-        let parseResult;
-
-        // look for a default if we don't have a non-modifier command
-        if (_.isUndefined(nonModifierClause)) {
-            this.log('No command specified, looking for a potential default in potential clauses');
-            for (let i = 0; i < potentialDefaultClauses.length; i += 1) {
-                const potentialCommandClause = potentialDefaultClauses[i];
-                // check if default was already found
-                if (parseResult) {
-                    overallUnusedArgs.push(...potentialCommandClause.potentialArgs);
-                } else {
-                    const config = context.commandConfigs.get(potentialCommandClause.command.name);
-                    const potentialDefaultParseResult = this.parser.parseCommandClause(potentialCommandClause, config);
-
-                    // ignore if there are parse errors
-                    if (potentialDefaultParseResult.invalidArgs.length > 0) {
-                        overallUnusedArgs.push(...potentialCommandClause.potentialArgs);
-                    } else {
-                        parseResult = potentialDefaultParseResult;
-                    }
-                }
-            }
-            if (defaultCommand) {
-                this.log('No default command discovered, attempting to parse with config only');
-                if (parseResult === undefined) {
-                    const potentialCommandClause: CommandClause = {
-                        command: defaultCommand,
-                        potentialArgs: []
-                    };
-                    const config = context.commandConfigs.get(potentialCommandClause.command.name);
-                    const potentialDefaultParseResult = this.parser.parseCommandClause(potentialCommandClause, config);
-
-                    // ignore if there are parse errors
-                    if (potentialDefaultParseResult.invalidArgs.length > 0) {
-                        overallUnusedArgs.push(...potentialCommandClause.potentialArgs);
-                    } else {
-                        parseResult = potentialDefaultParseResult;
-                    }
-                }
-            }
-        } else {
-            const config = context.commandConfigs.get(nonModifierClause.command.name);
-            parseResult = this.parser.parseCommandClause(nonModifierClause, config);
-
-            // fail on a parse error
-            if (parseResult.invalidArgs.length > 0) {
-                return parseResult;
-            }
-            // shift all potential default clause args to unused args
-            for (let i = 0; i < potentialDefaultClauses.length; i += 1) {
-                const potentialCommandClause = potentialDefaultClauses[i];
-                overallUnusedArgs.push(...potentialCommandClause.potentialArgs);
-            }
-        }
-        return parseResult;
     }
 
     /**
@@ -270,7 +196,7 @@ export default class DefaultRunner implements Runner {
         });
 
         // store an overall list of unused args
-        const overallUnusedArgs: string[] = [];
+        let overallUnusedArgs: string[] = [];
 
         // if no command found yet, and a default is specified, create a potential default clause using args
         // which weren't used in clauses so far
@@ -318,21 +244,91 @@ export default class DefaultRunner implements Runner {
                 // eslint-disable-next-line no-await-in-loop
                 await modifierCommand.run(modifierCommandArgs, context);
             } catch (err) {
-                printer.error(`Error running ${modifierMessage}: ${printer.red(err.message)}\n`, Icon.FAILURE);
+                printer.error(`Error running ${modifierMessage}:\n  ${printer.red(err.message)}\n`, Icon.FAILURE);
                 return RunResult.CommandError;
             }
         }
+        let parseResult;
 
-        // perform final determination of non-modifier clause to run
-        const parseResult = this.getNonModifierParseResult(nonModifierClause, potentialDefaultClauses,
-            overallUnusedArgs, context, defaultCommand);
+        // parse non-modifier clause to run
+        if (!_.isUndefined(nonModifierClause)) {
+            this.log(`Attempting to parse command clause, with command: ${nonModifierClause.command.name}`);
+            const config = context.commandConfigs.get(nonModifierClause.command.name);
+            parseResult = this.parser.parseCommandClause(nonModifierClause, config);
+
+            // fail on a parse error
+            if (parseResult.invalidArgs.length > 0) {
+                DefaultRunner.printParseResultError(printer, parseResult);
+                return RunResult.ParseError;
+            }
+
+            // shift all potential default clause args to unused args
+            for (let i = 0; i < potentialDefaultClauses.length; i += 1) {
+                const potentialCommandClause = potentialDefaultClauses[i];
+                overallUnusedArgs.push(...potentialCommandClause.potentialArgs);
+            }
+        }
+
+        // parse any potential default command clauses
+        if ((parseResult === undefined) && (potentialDefaultClauses.length > 0)) {
+            this.log('No command specified, looking for a potential default in potential default clauses');
+            for (let i = 0; i < potentialDefaultClauses.length; i += 1) {
+                const potentialCommandClause = potentialDefaultClauses[i];
+
+                // check if default was already found, if so just shift all other potential clause args to unused
+                if (parseResult) {
+                    overallUnusedArgs.push(...potentialCommandClause.potentialArgs);
+                } else {
+                    const config = context.commandConfigs.get(potentialCommandClause.command.name);
+                    const potentialDefaultParseResult = this.parser.parseCommandClause(potentialCommandClause, config);
+
+                    // ignore if there are parse errors
+                    if (potentialDefaultParseResult.invalidArgs.length > 0) {
+                        this.log(`Failed to parse potential clause with command: ${
+                            potentialCommandClause.command.name}`);
+                        overallUnusedArgs.push(...potentialCommandClause.potentialArgs);
+                    } else {
+                        this.log(`Parsed potential clause with command: ${potentialCommandClause.command.name}`);
+                        parseResult = potentialDefaultParseResult;
+                    }
+                }
+            }
+        }
+
+        // no command found yet, check if default with no args is valid
+        if ((parseResult === undefined) && defaultCommand) {
+            this.log('Attempting to parse default command with all unused args');
+            let potentialCommandClause: CommandClause = {
+                command: defaultCommand,
+                potentialArgs: overallUnusedArgs
+            };
+            const config = context.commandConfigs.get(defaultCommand.name);
+            const parseResultWithArgs = this.parser.parseCommandClause(potentialCommandClause, config);
+
+            // if we parsed successfully, store unused args
+            if (parseResultWithArgs.invalidArgs.length === 0) {
+                parseResult = parseResultWithArgs;
+                overallUnusedArgs = parseResultWithArgs.unusedArgs;
+            } else {
+                this.log('Attempting to parse default command with config only');
+                potentialCommandClause = {
+                    command: defaultCommand,
+                    potentialArgs: []
+                };
+                // if we parsed successfully, unused args remains as it was
+                const parseResultWithNoArgs = this.parser.parseCommandClause(potentialCommandClause, config);
+                if (parseResultWithNoArgs.invalidArgs.length === 0) {
+                    parseResult = parseResultWithNoArgs;
+                } else {
+                    // reached the end of the road here... report on the error when we tried to use the args
+                    DefaultRunner.printParseResultError(printer, parseResultWithArgs);
+                    return RunResult.ParseError;
+                }
+            }
+        }
 
         if (!parseResult) {
-            printer.error('No command specified and no default available!');
-            return RunResult.ParseError;
-        }
-        if (parseResult.invalidArgs.length > 0) {
-            DefaultRunner.printParseResultError(printer, parseResult);
+            printer.error('No command specified!');
             return RunResult.ParseError;
         }
 
@@ -360,7 +356,7 @@ export default class DefaultRunner implements Runner {
             this.log(`Running ${message}`);
             await command.run(commandArgs, context);
         } catch (err) {
-            printer.error(`Error running ${message}: ${printer.red(err.message)}\n`, Icon.FAILURE);
+            printer.error(`Error running ${message}:\n  ${printer.red(err.message)}\n`, Icon.FAILURE);
             return RunResult.CommandError;
         }
 

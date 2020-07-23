@@ -27,7 +27,7 @@ export default class SimpleSingleCommandNodeCLI extends BaseNodeCLI {
 
     protected static readonly helpSubCommand = new SingleCommandHelpSubCommand();
 
-    protected static readonly usageCommand = new UsageCommand(SimpleSingleCommandNodeCLI.helpGlobalCommand);
+    protected static readonly usageCommand = new UsageCommand(SimpleSingleCommandNodeCLI.helpGlobalCommand, false);
 
     /**
      * Constructor taking the single [[SubCommand]] instance to be executed

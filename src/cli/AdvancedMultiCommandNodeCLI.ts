@@ -42,7 +42,9 @@ export default class AdvancedMultiCommandNodeCLI extends BaseNodeCLI {
 
     protected static readonly helpGlobalCommand = new MultiCommandHelpGlobalCommand();
 
-    protected static readonly usageCommand = new UsageCommand(AdvancedMultiCommandNodeCLI.helpGlobalCommand);
+    protected static readonly hintCommand = new UsageCommand(AdvancedMultiCommandNodeCLI.helpGlobalCommand);
+
+    protected static readonly usageCommand = new UsageCommand(AdvancedMultiCommandNodeCLI.helpGlobalCommand, false);
 
     /**
      * Constructor taking an optional name.
@@ -102,6 +104,6 @@ export default class AdvancedMultiCommandNodeCLI extends BaseNodeCLI {
                 pluginManager: NodePluginManager,
                 pluginLocation: path.join(process.cwd(), 'node_modules')
             }), commandConfigs, name,
-        AdvancedMultiCommandNodeCLI.usageCommand, AdvancedMultiCommandNodeCLI.usageCommand);
+        AdvancedMultiCommandNodeCLI.hintCommand, AdvancedMultiCommandNodeCLI.usageCommand);
     }
 }

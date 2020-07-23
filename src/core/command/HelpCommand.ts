@@ -159,7 +159,7 @@ function getCommandArgsAndExampleHelpSections(context: Context, subCommand: SubC
     const helpSections: HelpSection[] = [];
     if (!_.isEmpty(subCommand.options) || !_.isEmpty(subCommand.positionals)) {
         const argumentsSection: HelpSection = {
-            title: `${isSingleCommandApp ? 'Command ' : ''}'Arguments'`,
+            title: `${isSingleCommandApp ? 'Command ' : ''}Arguments`,
             entries: []
         };
         subCommand.options.forEach((option) => {

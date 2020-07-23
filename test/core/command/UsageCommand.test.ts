@@ -38,7 +38,18 @@ describe('UsageCommand test', () => {
         const usageCommand = new UsageCommand(getGlobalCommand());
 
         await usageCommand.run({}, context);
-        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('bar'));
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('foo bar'));
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Try running'));
+    });
+
+    test('UsageCommand works without description', async () => {
+        const stdoutService = new StdoutPrinterService(100);
+        const context = getContext(getCliConfig(), [stdoutService], []);
+        stdoutService.init(context);
+        const usageCommand = new UsageCommand(getGlobalCommand(), false);
+
+        await usageCommand.run({}, context);
+        expect(mockStdout).not.toHaveBeenCalledWith(expect.stringContaining('foo bar'));
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Try running'));
     });
 });

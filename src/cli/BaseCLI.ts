@@ -122,7 +122,7 @@ export default class BaseCLI implements CLI {
 
         const runner: Runner = new DefaultRunner(new DefaultParser());
         const runResult = await runner.run(args, context, this.defaultCommand);
-        if (runResult === RunResult.ParseError) {
+        if (runResult !== RunResult.Success) {
             if (!_.isUndefined(this.usageCommand)) {
                 await this.usageCommand.run({}, context);
             }

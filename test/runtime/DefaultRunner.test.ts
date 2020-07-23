@@ -495,6 +495,88 @@ describe('DefaultRunner test', () => {
         expect(mockStderr).toHaveBeenCalledWith(expect.stringContaining('d34db33f'));
     });
 
+    test('Run default command based on all args', async () => {
+        const stderrService = new StderrPrinterService(90);
+
+        const command = getSubCommand('command', [{
+            name: 'foo'
+        }, {
+            name: 'goo'
+        }], []);
+
+        const context = getContext({ stderr: process.stderr } as unknown as CLIConfig, [stderrService], []);
+        stderrService.init(context);
+        const runner = new DefaultRunner(new DefaultParser());
+
+        const runResult = await runner.run(['--foo=f', '--goo=g'], context, command);
+        expect(runResult).toBe(RunResult.Success);
+        expect(mockStderr).not.toHaveBeenCalledWith(expect.stringContaining('Unused'));
+    });
+
+    test('Run default command based on config only and treating all args as unused', async () => {
+        const stderrService = new StderrPrinterService(90);
+
+        const command = getSubCommand('command', [{
+            name: 'foo'
+        }, {
+            name: 'goo'
+        }], []);
+
+        const context = getContext({ stderr: process.stderr } as unknown as CLIConfig, [stderrService], [],
+            new Map(), new Map([
+                ['command', {
+                    foo: 'f',
+                    goo: 'g'
+                }]
+            ]));
+        stderrService.init(context);
+        const runner = new DefaultRunner(new DefaultParser());
+
+        const runResult = await runner.run(['--bip=b', '--bop=b'], context, command);
+        expect(runResult).toBe(RunResult.Success);
+        expect(mockStderr).toHaveBeenCalledWith(expect.stringContaining('Unused'));
+    });
+
+    test('Run default command based on some args and treating some args as unused', async () => {
+        const stderrService = new StderrPrinterService(90);
+
+        const command = getSubCommand('command', [{
+            name: 'foo'
+        }, {
+            name: 'goo'
+        }], []);
+
+        const context = getContext({ stderr: process.stderr } as unknown as CLIConfig, [stderrService], [],
+            new Map(), new Map([
+                ['command', {
+                    foo: 'f'
+                }]
+            ]));
+        stderrService.init(context);
+        const runner = new DefaultRunner(new DefaultParser());
+
+        const runResult = await runner.run(['--bip=b', '--goo=g'], context, command);
+        expect(runResult).toBe(RunResult.Success);
+        expect(mockStderr).toHaveBeenCalledWith(expect.stringContaining('Unused'));
+    });
+
+    test('Fail to parse default command with some unused args', async () => {
+        const stderrService = new StderrPrinterService(90);
+
+        const command = getSubCommand('command', [{
+            name: 'foo'
+        }, {
+            name: 'goo'
+        }], []);
+
+        const context = getContext({ stderr: process.stderr } as unknown as CLIConfig, [stderrService], []);
+        stderrService.init(context);
+        const runner = new DefaultRunner(new DefaultParser());
+
+        const runResult = await runner.run(['--bip=b', '--goo=g'], context, command);
+        expect(runResult).toBe(RunResult.ParseError);
+    });
+
     test('Illegal second command treated as unknown arg', async () => {
         const stderrService = new StderrPrinterService(90);
         stderrService.colorEnabled = false;

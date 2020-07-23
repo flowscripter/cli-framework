@@ -23,7 +23,9 @@ export default class SimpleMultiCommandNodeCLI extends BaseNodeCLI {
 
     protected static readonly helpGlobalCommand = new MultiCommandHelpGlobalCommand();
 
-    protected static readonly usageCommand = new UsageCommand(SimpleMultiCommandNodeCLI.helpGlobalCommand);
+    protected static readonly hintCommand = new UsageCommand(SimpleMultiCommandNodeCLI.helpGlobalCommand);
+
+    protected static readonly usageCommand = new UsageCommand(SimpleMultiCommandNodeCLI.helpGlobalCommand, false);
 
     /**
      * Constructor taking an optional name.
@@ -45,6 +47,6 @@ export default class SimpleMultiCommandNodeCLI extends BaseNodeCLI {
             new VersionCommand(),
             ...commands
         ], new Map(), new Map(), name,
-        SimpleMultiCommandNodeCLI.usageCommand, SimpleMultiCommandNodeCLI.usageCommand);
+        SimpleMultiCommandNodeCLI.hintCommand, SimpleMultiCommandNodeCLI.usageCommand);
     }
 }
