@@ -59,7 +59,7 @@ function getSubCommandArgumentsSyntax(subCommand: SubCommand): string {
         } else {
             optionSyntax = `${optionSyntax} <value>`;
         }
-        if (option.isOptional) {
+        if (option.isOptional || !_.isUndefined(option.defaultValue)) {
             optionSyntax = ` [${optionSyntax}]`;
         } else {
             optionSyntax = ` ${optionSyntax}`;
@@ -72,13 +72,13 @@ function getSubCommandArgumentsSyntax(subCommand: SubCommand): string {
 
     subCommand.positionals.forEach((positional) => {
         let positionalSyntax = `<${positional.name}>`;
-        if (positional.isVarArgOptional || positional.type === ArgumentValueTypeName.Boolean) {
+        if (positional.isVarArgOptional) {
             positionalSyntax = ` [${positionalSyntax}]`;
         } else {
             positionalSyntax = ` ${positionalSyntax}`;
         }
         if (positional.isVarArgMultiple) {
-            positionalSyntax = ` ${positionalSyntax}...`;
+            positionalSyntax = `${positionalSyntax}...`;
         }
         syntax = `${syntax}${positionalSyntax}`;
     });
@@ -154,33 +154,12 @@ function getGlobalArgumentHelpEntry(globalCommand: GlobalCommand): [string, stri
     return [argumentSyntax, argumentDescription];
 }
 
-function getGlobalCommandsHelpSection(title: string, globalCommands: GlobalCommand[]): HelpSection {
-    const globalCommandsSection: HelpSection = {
-        title,
-        entries: []
-    };
-    globalCommands.forEach((globalCommand) => {
-        const [argumentSyntax, argumentDescription] = getGlobalArgumentHelpEntry(globalCommand);
-        globalCommandsSection.entries.push({
-            syntax: `--${globalCommand.name} ${argumentSyntax}`,
-            description: argumentDescription
-        });
-        if (!_.isUndefined(globalCommand.shortAlias)) {
-            globalCommandsSection.entries.push({
-                syntax: `-${globalCommand.shortAlias} ${argumentSyntax}`,
-                description: argumentDescription
-            });
-        }
-    });
-    globalCommandsSection.entries.sort((a, b) => a.syntax.localeCompare(b.syntax));
-    return globalCommandsSection;
-}
-
-function getCommandArgsAndExampleHelpSections(context: Context, subCommand: SubCommand): HelpSection[] {
+function getCommandArgsAndExampleHelpSections(context: Context, subCommand: SubCommand,
+    isSingleCommandApp: boolean): HelpSection[] {
     const helpSections: HelpSection[] = [];
     if (!_.isEmpty(subCommand.options) || !_.isEmpty(subCommand.positionals)) {
         const argumentsSection: HelpSection = {
-            title: 'Arguments',
+            title: `${isSingleCommandApp ? 'Command ' : ''}'Arguments'`,
             entries: []
         };
         subCommand.options.forEach((option) => {
@@ -221,97 +200,14 @@ function getCommandArgsAndExampleHelpSections(context: Context, subCommand: SubC
     return helpSections;
 }
 
-function getGenericHelpSections(
-    globalModifierCommands: GlobalModifierCommand[],
-    globalCommands: GlobalCommand[],
-    groupCommands: GroupCommand[],
-    subCommands: SubCommand[],
-    isSingleCommandApp: boolean
-): HelpSection[] {
-
-    const globalPrefix = ((groupCommands.length > 0) || (subCommands.length > 0)
-        || isSingleCommandApp) ? 'Global ' : '';
-    const helpSections: HelpSection[] = [];
-    if (globalModifierCommands.length > 0) {
-        helpSections.push(getGlobalCommandsHelpSection(`${globalPrefix}Options`, globalModifierCommands));
-    }
-    if (globalCommands.length > 0) {
-        helpSections.push(getGlobalCommandsHelpSection(`${globalPrefix}Commands`, globalCommands));
-    }
-    groupCommands.forEach((groupCommand) => {
-        const topicSection: HelpSection = {
-            title: `${groupCommand.name.charAt(0).toUpperCase() + groupCommand.name.slice(1)} Commands`,
-            entries: []
-        };
-        groupCommand.memberSubCommands.forEach((memberCommand) => {
-            topicSection.entries.push({
-                syntax: `${groupCommand.name}:${memberCommand.name}`,
-                description: memberCommand.description
-            });
-        });
-        topicSection.entries.sort((a, b) => a.syntax.localeCompare(b.syntax));
-        helpSections.push(topicSection);
-    });
-    if (subCommands.length > 0) {
-        const subCommandsByTopic = new Map<string, SubCommand[]>();
-        const otherSubCommands: SubCommand[] = [];
-
-        subCommands.forEach((subCommand) => {
-            if (_.isUndefined(subCommand.topic)) {
-                otherSubCommands.push(subCommand);
-            } else {
-                const commands = subCommandsByTopic.get(subCommand.topic) || [];
-                commands.push(subCommand);
-                subCommandsByTopic.set(subCommand.topic, commands);
-            }
-        });
-
-        for (const key of subCommandsByTopic.keys()) {
-            const topicCommands = subCommandsByTopic.get(key);
-            if (!_.isUndefined(topicCommands)) {
-                const topicSection: HelpSection = {
-                    title: `${key.charAt(0).toUpperCase() + key.slice(1)} Commands`,
-                    entries: []
-                };
-                topicCommands.sort((a, b) => a.name.localeCompare(b.name));
-                topicCommands.forEach((subCommand) => {
-                    topicSection.entries.push({
-                        syntax: subCommand.name,
-                        description: subCommand.description
-                    });
-                });
-                helpSections.push(topicSection);
-            }
-        }
-
-        if (otherSubCommands.length > 0) {
-            const topicSection: HelpSection = {
-                title: 'Other Commands',
-                entries: []
-            };
-            otherSubCommands.sort((a, b) => a.name.localeCompare(b.name));
-            otherSubCommands.forEach((subCommand) => {
-                topicSection.entries.push({
-                    syntax: subCommand.name,
-                    description: subCommand.description
-                });
-            });
-            helpSections.push(topicSection);
-        }
-    }
-    return helpSections;
-}
-
 function getCommandAppSyntax(
     context: Context,
     globalModifierCommands: GlobalModifierCommand[],
     globalCommands: GlobalCommand[],
     groupCommands: GroupCommand[],
-    subCommands: SubCommand[],
-    isSingleCommandApp: boolean
+    subCommands: SubCommand[]
 ): string {
-    const globalPrefix = ((groupCommands.length > 0) || (subCommands.length > 0)
-        || isSingleCommandApp) ? 'global_' : '';
+    const globalPrefix = ((groupCommands.length > 0) || (subCommands.length > 0)) ? 'global_' : '';
     let syntax = context.cliConfig.name || '';
     if (globalModifierCommands.length > 0) {
         syntax += ` [<${globalPrefix}option>`;
@@ -401,11 +297,7 @@ function getCommandAppSyntax(
                 subSyntax += '...';
             }
         }
-        if (isSingleCommandApp) {
-            syntax += ` [${subSyntax}]`;
-        } else {
-            syntax += ` ${subSyntax}`;
-        }
+        syntax += ` ${subSyntax}`;
     }
     return syntax;
 }
@@ -531,6 +423,107 @@ class MultiCommandCommonHelpCommand {
             .map((value) => value[1]);
     }
 
+    private getGlobalCommandsHelpSection(title: string, globalCommands: GlobalCommand[]): HelpSection {
+        const globalCommandsSection: HelpSection = {
+            title,
+            entries: []
+        };
+        globalCommands.forEach((globalCommand) => {
+            const [argumentSyntax, argumentDescription] = getGlobalArgumentHelpEntry(globalCommand);
+            globalCommandsSection.entries.push({
+                syntax: `--${globalCommand.name} ${argumentSyntax}`,
+                description: argumentDescription
+            });
+            if (!_.isUndefined(globalCommand.shortAlias)) {
+                globalCommandsSection.entries.push({
+                    syntax: `-${globalCommand.shortAlias} ${argumentSyntax}`,
+                    description: argumentDescription
+                });
+            }
+        });
+        globalCommandsSection.entries.sort((a, b) => a.syntax.localeCompare(b.syntax));
+        return globalCommandsSection;
+    }
+
+    private getGenericHelpSections(
+        globalModifierCommands: GlobalModifierCommand[],
+        globalCommands: GlobalCommand[],
+        groupCommands: GroupCommand[],
+        subCommands: SubCommand[]
+    ): HelpSection[] {
+
+        const globalPrefix = ((groupCommands.length > 0) || (subCommands.length > 0)) ? 'Global ' : '';
+        const helpSections: HelpSection[] = [];
+        if (globalModifierCommands.length > 0) {
+            helpSections.push(this.getGlobalCommandsHelpSection(`${globalPrefix}Options`, globalModifierCommands));
+        }
+        if (globalCommands.length > 0) {
+            helpSections.push(this.getGlobalCommandsHelpSection(`${globalPrefix}Commands`, globalCommands));
+        }
+        groupCommands.forEach((groupCommand) => {
+            const topicSection: HelpSection = {
+                title: `${groupCommand.name.charAt(0).toUpperCase() + groupCommand.name.slice(1)} Commands`,
+                entries: []
+            };
+            groupCommand.memberSubCommands.forEach((memberCommand) => {
+                topicSection.entries.push({
+                    syntax: `${groupCommand.name}:${memberCommand.name}`,
+                    description: memberCommand.description
+                });
+            });
+            topicSection.entries.sort((a, b) => a.syntax.localeCompare(b.syntax));
+            helpSections.push(topicSection);
+        });
+        if (subCommands.length > 0) {
+            const subCommandsByTopic = new Map<string, SubCommand[]>();
+            const otherSubCommands: SubCommand[] = [];
+
+            subCommands.forEach((subCommand) => {
+                if (_.isUndefined(subCommand.topic)) {
+                    otherSubCommands.push(subCommand);
+                } else {
+                    const commands = subCommandsByTopic.get(subCommand.topic) || [];
+                    commands.push(subCommand);
+                    subCommandsByTopic.set(subCommand.topic, commands);
+                }
+            });
+
+            for (const key of subCommandsByTopic.keys()) {
+                const topicCommands = subCommandsByTopic.get(key);
+                if (!_.isUndefined(topicCommands)) {
+                    const topicSection: HelpSection = {
+                        title: `${key.charAt(0).toUpperCase() + key.slice(1)} Commands`,
+                        entries: []
+                    };
+                    topicCommands.sort((a, b) => a.name.localeCompare(b.name));
+                    topicCommands.forEach((subCommand) => {
+                        topicSection.entries.push({
+                            syntax: subCommand.name,
+                            description: subCommand.description
+                        });
+                    });
+                    helpSections.push(topicSection);
+                }
+            }
+
+            if (otherSubCommands.length > 0) {
+                const topicSection: HelpSection = {
+                    title: 'Other Commands',
+                    entries: []
+                };
+                otherSubCommands.sort((a, b) => a.name.localeCompare(b.name));
+                otherSubCommands.forEach((subCommand) => {
+                    topicSection.entries.push({
+                        syntax: subCommand.name,
+                        description: subCommand.description
+                    });
+                });
+                helpSections.push(topicSection);
+            }
+        }
+        return helpSections;
+    }
+
     /**
      * Prints generic CLI help.
      *
@@ -552,13 +545,13 @@ class MultiCommandCommonHelpCommand {
             entries: [
                 {
                     syntax: getCommandAppSyntax(context, globalModifierCommands, globalCommands, groupCommands,
-                        subCommands, false)
+                        subCommands)
                 }
             ]
         });
 
         helpSections.push(
-            ...getGenericHelpSections(globalModifierCommands, globalCommands, groupCommands, subCommands, false)
+            ...this.getGenericHelpSections(globalModifierCommands, globalCommands, groupCommands, subCommands)
         );
 
         printHelpSections(stdoutPrinter, helpSections);
@@ -611,7 +604,7 @@ class MultiCommandCommonHelpCommand {
         });
 
         helpSections.push(
-            ...getCommandArgsAndExampleHelpSections(context, subCommand)
+            ...getCommandArgsAndExampleHelpSections(context, subCommand, false)
         );
         printHelpSections(stdoutPrinter, helpSections);
     }
@@ -623,6 +616,8 @@ class MultiCommandCommonHelpCommand {
      * [[STDOUT_PRINTER_SERVICE]] and [[STDERR_PRINTER_SERVICE]] ID in the provided [[Context]].
      */
     public run(commandArgs: CommandArgs, context: Context): void {
+
+        checkContext(context);
         const stdoutPrinter = context.serviceRegistry.getServiceById(STDOUT_PRINTER_SERVICE) as unknown as Printer;
         if (!stdoutPrinter) {
             throw new Error('STDOUT_PRINTER_SERVICE not available in context');
@@ -680,6 +675,67 @@ class SingleCommandCommonHelpCommand {
 
     readonly description = 'Display application help';
 
+    private getAmalgamatedGenericHelpSection(
+        globalModifierCommands: GlobalModifierCommand[],
+        globalCommands: GlobalCommand[],
+        groupCommands: GroupCommand[],
+        subCommands: SubCommand[]
+    ): HelpSection {
+
+        const helpSection: HelpSection = {
+            title: 'Other Arguments',
+            entries: []
+        };
+        if (globalModifierCommands.length > 0) {
+            globalModifierCommands.forEach((globalModifierCommand) => {
+                const [argumentSyntax, argumentDescription] = getGlobalArgumentHelpEntry(globalModifierCommand);
+                helpSection.entries.push({
+                    syntax: `--${globalModifierCommand.name} ${argumentSyntax}`,
+                    description: argumentDescription
+                });
+                if (!_.isUndefined(globalModifierCommand.shortAlias)) {
+                    helpSection.entries.push({
+                        syntax: `-${globalModifierCommand.shortAlias} ${argumentSyntax}`,
+                        description: argumentDescription
+                    });
+                }
+            });
+        }
+        if (globalCommands.length > 0) {
+            globalCommands.forEach((globalCommand) => {
+                const [argumentSyntax, argumentDescription] = getGlobalArgumentHelpEntry(globalCommand);
+                helpSection.entries.push({
+                    syntax: `--${globalCommand.name} ${argumentSyntax}`,
+                    description: argumentDescription
+                });
+                if (!_.isUndefined(globalCommand.shortAlias)) {
+                    helpSection.entries.push({
+                        syntax: `-${globalCommand.shortAlias} ${argumentSyntax}`,
+                        description: argumentDescription
+                    });
+                }
+            });
+        }
+        groupCommands.forEach((groupCommand) => {
+            groupCommand.memberSubCommands.forEach((memberCommand) => {
+                helpSection.entries.push({
+                    syntax: `${groupCommand.name}:${memberCommand.name}`,
+                    description: memberCommand.description
+                });
+            });
+        });
+        if (subCommands.length > 0) {
+            subCommands.forEach((subCommand) => {
+                helpSection.entries.push({
+                    syntax: subCommand.name,
+                    description: subCommand.description
+                });
+            });
+        }
+        helpSection.entries.sort((a, b) => a.syntax.localeCompare(b.syntax));
+        return helpSection;
+    }
+
     /**
      * Prints generic CLI help.
      *
@@ -695,24 +751,23 @@ class SingleCommandCommonHelpCommand {
         }
 
         const helpSections = getGenericHelpInitialSections(context, stdoutPrinter);
-        const globalModifierCommands = Array.from(context.commandRegistry.getGlobalModifierCommands());
-        const globalCommands = Array.from(context.commandRegistry.getGlobalCommands());
-        const groupCommands = Array.from(context.commandRegistry.getGroupCommands());
-        const subCommands = Array.from(context.commandRegistry.getSubCommands());
-        const globalSyntax = getCommandAppSyntax(context, globalModifierCommands, globalCommands, groupCommands,
-            subCommands, true);
         helpSections.push({
             title: 'Usage',
             entries: [{
-                syntax: `${globalSyntax}${getSubCommandArgumentsSyntax(this.defaultCommand)}`
+                syntax: `${context.cliConfig.name || ''}${getSubCommandArgumentsSyntax(this.defaultCommand)}`
             }]
         });
 
         helpSections.push(
-            ...getCommandArgsAndExampleHelpSections(context, this.defaultCommand)
+            ...getCommandArgsAndExampleHelpSections(context, this.defaultCommand, true)
         );
+
+        const globalModifierCommands = Array.from(context.commandRegistry.getGlobalModifierCommands());
+        const globalCommands = Array.from(context.commandRegistry.getGlobalCommands());
+        const groupCommands = Array.from(context.commandRegistry.getGroupCommands());
+        const subCommands = Array.from(context.commandRegistry.getSubCommands());
         helpSections.push(
-            ...getGenericHelpSections(globalModifierCommands, globalCommands, groupCommands, subCommands, true)
+            this.getAmalgamatedGenericHelpSection(globalModifierCommands, globalCommands, groupCommands, subCommands)
         );
 
         printHelpSections(stdoutPrinter, helpSections);

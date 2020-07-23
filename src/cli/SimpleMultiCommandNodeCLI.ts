@@ -13,9 +13,6 @@ import { StderrPrinterService, StdoutPrinterService } from '../core/service/Prin
 import VersionCommand from '../core/command/VersionCommand';
 import Command from '../api/Command';
 
-const helpGlobalCommand = new MultiCommandHelpGlobalCommand();
-const usageCommand = new UsageCommand(helpGlobalCommand);
-
 /**
  * Node command line process implementation of a [[CLI]] configured for a multiple
  * command application with simple features.
@@ -23,6 +20,10 @@ const usageCommand = new UsageCommand(helpGlobalCommand);
 export default class SimpleMultiCommandNodeCLI extends BaseNodeCLI {
 
     protected readonly log: debug.Debugger = debug('SimpleMultiCommandNodeCLI');
+
+    protected static readonly helpGlobalCommand = new MultiCommandHelpGlobalCommand();
+
+    protected static readonly usageCommand = new UsageCommand(SimpleMultiCommandNodeCLI.helpGlobalCommand);
 
     /**
      * Constructor taking an optional name.
@@ -39,10 +40,11 @@ export default class SimpleMultiCommandNodeCLI extends BaseNodeCLI {
             new StdoutPrinterService(90),
             new PrompterService(90)
         ], [
-            helpGlobalCommand,
+            SimpleMultiCommandNodeCLI.helpGlobalCommand,
             new MultiCommandHelpSubCommand(),
             new VersionCommand(),
             ...commands
-        ], new Map(), new Map(), name, usageCommand, usageCommand);
+        ], new Map(), new Map(), name,
+        SimpleMultiCommandNodeCLI.usageCommand, SimpleMultiCommandNodeCLI.usageCommand);
     }
 }

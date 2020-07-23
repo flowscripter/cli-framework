@@ -13,8 +13,6 @@ import { RunResult } from '../api/Runner';
 import Command, { CommandArgs } from '../api/Command';
 import Service from '../api/Service';
 
-const packageInfo = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-
 /**
  * Basic Node command line process implementation of a [[CLI]]
  * taking CLI config from `package.json` and handling arguments and process termination.
@@ -22,6 +20,8 @@ const packageInfo = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 export default class BaseNodeCLI extends BaseCLI {
 
     protected readonly log: debug.Debugger = debug('BaseNodeCLI');
+
+    protected static readonly packageInfo = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 
     /**
      * Constructor taking an optional name.
@@ -49,9 +49,9 @@ export default class BaseNodeCLI extends BaseCLI {
         serviceConfigs: Map<string, any>, commandConfigs: Map<string, CommandArgs>,
         name?: string, defaultCommand?: Command, usageCommand?: Command) {
         super({
-            name: name || packageInfo.name,
-            description: packageInfo.description,
-            version: packageInfo.version,
+            name: name || BaseNodeCLI.packageInfo.name,
+            description: BaseNodeCLI.packageInfo.description,
+            version: BaseNodeCLI.packageInfo.version,
             stdin: process.stdin,
             stdout: process.stdout,
             stderr: process.stderr

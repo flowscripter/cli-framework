@@ -32,9 +32,6 @@ import {
 } from '../plugin/ServiceFactory';
 import Command, { CommandArgs } from '../api/Command';
 
-const helpGlobalCommand = new MultiCommandHelpGlobalCommand();
-const usageCommand = new UsageCommand(helpGlobalCommand);
-
 /**
  * Node command line process implementation of a [[CLI]] configured for a multiple
  * command application with advanced features.
@@ -42,6 +39,10 @@ const usageCommand = new UsageCommand(helpGlobalCommand);
 export default class AdvancedMultiCommandNodeCLI extends BaseNodeCLI {
 
     protected readonly log: debug.Debugger = debug('AdvancedMultiCommandNodeCLI');
+
+    protected static readonly helpGlobalCommand = new MultiCommandHelpGlobalCommand();
+
+    protected static readonly usageCommand = new UsageCommand(AdvancedMultiCommandNodeCLI.helpGlobalCommand);
 
     /**
      * Constructor taking an optional name.
@@ -81,7 +82,7 @@ export default class AdvancedMultiCommandNodeCLI extends BaseNodeCLI {
             ])),
             ...services
         ], [
-            helpGlobalCommand,
+            AdvancedMultiCommandNodeCLI.helpGlobalCommand,
             new MultiCommandHelpSubCommand(),
             new VersionCommand(),
             new ConfigCommand(100),
@@ -100,6 +101,7 @@ export default class AdvancedMultiCommandNodeCLI extends BaseNodeCLI {
             : serviceConfigs.set(PLUGIN_REGISTRY_SERVICE, {
                 pluginManager: NodePluginManager,
                 pluginLocation: path.join(process.cwd(), 'node_modules')
-            }), commandConfigs, name, usageCommand, usageCommand);
+            }), commandConfigs, name,
+        AdvancedMultiCommandNodeCLI.usageCommand, AdvancedMultiCommandNodeCLI.usageCommand);
     }
 }
