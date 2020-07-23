@@ -57,7 +57,8 @@ function getGlobalCommand(name: string, withArg = false, mandatoryArg = false): 
 }
 
 function getSubCommand(name: string, withArg = false, mandatoryArg = false, multiple = false,
-    type: ArgumentValueTypeName = ArgumentValueTypeName.String): SubCommand {
+    type: ArgumentValueTypeName = ArgumentValueTypeName.String,
+    defaultValue: string | undefined = undefined): SubCommand {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const subCommand: any = {
         name,
@@ -78,6 +79,9 @@ function getSubCommand(name: string, withArg = false, mandatoryArg = false, mult
         }
         if (multiple) {
             subCommand.options[0].isArray = true;
+        }
+        if (defaultValue) {
+            subCommand.options[0].defaultValue = defaultValue;
         }
     }
     return subCommand;
@@ -455,7 +459,7 @@ describe('HelpCommand test', () => {
             getGlobalModifierCommand('modifier1', true, true)
         ]);
         await help.run({}, context);
-        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Global Option'));
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Other Arguments'));
 
         // default, global modifier and global
 
@@ -465,7 +469,7 @@ describe('HelpCommand test', () => {
             getGlobalCommand('global1')
         ]);
         await help.run({}, context);
-        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Global Command'));
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('Other Arguments'));
     });
 
     test('Ensure single-command app usage syntax is rendered correctly', async () => {
@@ -508,7 +512,7 @@ describe('HelpCommand test', () => {
         help.defaultCommand = getSubCommand('command_a', true, true, true);
         await help.run({}, context);
         expect(mockStdout).toHaveBeenNthCalledWith(7,
-            expect.stringMatching(new RegExp('foobar \\[<global_option> <value>\\] --foo <value>...$')));
+            expect.stringMatching(new RegExp('foobar --foo <value>...$')));
 
         // with global modifier with no arg
 
@@ -519,7 +523,7 @@ describe('HelpCommand test', () => {
         help.defaultCommand = getSubCommand('command_a', true, true, true);
         await help.run({}, context);
         expect(mockStdout).toHaveBeenNthCalledWith(7,
-            expect.stringMatching(new RegExp('foobar \\[<global_option>\\] --foo <value>...$')));
+            expect.stringMatching(new RegExp('foobar --foo <value>...$')));
 
         // with singular optional arg and global modifier
 
@@ -530,7 +534,7 @@ describe('HelpCommand test', () => {
         help.defaultCommand = getSubCommand('command_a', true);
         await help.run({}, context);
         expect(mockStdout).toHaveBeenNthCalledWith(7,
-            expect.stringMatching(new RegExp('foobar \\[<global_option>\\] \\[--foo <value>\\]$')));
+            expect.stringMatching(new RegExp('foobar \\[--foo <value>\\]$')));
 
         // with multiple optional arg and multiple global modifiers and multiple global commands
 
@@ -544,8 +548,7 @@ describe('HelpCommand test', () => {
         help.defaultCommand = getSubCommand('command_a', true, false, true);
         await help.run({}, context);
         expect(mockStdout).toHaveBeenNthCalledWith(7,
-            expect.stringContaining('foobar [<global_option> [<value>]]...'
-                + ' [<global_command> <arg> <value>] [--foo <value>]...'));
+            expect.stringContaining('foobar [--foo <value>]...'));
 
         // with optional arg, multiple global modifiers, multiple global commands, multiple sub-commands
 
@@ -560,8 +563,7 @@ describe('HelpCommand test', () => {
         help.defaultCommand = getSubCommand('command_a', true, false, true);
         await help.run({}, context);
         expect(mockStdout).toHaveBeenNthCalledWith(7,
-            expect.stringContaining('[<global_option> [<value>]]...'
-                + ' [<global_command>|<command> <arg> <value>] [--foo <value>]...'));
+            expect.stringContaining('foobar [--foo <value>]...'));
 
         // also with boolean args
 
@@ -577,7 +579,16 @@ describe('HelpCommand test', () => {
             ArgumentValueTypeName.Boolean);
         await help.run({}, context);
         expect(mockStdout).toHaveBeenNthCalledWith(7,
-            expect.stringContaining('[<global_option> [<value>]]...'
-                + ' [<global_command>|<command> <arg> [<value>]] [--foo [<value>]]...'));
+            expect.stringContaining('foobar [--foo [<value>]]...'));
+
+        // also with default value
+
+        mockStdout.mockReset();
+        context = getContext(getCliConfig(), [stdoutService, stderrService], []);
+        help.defaultCommand = getSubCommand('command_a', true, false, true,
+            ArgumentValueTypeName.String, 'foo');
+        await help.run({}, context);
+        expect(mockStdout).toHaveBeenNthCalledWith(7,
+            expect.stringContaining('foobar [--foo <value>]...'));
     });
 });
