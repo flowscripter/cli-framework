@@ -15,10 +15,6 @@ import { StderrPrinterService, StdoutPrinterService } from '../core/service/Prin
 import UsageCommand from '../core/command/UsageCommand';
 import SubCommand from '../api/SubCommand';
 
-const helpGlobalCommand = new SingleCommandHelpGlobalCommand();
-const helpSubCommand = new SingleCommandHelpSubCommand();
-const usageCommand = new UsageCommand(helpGlobalCommand);
-
 /**
  * Node command line process implementation of a [[CLI]] configured for a single
  * command application with simple features.
@@ -26,6 +22,12 @@ const usageCommand = new UsageCommand(helpGlobalCommand);
 export default class SimpleSingleCommandNodeCLI extends BaseNodeCLI {
 
     protected readonly log: debug.Debugger = debug('SimpleSingleCommandNodeCLI');
+
+    protected static readonly helpGlobalCommand = new SingleCommandHelpGlobalCommand();
+
+    protected static readonly helpSubCommand = new SingleCommandHelpSubCommand();
+
+    protected static readonly usageCommand = new UsageCommand(SimpleSingleCommandNodeCLI.helpGlobalCommand);
 
     /**
      * Constructor taking the single [[SubCommand]] instance to be executed
@@ -43,11 +45,11 @@ export default class SimpleSingleCommandNodeCLI extends BaseNodeCLI {
             new StdoutPrinterService(90),
             new PrompterService(90)
         ], [
-            helpGlobalCommand,
-            helpSubCommand,
+            SimpleSingleCommandNodeCLI.helpGlobalCommand,
+            SimpleSingleCommandNodeCLI.helpSubCommand,
             new VersionCommand()
-        ], new Map(), new Map(), name, subCommand, usageCommand);
-        helpGlobalCommand.defaultCommand = subCommand;
-        helpSubCommand.defaultCommand = subCommand;
+        ], new Map(), new Map(), name, subCommand, SimpleSingleCommandNodeCLI.usageCommand);
+        SimpleSingleCommandNodeCLI.helpGlobalCommand.defaultCommand = subCommand;
+        SimpleSingleCommandNodeCLI.helpSubCommand.defaultCommand = subCommand;
     }
 }
