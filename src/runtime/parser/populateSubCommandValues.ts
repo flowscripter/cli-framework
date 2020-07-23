@@ -359,7 +359,8 @@ function* parseEventGenerator(subCommand: SubCommand, potentialArgs: string[],
 export default function populateSubCommandValues(subCommand: SubCommand, potentialArgs: string[],
     invalidArgs: InvalidArg[]): PopulateResult {
 
-    log(`Populating args: ${potentialArgs.join(' ')} for sub-command: ${subCommand.name}`);
+    log(`Populating args: ${potentialArgs.length > 0 ? `${potentialArgs.join(' ')} ` : ''}for sub-command: ${
+        subCommand.name}`);
 
     const commandArgs: CommandArgs = {};
     const unusedArgs: string[] = [];
