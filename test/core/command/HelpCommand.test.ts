@@ -14,6 +14,7 @@ import GlobalModifierCommand from '../../../src/api/GlobalModifierCommand';
 import GlobalCommand from '../../../src/api/GlobalCommand';
 import { ArgumentValueTypeName } from '../../../src';
 import CLIConfig from '../../../src/api/CLIConfig';
+import GroupCommand from '../../../src/api/GroupCommand';
 
 const mockStdout = mockProcessStdout();
 const mockStderr = mockProcessStderr();
@@ -298,6 +299,37 @@ describe('HelpCommand test', () => {
         expect(mockStdout).toHaveBeenNthCalledWith(13, expect.stringMatching(new RegExp('--zzz')));
     });
 
+    test('Ensure commands are sectioned by topic and group', async () => {
+        const help = new MultiCommandHelpGlobalCommand();
+        const stdoutService = new StdoutPrinterService(100);
+        const stderrService = new StderrPrinterService(100);
+        stdoutService.colorEnabled = false;
+        const context = getContext(getCliConfig(), [stdoutService, stderrService], [
+            help,
+            {
+                name: 'topic',
+                topic: 'topic',
+                options: [],
+                positionals: [],
+                run: async (): Promise<void> => {
+                    // empty
+                }
+            } as SubCommand,
+            {
+                name: 'goo',
+                memberSubCommands: [getSubCommand('gar')],
+                run: async (): Promise<void> => {
+                    // empty
+                }
+            } as GroupCommand,
+        ]);
+        stdoutService.init(context);
+
+        await help.run({}, context);
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringMatching(new RegExp('^Topic')));
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringMatching(new RegExp('^Goo')));
+    });
+
     test('Ensure global items are renamed without global if no sub or group commands', async () => {
         const help = new MultiCommandHelpGlobalCommand();
         const stdoutService = new StdoutPrinterService(100);
@@ -511,6 +543,39 @@ describe('HelpCommand test', () => {
         context = getContext(getCliConfig(), [stdoutService, stderrService], []);
         await help.run({}, context);
         expect(mockStdout).toHaveBeenCalledWith(expect.stringContaining('--foo'));
+    });
+
+    test('Ensure single-command app aggregates all non-default command arguments', async () => {
+        const help = new SingleCommandHelpGlobalCommand();
+        const stdoutService = new StdoutPrinterService(100);
+        const stderrService = new StderrPrinterService(100);
+        stdoutService.colorEnabled = false;
+        let context = getContext(getCliConfig(), [stdoutService, stderrService], []);
+        stdoutService.init(context);
+
+        help.defaultCommand = getSubCommand('command_a', true, true, true);
+
+        context = getContext(getCliConfig(), [stdoutService, stderrService], [
+            getGlobalCommand('global1', true, true),
+            getGlobalCommand('global2', true),
+            getSubCommand('command_a', true, true, true, ArgumentValueTypeName.Boolean),
+            getSubCommand('command_b', true),
+            {
+                name: 'topic',
+                topic: 'topic',
+                options: [],
+                positionals: [],
+                run: async (): Promise<void> => {
+                    // empty
+                }
+            }
+        ]);
+
+        await help.run({}, context);
+        expect(mockStdout).not.toHaveBeenCalledWith(expect.stringMatching(new RegExp('^Global')));
+        expect(mockStdout).not.toHaveBeenCalledWith(expect.stringMatching(new RegExp('^Topic')));
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringMatching(new RegExp('^Other Arguments')));
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringMatching(new RegExp('^Other Arguments')));
     });
 
     test('Ensure single-command app with default and globals help is rendered correctly', async () => {
