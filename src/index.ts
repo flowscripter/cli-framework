@@ -61,7 +61,9 @@ export {
     StdoutPrinterService,
     StderrPrinterService,
     STDOUT_PRINTER_SERVICE,
-    STDERR_PRINTER_SERVICE
+    STDERR_PRINTER_SERVICE,
+    Icon,
+    Level
 } from './core/service/PrinterService';
 
 export {
