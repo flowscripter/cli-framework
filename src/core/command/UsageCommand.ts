@@ -16,11 +16,15 @@ export default class UsageCommand implements GlobalCommand {
 
     readonly helpCommand: GlobalCommand;
 
+    readonly printCliDescription: boolean;
+
     /**
      * @param helpCommand the [[GlobalCommand]] to use as an example of invoking help when outputting usage information
+     * @param printCliDescription whether or not to output the CLI description when invoked
      */
-    public constructor(helpCommand: GlobalCommand) {
+    public constructor(helpCommand: GlobalCommand, printCliDescription = true) {
         this.helpCommand = helpCommand;
+        this.printCliDescription = printCliDescription;
     }
 
     /**
@@ -42,7 +46,9 @@ export default class UsageCommand implements GlobalCommand {
         if (!printer) {
             throw new Error('STDOUT_PRINTER_SERVICE not available in context');
         }
-        printer.info(`\n${printer.blue(context.cliConfig.description)}\n\n`);
+        if (this.printCliDescription) {
+            printer.info(`\n${printer.blue(context.cliConfig.description)}\n\n`);
+        }
         printer.info(`${printer.dim('Try running:')}\n\n  ${context.cliConfig.name} --${this.helpCommand.name}\n\n`);
     }
 }
