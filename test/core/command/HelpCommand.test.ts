@@ -3,8 +3,8 @@
 import { mockProcessStderr, mockProcessStdout } from 'jest-mock-process';
 import {
     MultiCommandHelpGlobalCommand,
-    SingleCommandHelpGlobalCommand,
-    MultiCommandHelpSubCommand
+    MultiCommandHelpSubCommand,
+    SingleCommandHelpGlobalCommand
 } from '../../../src/core/command/HelpCommand';
 import { StderrPrinterService, StdoutPrinterService } from '../../../src/core/service/PrinterService';
 import { getContext } from '../../fixtures/Context';
@@ -13,6 +13,7 @@ import SubCommand from '../../../src/api/SubCommand';
 import GlobalModifierCommand from '../../../src/api/GlobalModifierCommand';
 import GlobalCommand from '../../../src/api/GlobalCommand';
 import { ArgumentValueTypeName } from '../../../src';
+import CLIConfig from '../../../src/api/CLIConfig';
 
 const mockStdout = mockProcessStdout();
 const mockStderr = mockProcessStderr();
@@ -87,6 +88,35 @@ function getSubCommand(name: string, withArg = false, mandatoryArg = false, mult
     return subCommand;
 }
 
+function getPositionalSubCommand(name: string, optional = false, multiple = false,
+    type: ArgumentValueTypeName = ArgumentValueTypeName.String,
+    defaultValue: string | undefined = undefined): SubCommand {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const subCommand: any = {
+        name,
+        description: 'good',
+        options: [],
+        positionals: [],
+        run: async (): Promise<void> => {
+            // empty
+        }
+    };
+    subCommand.positionals = [{
+        name: 'foo',
+        type
+    }];
+    if (optional) {
+        subCommand.positionals[0].isVarArgOptional = true;
+    }
+    if (multiple) {
+        subCommand.positionals[0].isVarArgMultiple = true;
+    }
+    if (defaultValue) {
+        subCommand.positionals[0].defaultValue = defaultValue;
+    }
+    return subCommand;
+}
+
 describe('HelpCommand test', () => {
 
     beforeEach(() => {
@@ -103,6 +133,46 @@ describe('HelpCommand test', () => {
 
     test('MultiCommandHelpSubCommand is instantiable', () => {
         expect(new MultiCommandHelpSubCommand()).toBeInstanceOf(MultiCommandHelpSubCommand);
+    });
+
+    test('HelpCommand context checks ', async () => {
+        const help = new MultiCommandHelpGlobalCommand();
+        const stdoutService = new StdoutPrinterService(100);
+        const stderrService = new StderrPrinterService(100);
+
+        let context = getContext(getCliConfig(), [stdoutService, stderrService], [help]);
+        stdoutService.init(context);
+        stderrService.init(context);
+
+        const config1 = {
+            description: 'foo bar',
+            version: '1.2.3',
+            stdout: process.stdout,
+            stderr: process.stderr,
+            stdin: process.stdin
+        };
+        context = getContext(config1 as unknown as CLIConfig, [stdoutService, stderrService], [help]);
+        expect(() => help.run({}, context)).toThrowError();
+
+        const config2 = {
+            name: 'foobar',
+            version: '1.2.3',
+            stdout: process.stdout,
+            stderr: process.stderr,
+            stdin: process.stdin
+        };
+        context = getContext(config2 as unknown as CLIConfig, [stdoutService, stderrService], [help]);
+        expect(() => help.run({}, context)).toThrowError();
+
+        const config3 = {
+            name: 'foobar',
+            description: 'foo bar',
+            stdout: process.stdout,
+            stderr: process.stderr,
+            stdin: process.stdin
+        };
+        context = getContext(config3 as unknown as CLIConfig, [stdoutService, stderrService], [help]);
+        expect(() => help.run({}, context)).toThrowError();
     });
 
     test('MultiCommandHelpGlobalCommand works', async () => {
@@ -590,5 +660,49 @@ describe('HelpCommand test', () => {
         await help.run({}, context);
         expect(mockStdout).toHaveBeenNthCalledWith(7,
             expect.stringContaining('foobar [--foo <value>]...'));
+
+        // with positionals
+
+        mockStdout.mockReset();
+        context = getContext(getCliConfig(), [stdoutService, stderrService], []);
+        help.defaultCommand = getPositionalSubCommand('command_a');
+        await help.run({}, context);
+        expect(mockStdout).toHaveBeenNthCalledWith(7,
+            expect.stringContaining('foobar <foo>'));
+
+        mockStdout.mockReset();
+        context = getContext(getCliConfig(), [stdoutService, stderrService], []);
+        help.defaultCommand = getPositionalSubCommand('command_a', true, true);
+        await help.run({}, context);
+        expect(mockStdout).toHaveBeenNthCalledWith(7,
+            expect.stringContaining('foobar [<foo>]...'));
+
+        mockStdout.mockReset();
+        context = getContext(getCliConfig(), [stdoutService, stderrService], []);
+        help.defaultCommand = getPositionalSubCommand('command_a', true, true, ArgumentValueTypeName.Boolean);
+        await help.run({}, context);
+        expect(mockStdout).toHaveBeenNthCalledWith(7,
+            expect.stringContaining('foobar [<foo>]...'));
+
+        mockStdout.mockReset();
+        context = getContext(getCliConfig(), [stdoutService, stderrService], []);
+        help.defaultCommand = getPositionalSubCommand('command_a', true, true, ArgumentValueTypeName.String, 'bar');
+        await help.run({}, context);
+        expect(mockStdout).toHaveBeenNthCalledWith(7,
+            expect.stringContaining('foobar [<foo>]...'));
+
+        mockStdout.mockReset();
+        context = getContext(getCliConfig(), [stdoutService, stderrService], []);
+        help.defaultCommand = getPositionalSubCommand('command_a', false, false, ArgumentValueTypeName.String, 'bar');
+        await help.run({}, context);
+        expect(mockStdout).toHaveBeenNthCalledWith(7,
+            expect.stringContaining('foobar <foo>'));
+
+        mockStdout.mockReset();
+        context = getContext(getCliConfig(), [stdoutService, stderrService], []);
+        help.defaultCommand = getPositionalSubCommand('command_a', false, true, ArgumentValueTypeName.Boolean);
+        await help.run({}, context);
+        expect(mockStdout).toHaveBeenNthCalledWith(7,
+            expect.stringContaining('foobar <foo>...'));
     });
 });

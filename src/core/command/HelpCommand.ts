@@ -72,13 +72,13 @@ function getSubCommandArgumentsSyntax(subCommand: SubCommand): string {
 
     subCommand.positionals.forEach((positional) => {
         let positionalSyntax = `<${positional.name}>`;
-        if (positional.isVarArgOptional || positional.type === ArgumentValueTypeName.Boolean) {
+        if (positional.isVarArgOptional) {
             positionalSyntax = ` [${positionalSyntax}]`;
         } else {
             positionalSyntax = ` ${positionalSyntax}`;
         }
         if (positional.isVarArgMultiple) {
-            positionalSyntax = ` ${positionalSyntax}...`;
+            positionalSyntax = `${positionalSyntax}...`;
         }
         syntax = `${syntax}${positionalSyntax}`;
     });
@@ -616,6 +616,8 @@ class MultiCommandCommonHelpCommand {
      * [[STDOUT_PRINTER_SERVICE]] and [[STDERR_PRINTER_SERVICE]] ID in the provided [[Context]].
      */
     public run(commandArgs: CommandArgs, context: Context): void {
+
+        checkContext(context);
         const stdoutPrinter = context.serviceRegistry.getServiceById(STDOUT_PRINTER_SERVICE) as unknown as Printer;
         if (!stdoutPrinter) {
             throw new Error('STDOUT_PRINTER_SERVICE not available in context');
