@@ -574,7 +574,7 @@ describe('HelpCommand test', () => {
         await help.run({}, context);
         expect(mockStdout).not.toHaveBeenCalledWith(expect.stringMatching(new RegExp('^Global')));
         expect(mockStdout).not.toHaveBeenCalledWith(expect.stringMatching(new RegExp('^Topic')));
-        expect(mockStdout).toHaveBeenCalledWith(expect.stringMatching(new RegExp('^Other Arguments')));
+        expect(mockStdout).toHaveBeenCalledWith(expect.stringMatching(new RegExp('^Command Arguments')));
         expect(mockStdout).toHaveBeenCalledWith(expect.stringMatching(new RegExp('^Other Arguments')));
     });
 
