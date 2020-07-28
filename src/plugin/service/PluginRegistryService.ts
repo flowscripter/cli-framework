@@ -73,13 +73,13 @@ export class PluginRegistryService implements Service, PluginRegistry {
 
     public readonly initPriority: number;
 
-    private pluginManager: PluginManager<string> | undefined;
-
     public pluginLocation: string | undefined;
 
     public moduleScope: string | undefined;
 
     public extensionHandlersByExtensionPoints: Map<string, (extension: any, context: Context) => Promise<void>>;
+
+    protected pluginManager: PluginManager<string> | undefined;
 
     /**
      * Create a [[PluginRegistry]] service using a wrapped esm-dynamic-modules PluginManager.
@@ -177,21 +177,6 @@ export class PluginRegistryService implements Service, PluginRegistry {
             this.log(`Registering Extension Point ID: ${extensionPointId} with PluginManager`);
             this.pluginManager.registerExtensionPoint(extensionPointId);
         }
-        const registerPromises: Array<Promise<void>> = [];
-        for (const extensionPointId of this.extensionHandlersByExtensionPoints.keys()) {
-            this.log(`Registering Plugins for Extension Point ID: ${extensionPointId}`);
-            let registerPromise: Promise<number>;
-            if (!_.isUndefined(this.moduleScope)) {
-                registerPromise = this.pluginManager.registerPluginsByModuleScopeAndExtensionPoint(this.moduleScope,
-                    extensionPointId);
-            } else {
-                registerPromise = this.pluginManager.registerPluginsByExtensionPoint(extensionPointId);
-            }
-            registerPromises.push(registerPromise.then((pluginCount) => {
-                this.log(`Registered ${pluginCount} plugins(s)`);
-            }));
-        }
-        await Promise.all(registerPromises);
 
         await this.scan(context);
     }
@@ -214,16 +199,33 @@ export class PluginRegistryService implements Service, PluginRegistry {
      * @inheritdoc
      *
      * This implementation performs the following for each tuple in the provided [[extensionHandlersByExtensionPoints]]:
+     * * register plugins for the extension point ID
      * * get any extensions from the PluginManager for this extension point ID
      * * pass each extension to the provided extension handler function associated with the extension point ID
      *
-     * @throws *Error* if there is an issue while scanning.
+     * @throws *Error* if there is an issue while scanning of if called before [[init()]] is invoked.
      */
     public async scan(context: Context): Promise<void> {
 
         if (_.isUndefined(this.pluginManager)) {
             throw new Error('"pluginManager" is undefined, has init() been invoked?');
         }
+
+        const registerPromises: Array<Promise<void>> = [];
+        for (const extensionPointId of this.extensionHandlersByExtensionPoints.keys()) {
+            this.log(`Registering Plugins for Extension Point ID: ${extensionPointId}`);
+            let registerPromise: Promise<number>;
+            if (!_.isUndefined(this.moduleScope)) {
+                registerPromise = this.pluginManager.registerPluginsByModuleScopeAndExtensionPoint(this.moduleScope,
+                    extensionPointId);
+            } else {
+                registerPromise = this.pluginManager.registerPluginsByExtensionPoint(extensionPointId);
+            }
+            registerPromises.push(registerPromise.then((pluginCount) => {
+                this.log(`Registered ${pluginCount} plugins(s)`);
+            }));
+        }
+        await Promise.all(registerPromises);
 
         for (const extensionPointId of this.extensionHandlersByExtensionPoints.keys()) {
             for await (const extension of this.makeExtensionIterator(this.pluginManager, extensionPointId)) {
@@ -235,5 +237,18 @@ export class PluginRegistryService implements Service, PluginRegistry {
                 await extensionHandler(extension, context);
             }
         }
+    }
+
+    /**
+     * Provides access to the wrapped esm-dynamic-plugins `PluginManager` instance.
+     *
+     * @throws *Error* if this is called before [[init()]] is invoked.
+     */
+    public getPluginManager(): PluginManager<string> {
+
+        if (_.isUndefined(this.pluginManager)) {
+            throw new Error('"pluginManager" is undefined, has init() been invoked?');
+        }
+        return this.pluginManager;
     }
 }
