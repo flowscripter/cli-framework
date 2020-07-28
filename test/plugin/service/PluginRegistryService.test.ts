@@ -212,7 +212,7 @@ describe('PluginRegistryService test', () => {
         const context: Context = getContext(getCliConfig(), [], [], serviceConfigs);
 
         await expect(pluginRegistry.scan(context)).rejects.toThrowError();
-        await expect(pluginRegistry.getPluginManager()).rejects.toThrowError();
+        expect(() => pluginRegistry.getPluginManager()).toThrowError();
     });
 
     test('PluginRegistry getPluginManager works', async () => {
@@ -231,6 +231,6 @@ describe('PluginRegistryService test', () => {
         const context: Context = getContext(getCliConfig(), [], [], serviceConfigs);
 
         await pluginRegistry.init(context);
-        await expect(pluginRegistry.getPluginManager()).not.toBeNull();
+        expect(pluginRegistry.getPluginManager()).not.toBeNull();
     });
 });
