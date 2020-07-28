@@ -196,7 +196,7 @@ describe('PluginRegistryService test', () => {
         expect(Array.from(context.commandRegistry.getCommands())).toHaveLength(1);
     });
 
-    test('PluginRegistry scan fails if init not called', async () => {
+    test('PluginRegistry init must be called first', async () => {
         const pluginRegistry = new PluginRegistryService(100, new Map([
             [SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID,
                 handleLoadedServiceFactory as (extension: any, context: Context) => Promise<void>],
@@ -212,5 +212,25 @@ describe('PluginRegistryService test', () => {
         const context: Context = getContext(getCliConfig(), [], [], serviceConfigs);
 
         await expect(pluginRegistry.scan(context)).rejects.toThrowError();
+        await expect(pluginRegistry.getPluginManager()).rejects.toThrowError();
+    });
+
+    test('PluginRegistry getPluginManager works', async () => {
+        const pluginRegistry = new PluginRegistryService(100, new Map([
+            [SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID,
+                handleLoadedServiceFactory as (extension: any, context: Context) => Promise<void>],
+            [COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID,
+                handleLoadedCommandFactory as (extension: any, context: Context) => Promise<void>]
+        ]));
+        const serviceConfigs = new Map<string, any>();
+        serviceConfigs.set(PLUGIN_REGISTRY_SERVICE, {
+            pluginManager: NodePluginManager,
+            pluginLocation: path.join(process.cwd(), 'test/fixtures'),
+            moduleScope: '@foo'
+        });
+        const context: Context = getContext(getCliConfig(), [], [], serviceConfigs);
+
+        await pluginRegistry.init(context);
+        await expect(pluginRegistry.getPluginManager()).not.toBeNull();
     });
 });
