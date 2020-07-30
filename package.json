@@ -91,7 +91,7 @@
         "typescript": "3.9.7"
     },
     "dependencies": {
-        "@flowscripter/esm-dynamic-plugins": "1.5.13",
+        "@flowscripter/esm-dynamic-plugins": "1.5.14",
         "axios": "0.19.2",
         "debug": "4.1.1",
         "gunzip-maybe": "1.4.2",
