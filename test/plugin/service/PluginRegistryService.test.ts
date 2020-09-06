@@ -126,10 +126,14 @@ describe('PluginRegistryService test', () => {
 
     test('PluginRegistry discovers plugins', async () => {
         const pluginRegistry = new PluginRegistryService(100, new Map([
-            [SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID,
-                handleLoadedServiceFactory as (extension: any, context: Context) => Promise<void>],
-            [COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID,
-                handleLoadedCommandFactory as (extension: any, context: Context) => Promise<void>]
+            [SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID, {
+                handler: handleLoadedServiceFactory as (extension: any, context: Context) => Promise<void>,
+                hostData: PLUGIN_REGISTRY_SERVICE
+            }],
+            [COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID, {
+                handler: handleLoadedCommandFactory as (extension: any, context: Context) => Promise<void>,
+                hostData: PLUGIN_REGISTRY_SERVICE
+            }]
         ]));
         const serviceConfigs = new Map<string, any>();
         serviceConfigs.set(PLUGIN_REGISTRY_SERVICE, {
@@ -149,10 +153,14 @@ describe('PluginRegistryService test', () => {
 
     test('PluginRegistry discovers plugins with scope filtering', async () => {
         const pluginRegistry = new PluginRegistryService(100, new Map([
-            [SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID,
-                handleLoadedServiceFactory as (extension: any, context: Context) => Promise<void>],
-            [COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID,
-                handleLoadedCommandFactory as (extension: any, context: Context) => Promise<void>]
+            [SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID, {
+                handler: handleLoadedServiceFactory as (extension: any, context: Context) => Promise<void>,
+                hostData: PLUGIN_REGISTRY_SERVICE
+            }],
+            [COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID, {
+                handler: handleLoadedCommandFactory as (extension: any, context: Context) => Promise<void>,
+                hostData: PLUGIN_REGISTRY_SERVICE
+            }]
         ]));
         const serviceConfigs = new Map<string, any>();
         serviceConfigs.set(PLUGIN_REGISTRY_SERVICE, {
@@ -173,10 +181,14 @@ describe('PluginRegistryService test', () => {
 
     test('PluginRegistry scan works', async () => {
         const pluginRegistry = new PluginRegistryService(100, new Map([
-            [SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID,
-                handleLoadedServiceFactory as (extension: any, context: Context) => Promise<void>],
-            [COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID,
-                handleLoadedCommandFactory as (extension: any, context: Context) => Promise<void>]
+            [SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID, {
+                handler: handleLoadedServiceFactory as (extension: any, context: Context) => Promise<void>,
+                hostData: PLUGIN_REGISTRY_SERVICE
+            }],
+            [COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID, {
+                handler: handleLoadedCommandFactory as (extension: any, context: Context) => Promise<void>,
+                hostData: PLUGIN_REGISTRY_SERVICE
+            }]
         ]));
         const serviceConfigs = new Map<string, any>();
         serviceConfigs.set(PLUGIN_REGISTRY_SERVICE, {
@@ -198,10 +210,14 @@ describe('PluginRegistryService test', () => {
 
     test('PluginRegistry init must be called first', async () => {
         const pluginRegistry = new PluginRegistryService(100, new Map([
-            [SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID,
-                handleLoadedServiceFactory as (extension: any, context: Context) => Promise<void>],
-            [COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID,
-                handleLoadedCommandFactory as (extension: any, context: Context) => Promise<void>]
+            [SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID, {
+                handler: handleLoadedServiceFactory as (extension: any, context: Context) => Promise<void>,
+                hostData: PLUGIN_REGISTRY_SERVICE
+            }],
+            [COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID, {
+                handler: handleLoadedCommandFactory as (extension: any, context: Context) => Promise<void>,
+                hostData: PLUGIN_REGISTRY_SERVICE
+            }]
         ]));
         const serviceConfigs = new Map<string, any>();
         serviceConfigs.set(PLUGIN_REGISTRY_SERVICE, {
@@ -217,10 +233,14 @@ describe('PluginRegistryService test', () => {
 
     test('PluginRegistry getPluginManager works', async () => {
         const pluginRegistry = new PluginRegistryService(100, new Map([
-            [SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID,
-                handleLoadedServiceFactory as (extension: any, context: Context) => Promise<void>],
-            [COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID,
-                handleLoadedCommandFactory as (extension: any, context: Context) => Promise<void>]
+            [SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID, {
+                handler: handleLoadedServiceFactory as (extension: any, context: Context) => Promise<void>,
+                hostData: PLUGIN_REGISTRY_SERVICE
+            }],
+            [COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID, {
+                handler: handleLoadedCommandFactory as (extension: any, context: Context) => Promise<void>,
+                hostData: PLUGIN_REGISTRY_SERVICE
+            }]
         ]));
         const serviceConfigs = new Map<string, any>();
         serviceConfigs.set(PLUGIN_REGISTRY_SERVICE, {
