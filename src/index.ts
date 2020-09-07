@@ -77,6 +77,7 @@ export {
 export {
     default as PluginRegistry,
     PLUGIN_REGISTRY_SERVICE,
+    ExtensionConfig,
     PluginManagerConfig,
     PluginRegistryService,
     PluginManagerClass

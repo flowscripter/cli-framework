@@ -107,12 +107,10 @@ export class PrompterService implements Service, Prompter {
      * * `cliConfig.stdin: Readable`
      */
     public init(context: Context): void {
-        if (_.isUndefined(context.cliConfig) || _.isUndefined(context.cliConfig.stdout)
-            || !_.isFunction(context.cliConfig.stdout.write)) {
+        if (_.isUndefined(context.cliConfig.stdout) || !_.isFunction(context.cliConfig.stdout.write)) {
             throw new Error('Provided context is missing property: "cliConfig.stdout: Writable"');
         }
-        if (_.isUndefined(context.cliConfig) || _.isUndefined(context.cliConfig.stdin)
-            || !_.isFunction(context.cliConfig.stdin.read)) {
+        if (_.isUndefined(context.cliConfig.stdin) || !_.isFunction(context.cliConfig.stdin.read)) {
             throw new Error('Provided context is missing property: "cliConfig.stdin: Readable"');
         }
         this.writable = context.cliConfig.stdout;

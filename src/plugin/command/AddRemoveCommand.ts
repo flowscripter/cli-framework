@@ -124,11 +124,11 @@ export class AddCommand extends AbstractPluginCommand implements SubCommand {
             if (found) {
                 if (found.version !== packageSpecToInstall.version) {
                     throw new Error(`Multiple versions are not supported! Requested: ${
-                        packageSpecToInstall.name}@${packageSpecToInstall.version}, Installed: ${
+                        packageSpecToInstall.name}@${packageSpecToInstall.version}, Existing: ${
                         found.name}@${found.version}`);
                 }
                 this.stdoutPrinter!.info(`${
-                    this.stdoutPrinter!.gray('Already added:')} ${
+                    this.stdoutPrinter!.gray('Already exists:')} ${
                     packageSpecToInstall.name}@${packageSpecToInstall.version}\n`, Icon.SUCCESS);
                 return;
             }

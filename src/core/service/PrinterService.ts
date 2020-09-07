@@ -392,8 +392,7 @@ export class StdoutPrinterService extends PrinterService {
      */
     public init(context: Context): void {
         super.init(context);
-        if (_.isUndefined(context.cliConfig) || _.isUndefined(context.cliConfig.stdout)
-            || !_.isFunction(context.cliConfig.stdout.write)) {
+        if (_.isUndefined(context.cliConfig.stdout) || !_.isFunction(context.cliConfig.stdout.write)) {
             throw new Error('Provided context is missing property: "cliConfig.stdout: Writable"');
         }
         this.readonlyWritable = context.cliConfig.stdout;
@@ -423,8 +422,7 @@ export class StderrPrinterService extends PrinterService {
      */
     public init(context: Context): void {
         super.init(context);
-        if (_.isUndefined(context.cliConfig) || _.isUndefined(context.cliConfig.stderr)
-            || !_.isFunction(context.cliConfig.stderr.write)) {
+        if (_.isUndefined(context.cliConfig.stderr) || !_.isFunction(context.cliConfig.stderr.write)) {
             throw new Error('Provided context is missing property: "cliConfig.stderr: Writable"');
         }
         this.readonlyWritable = context.cliConfig.stderr;

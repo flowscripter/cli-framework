@@ -136,7 +136,7 @@ export class ConfigurationService implements Service, Configuration {
     public init(context: Context): void {
 
         // determine default config file path
-        if (_.isUndefined(context.cliConfig) || !_.isString(context.cliConfig.name)) {
+        if (!_.isString(context.cliConfig.name)) {
             throw new Error('Provided context is missing property: "cliConfig.name: string"');
         }
         this.defaultConfigFilePath = `${os.homedir()}/.${context.cliConfig.name.replace(/\W/g, '')}.yaml`;

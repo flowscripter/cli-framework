@@ -77,10 +77,14 @@ export default class AdvancedMultiCommandNodeCLI extends BaseNodeCLI {
             new StdoutPrinterService(90),
             new PrompterService(90),
             new PluginRegistryService(80, new Map([
-                [SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID,
-                    handleLoadedServiceFactory as (extension: any, context: Context) => Promise<void>],
-                [COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID,
-                    handleLoadedCommandFactory as (extension: any, context: Context) => Promise<void>]
+                [SERVICE_FACTORY_PLUGIN_EXTENSION_POINT_ID, {
+                    handler: handleLoadedServiceFactory as (extension: any, context: Context) => Promise<void>,
+                    hostData: PLUGIN_REGISTRY_SERVICE
+                }],
+                [COMMAND_FACTORY_PLUGIN_EXTENSION_POINT_ID, {
+                    handler: handleLoadedCommandFactory as (extension: any, context: Context) => Promise<void>,
+                    hostData: PLUGIN_REGISTRY_SERVICE
+                }],
             ])),
             ...services
         ], [
