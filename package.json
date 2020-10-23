@@ -92,7 +92,7 @@
     },
     "dependencies": {
         "@flowscripter/esm-dynamic-plugins": "1.5.15",
-        "axios": "0.20.0",
+        "axios": "0.21.0",
         "debug": "4.2.0",
         "gunzip-maybe": "1.4.2",
         "js-yaml": "3.14.0",
